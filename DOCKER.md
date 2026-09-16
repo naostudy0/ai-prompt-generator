@@ -38,4 +38,12 @@ docker compose up -d
 ```
 
 DBとソースはホスト側に保存され、`docker compose down`後も残ります。
-現在はLaravel初期画面までのセットアップです。フロントエンド用Node.js環境とAIプロンプト生成機能は未実装です。
+現在はLaravel初期画面までのセットアップです。Node.js 24は`node`サービスで利用できます。AIプロンプト生成機能は未実装です。
+
+## 静的チェック
+
+初回は`docker compose run --rm node npm ci`でJavaScriptの依存をインストールします。
+PHPの依存は上記の`composer install`でインストールします。
+開発後は`sh scripts/check.sh`を必ず実行してください。
+個別の検査・整形方法は[コーディング規約](docs/design/コーディング規約.md)を参照してください。
+`node`はツール用サービスのため通常の`docker compose up -d`では常駐しません。

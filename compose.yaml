@@ -23,3 +23,11 @@ services:
       app:
         condition: service_healthy
 
+
+  node:
+    image: node:24-bookworm-slim
+    profiles: [tools]
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    command: ["node", "--version"]
