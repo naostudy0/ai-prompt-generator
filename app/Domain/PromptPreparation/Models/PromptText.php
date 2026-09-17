@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Domain\PromptPreparation\Models\DefaultPrompt;
+namespace App\Domain\PromptPreparation\Models;
 
-final readonly class DefaultPromptText
+final readonly class PromptText
 {
     private function __construct(
         public string $value,

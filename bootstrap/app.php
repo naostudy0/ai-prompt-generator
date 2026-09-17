@@ -11,10 +11,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $preserveDefaultPromptContent = fn (Request $request): bool => $request->is('default-prompts/*');
+        $preservePromptContent = fn (Request $request): bool => $request->is('default-prompts/*')
+            || $request->is('lora-triggers')
+            || $request->is('lora-triggers/*')
+            || $request->is('outfits')
+            || $request->is('outfits/*');
 
-        $middleware->trimStrings(except: [$preserveDefaultPromptContent]);
-        $middleware->convertEmptyStringsToNull(except: [$preserveDefaultPromptContent]);
+        $middleware->trimStrings(except: [$preservePromptContent]);
+        $middleware->convertEmptyStringsToNull(except: [$preservePromptContent]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

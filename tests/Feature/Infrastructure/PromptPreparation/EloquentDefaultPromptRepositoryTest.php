@@ -3,7 +3,7 @@
 namespace Tests\Feature\Infrastructure\PromptPreparation;
 
 use App\Domain\PromptPreparation\Models\DefaultPrompt\DefaultPrompt;
-use App\Domain\PromptPreparation\Models\DefaultPrompt\DefaultPromptText;
+use App\Domain\PromptPreparation\Models\PromptText;
 use App\Domain\PromptPreparation\Models\DefaultPrompt\PromptPolarity;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentDefaultPromptRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -20,7 +20,7 @@ class EloquentDefaultPromptRepositoryTest extends TestCase
 
         $repository->save(new DefaultPrompt(
             polarity: PromptPolarity::Positive,
-            text: DefaultPromptText::fromInput($content),
+            text: PromptText::fromInput($content),
         ));
 
         $this->assertDatabaseHas('default_prompts', [
@@ -37,16 +37,16 @@ class EloquentDefaultPromptRepositoryTest extends TestCase
         $repository = new EloquentDefaultPromptRepository();
         $repository->save(new DefaultPrompt(
             polarity: PromptPolarity::Positive,
-            text: DefaultPromptText::fromInput($originalPositive),
+            text: PromptText::fromInput($originalPositive),
         ));
         $repository->save(new DefaultPrompt(
             polarity: PromptPolarity::Negative,
-            text: DefaultPromptText::fromInput($negative),
+            text: PromptText::fromInput($negative),
         ));
 
         $repository->save(new DefaultPrompt(
             polarity: PromptPolarity::Positive,
-            text: DefaultPromptText::fromInput($updatedPositive),
+            text: PromptText::fromInput($updatedPositive),
         ));
 
         $this->assertDatabaseCount('default_prompts', 2);

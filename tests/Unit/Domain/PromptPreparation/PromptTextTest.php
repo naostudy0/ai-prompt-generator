@@ -2,17 +2,17 @@
 
 namespace Tests\Unit\Domain\PromptPreparation;
 
-use App\Domain\PromptPreparation\Models\DefaultPrompt\DefaultPromptText;
+use App\Domain\PromptPreparation\Models\PromptText;
 use PHPUnit\Framework\TestCase;
 
-class DefaultPromptTextTest extends TestCase
+class PromptTextTest extends TestCase
 {
     public function test_カンマと改行を区切りとして文面を整形する(): void
     {
         $input = "abc,def\nghi,";
         $expected = 'abc, def, ghi,';
 
-        $text = DefaultPromptText::fromInput($input);
+        $text = PromptText::fromInput($input);
 
         $this->assertSame($expected, $text->value);
         $this->assertTrue($text->formatSucceeded);
@@ -23,7 +23,7 @@ class DefaultPromptTextTest extends TestCase
         $input = 'abc,, def, abc,';
         $expected = 'abc, def,';
 
-        $text = DefaultPromptText::fromInput($input);
+        $text = PromptText::fromInput($input);
 
         $this->assertSame($expected, $text->value);
         $this->assertTrue($text->formatSucceeded);
@@ -34,7 +34,7 @@ class DefaultPromptTextTest extends TestCase
         $input = '(abc,abc), abc, (abc,abc)';
         $expected = '(abc,abc), abc,';
 
-        $text = DefaultPromptText::fromInput($input);
+        $text = PromptText::fromInput($input);
 
         $this->assertSame($expected, $text->value);
         $this->assertTrue($text->formatSucceeded);
@@ -45,7 +45,7 @@ class DefaultPromptTextTest extends TestCase
         $input = '(abc,(def,ghi),\)), jkl';
         $expected = '(abc,(def,ghi),\)), jkl,';
 
-        $text = DefaultPromptText::fromInput($input);
+        $text = PromptText::fromInput($input);
 
         $this->assertSame($expected, $text->value);
         $this->assertTrue($text->formatSucceeded);
@@ -55,7 +55,7 @@ class DefaultPromptTextTest extends TestCase
     {
         $input = '(abc,def';
 
-        $text = DefaultPromptText::fromInput($input);
+        $text = PromptText::fromInput($input);
 
         $this->assertSame($input, $text->value);
         $this->assertFalse($text->formatSucceeded);
@@ -65,7 +65,7 @@ class DefaultPromptTextTest extends TestCase
     {
         $input = " , ,\n ";
 
-        $text = DefaultPromptText::fromInput($input);
+        $text = PromptText::fromInput($input);
 
         $this->assertSame('', $text->value);
         $this->assertTrue($text->formatSucceeded);
