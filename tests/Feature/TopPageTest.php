@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use Tests\TestCase;
 
-class ExampleTest extends TestCase
+class TopPageTest extends TestCase
 {
     public function test_トップページへのアクセスでステータスコード200が返る(): void
     {
