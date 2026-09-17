@@ -11,7 +11,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $preserveDefaultPromptContent = fn (Request $request): bool => $request->is('default-prompts/*');
+
+        $middleware->trimStrings(except: [$preserveDefaultPromptContent]);
+        $middleware->convertEmptyStringsToNull(except: [$preserveDefaultPromptContent]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
