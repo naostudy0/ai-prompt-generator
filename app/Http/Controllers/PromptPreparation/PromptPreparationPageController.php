@@ -18,6 +18,10 @@ final class PromptPreparationPageController extends Controller
             'negativeUpdateUrl' => route('default-prompts.update', [
                 'polarity' => PromptPolarity::Negative->value,
             ]),
+            'loraPromptOptionsUrl' => route('lora-prompt-options.index'),
+            'lorasUrl' => route('loras.store'),
+            'loraTriggersUrl' => route('lora-triggers.store'),
+            'outfitsUrl' => route('outfits.store'),
         ]);
     }
 }

@@ -63,6 +63,88 @@ const flushAsyncEvents = async () => {
     await setImmediate();
 };
 
+const addLoraControls = (documentObject) => {
+    const page = documentObject.querySelector('main');
+    page.dataset.loraOptionsUrl = '/lora-prompt-options';
+    page.dataset.lorasUrl = '/loras';
+    page.dataset.loraTriggersUrl = '/lora-triggers';
+    page.dataset.outfitsUrl = '/outfits';
+    page.insertAdjacentHTML(
+        'beforeend',
+        `<section data-lora-options>
+            <p data-option-load-status></p><button data-option-retry hidden></button>
+            <input data-lora-search><select data-lora-list></select>
+            <select data-lora-strength><option value="0.8">0.8</option><option value="1">1</option></select>
+            <select data-trigger-list></select><select data-outfit-list></select>
+            ${['lora', 'trigger', 'outfit'].map((type) => `<button data-option-add="${type}"></button><button data-option-edit="${type}"></button><button data-option-delete="${type}"></button><button data-option-clear="${type}"></button>`).join('')}
+        </section>
+        <dialog data-option-dialog><form data-option-form>
+            <h2 data-option-dialog-title></h2><input data-option-id><input data-option-name>
+            <input data-option-file-name><select data-option-strength><option value="1">1</option></select>
+            <textarea data-option-content></textarea><select data-option-lora></select>
+            <div data-lora-field></div><div data-strength-field></div><div data-content-field></div>
+            <div data-association-field></div><p data-option-form-status></p>
+            <button data-option-save></button><button type="button" data-option-cancel></button>
+        </form></dialog>
+        <dialog data-delete-dialog><form data-delete-form><p data-delete-message></p>
+            <p data-delete-status></p><button data-delete-confirm></button>
+            <button type="button" data-delete-cancel></button></form></dialog>`,
+    );
+};
+
+test('デフォルトとLoRAとトリガーと服装をpositiveへ順番に出力しnegativeは変えない', async () => {
+    const documentObject = createDocument();
+    addLoraControls(documentObject);
+    const fileName = 'character.safetensors';
+    const tags = Array.from(
+        { length: 11 },
+        (_, step) => `<lora:${fileName}:${step === 10 ? '1' : (step / 10).toFixed(1)}>,`,
+    );
+    const fetcher = async (url) =>
+        successfulResponse(
+            url === '/default-prompts'
+                ? { positive: 'masterpiece,', negative: 'bad anatomy,' }
+                : {
+                      loras: [
+                          {
+                              id: 1,
+                              name: 'キャラクター',
+                              fileName,
+                              recommendedStrength: 0.8,
+                              tags,
+                          },
+                      ],
+                      triggers: [
+                          { id: 2, loraId: 1, name: '標準', content: 'character, long hair,' },
+                      ],
+                      outfits: [{ id: 3, loraId: 1, name: '制服', content: 'school uniform,' }],
+                  },
+        );
+
+    initializePromptPreparationPage({ documentObject, fetcher });
+    await flushAsyncEvents();
+
+    const loraList = documentObject.querySelector('[data-lora-list]');
+    loraList.value = '1';
+    loraList.dispatchEvent(new documentObject.defaultView.Event('change'));
+    const triggerList = documentObject.querySelector('[data-trigger-list]');
+    triggerList.value = '2';
+    triggerList.dispatchEvent(new documentObject.defaultView.Event('change'));
+    const outfitList = documentObject.querySelector('[data-outfit-list]');
+    outfitList.value = '3';
+    outfitList.dispatchEvent(new documentObject.defaultView.Event('change'));
+    documentObject.querySelector('[data-display]').click();
+
+    assert.equal(
+        documentObject.querySelector('[data-output="positive"] [data-output-content]').value,
+        'masterpiece,\n\n<lora:character.safetensors:0.8>,\n\ncharacter, long hair,\n\nschool uniform,',
+    );
+    assert.equal(
+        documentObject.querySelector('[data-output="negative"] [data-output-content]').value,
+        'bad anatomy,',
+    );
+});
+
 test('取得したデフォルト文面を選択して出力し直接編集した内容をコピーする', async () => {
     const documentObject = createDocument();
     const fetcher = async () =>
@@ -134,6 +216,36 @@ test('取得したデフォルト文面を選択して出力し直接編集し�
         'positiveをコピーしました。',
     );
     assert.equal(documentObject.querySelector('[data-toast]').hidden, false);
+});
+
+test('出力内容に合わせて基準サイズ以上で高さを伸縮する', async () => {
+    const documentObject = createDocument();
+    const fetcher = async () =>
+        successfulResponse({ positive: 'masterpiece,', negative: 'bad anatomy,' });
+    const positiveContent = documentObject.querySelector(
+        '[data-output="positive"] [data-output-content]',
+    );
+    positiveContent.style.minHeight = '160px';
+    let contentHeight = 240;
+    Object.defineProperty(positiveContent, 'scrollHeight', {
+        configurable: true,
+        get: () => contentHeight,
+    });
+
+    initializePromptPreparationPage({ documentObject, fetcher });
+    await flushAsyncEvents();
+
+    documentObject.querySelector('[data-display]').click();
+    assert.equal(positiveContent.style.height, '260px');
+
+    contentHeight = 80;
+    documentObject.querySelector('[data-display]').click();
+    assert.equal(positiveContent.style.height, '160px');
+
+    contentHeight = 300;
+    positiveContent.value = '手入力した長いプロンプト';
+    positiveContent.dispatchEvent(new documentObject.defaultView.Event('input'));
+    assert.equal(positiveContent.style.height, '320px');
 });
 
 test('取得失敗後に再読み込みし編集したデフォルト文面を保存する', async () => {

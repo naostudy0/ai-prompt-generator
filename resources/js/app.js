@@ -4,6 +4,8 @@ import {
     requestSaveDefaultPrompt,
     writePromptToClipboard,
 } from './default-prompts.js';
+import { initializeLoraOptionsPage } from './lora-options-page.js';
+import { createPositivePromptOutput } from './lora-options.js';
 
 export const initializePromptPreparationPage = ({
     documentObject = document,
@@ -34,8 +36,10 @@ export const initializePromptPreparationPage = ({
     const savedPrompts = { positive: '', negative: '' };
     const selectedPrompts = { positive: true, negative: true };
     let promptsLoaded = false;
+    let loraOptionsLoaded = false;
     let editingPrompt = false;
     let toastTimer;
+    let loraOptionsController = { getPositiveSections: () => [] };
 
     const isPolarity = (value) => value === 'positive' || value === 'negative';
 
@@ -85,7 +89,7 @@ export const initializePromptPreparationPage = ({
         });
 
         if (displayButton instanceof HTMLButtonElement) {
-            displayButton.disabled = disabled;
+            displayButton.disabled = disabled || !promptsLoaded || !loraOptionsLoaded;
         }
     };
 
@@ -113,6 +117,17 @@ export const initializePromptPreparationPage = ({
         if (content instanceof HTMLTextAreaElement && copyButton instanceof HTMLButtonElement) {
             copyButton.disabled = content.value === '';
         }
+    };
+
+    const resizeOutputContent = (content) => {
+        if (!(content instanceof HTMLTextAreaElement)) {
+            return;
+        }
+
+        content.style.height = 'auto';
+        const minimumHeight = Number.parseFloat(view.getComputedStyle(content).minHeight) || 0;
+        const inputSpace = 20;
+        content.style.height = `${Math.max(minimumHeight, content.scrollHeight + inputSpace)}px`;
     };
 
     const closeEditor = (promptElement) => {
@@ -244,6 +259,10 @@ export const initializePromptPreparationPage = ({
 
     const displayPrompts = () => {
         const outputs = createPromptOutputs(savedPrompts, selectedPrompts);
+        outputs.positive = createPositivePromptOutput(
+            outputs.positive,
+            loraOptionsController.getPositiveSections(),
+        );
 
         for (const polarity of ['positive', 'negative']) {
             const outputElement = getOutputElement(polarity);
@@ -252,6 +271,7 @@ export const initializePromptPreparationPage = ({
 
             if (content instanceof HTMLTextAreaElement) {
                 content.value = outputs[polarity];
+                resizeOutputContent(content);
             }
 
             if (status instanceof HTMLElement) {
@@ -329,6 +349,7 @@ export const initializePromptPreparationPage = ({
             }
 
             updateCopyAvailability(outputElement);
+            resizeOutputContent(outputElement.querySelector('[data-output-content]'));
         });
         outputElement.querySelector('[data-copy]')?.addEventListener('click', () => {
             copyOutput(outputElement);
@@ -337,6 +358,17 @@ export const initializePromptPreparationPage = ({
 
     retryButton?.addEventListener('click', loadDefaultPrompts);
     displayButton?.addEventListener('click', displayPrompts);
+    loraOptionsController = initializeLoraOptionsPage({
+        page,
+        documentObject,
+        fetcher,
+        csrfToken,
+        notify: showToast,
+        onLoadedChange: (loaded) => {
+            loraOptionsLoaded = loaded;
+            setInputActionsDisabled(editingPrompt || !promptsLoaded);
+        },
+    });
     void loadDefaultPrompts();
 };
 

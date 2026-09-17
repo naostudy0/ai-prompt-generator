@@ -29,7 +29,9 @@ body {
 }
 
 button,
-textarea {
+textarea,
+input,
+select {
     font: inherit;
 }
 
@@ -111,11 +113,9 @@ h1 {
 
 .section-heading h2 {
     margin-bottom: 0.45rem;
-    font-size: clamp(1.35rem, 4vw, 2rem);
-}
-
-.output-heading span {
-    display: block;
+    font-size: clamp(0.9rem, 3.5vw, 1.25rem);
+    line-height: 2.5rem;
+    white-space: nowrap;
 }
 
 .load-state {
@@ -161,6 +161,146 @@ h1 {
 .prompt-setting--negative {
     border-color: #714846;
     background: #3d2929;
+}
+
+.lora-options {
+    margin-top: 1rem;
+    border: 1px solid #4e526c;
+    border-radius: 1rem;
+    padding: 1.1rem;
+    background: #25283a;
+}
+
+.subsection-heading {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.subsection-heading h3 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.subsection-heading--compact {
+    margin-bottom: 0.65rem;
+}
+
+.option-load-state {
+    margin: 0.75rem 0;
+}
+
+.option-load-state p {
+    margin: 0;
+    color: #b8bdcc;
+    font-size: 0.9rem;
+}
+
+.field-label {
+    display: block;
+    margin: 0.85rem 0 0.4rem;
+    color: #d9dce6;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.text-input,
+.option-list,
+.option-dialog textarea {
+    width: 100%;
+    border: 1px solid #686d83;
+    border-radius: 0.65rem;
+    padding: 0.7rem 0.8rem;
+    color: #f4f5f8;
+    background: #151724;
+}
+
+.option-list {
+    width: max-content;
+    min-width: 100%;
+    max-width: none;
+    margin-top: 0.65rem;
+    padding: 0.35rem;
+}
+
+.option-list-scroll {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-color: #737a91 #202331;
+    scrollbar-width: thin;
+}
+
+.option-list-scroll:focus-visible {
+    border-radius: 0.65rem;
+    outline: 3px solid #d1f4a6;
+    outline-offset: 3px;
+}
+
+.option-list option {
+    border-radius: 0.4rem;
+    padding: 0.6rem;
+}
+
+.option-list option:checked {
+    color: #161824;
+    background: #cbd1ff linear-gradient(0deg, #cbd1ff, #cbd1ff);
+}
+
+.linked-option {
+    margin-top: 1.25rem;
+    border-top: 1px solid #464a60;
+    padding-top: 1.1rem;
+}
+
+.list-actions {
+    display: flex;
+    margin-top: 0.55rem;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+.small-button,
+.danger-button {
+    border: 1px solid #737a91;
+    border-radius: 999px;
+    padding: 0.5rem 0.8rem;
+    color: #f0f2f7;
+    background: #303449;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.small-button--danger,
+.danger-button {
+    border-color: #a75f64;
+    color: #ffe8e8;
+    background: #5b2b31;
+}
+
+.option-dialog {
+    position: fixed;
+    inset: 0;
+    width: min(calc(100% - 2rem), 30rem);
+    max-height: calc(100dvh - 2rem);
+    margin: auto;
+    border: 1px solid #5e6479;
+    border-radius: 1rem;
+    padding: 1.25rem;
+    overflow-y: auto;
+    color: #f2f3f7;
+    background: #202331;
+    box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 55%);
+}
+
+.option-dialog::backdrop {
+    background: rgb(5 7 10 / 72%);
+    backdrop-filter: blur(3px);
+}
+
+.option-dialog h2 {
+    margin-bottom: 1rem;
 }
 
 .prompt-setting__header {
@@ -386,13 +526,14 @@ button:focus-visible {
     width: calc(100% - 2rem);
     min-height: 10rem;
     margin: 1rem;
-    resize: vertical;
+    resize: none;
     border: 1px solid #535d57;
     border-radius: 0.65rem;
     padding: 1rem;
     color: #f4f4ef;
     background: #111412;
     line-height: 1.65;
+    overflow-y: hidden;
 }
 
 .output-card textarea:focus-visible {

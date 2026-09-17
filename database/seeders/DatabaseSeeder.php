@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Domain\PromptPreparation\Models\DefaultPrompt\DefaultPromptText;
+use App\Domain\PromptPreparation\Models\PromptText;
 use App\Domain\PromptPreparation\Models\DefaultPrompt\PromptPolarity;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Models\DefaultPromptRecord;
 use Illuminate\Database\Seeder;
@@ -17,7 +17,7 @@ final class DatabaseSeeder extends Seeder
         ];
 
         foreach ($initialPrompts as $polarity => $content) {
-            $text = DefaultPromptText::fromInput($content);
+            $text = PromptText::fromInput($content);
 
             DefaultPromptRecord::query()->firstOrCreate(
                 ['polarity' => $polarity],
