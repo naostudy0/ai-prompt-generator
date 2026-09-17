@@ -1,0 +1,15 @@
+<?php
+
+namespace App\Application\PromptPreparation\Writes\SaveDefaultPrompt;
+
+use App\Domain\PromptPreparation\Models\DefaultPrompt\PromptPolarity;
+
+final readonly class SaveDefaultPromptResult
+{
+    public function __construct(
+        public PromptPolarity $polarity,
+        public string $content,
+        public bool $formatSucceeded,
+    ) {
+    }
+}

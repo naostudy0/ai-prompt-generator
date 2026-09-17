@@ -15,7 +15,7 @@ class DefaultPromptTextTest extends TestCase
         $text = DefaultPromptText::fromInput($input);
 
         $this->assertSame($expected, $text->value);
-        $this->assertTrue($text->formatted);
+        $this->assertTrue($text->formatSucceeded);
     }
 
     public function test_空の要素と完全一致する重複を取り除く(): void
@@ -26,7 +26,7 @@ class DefaultPromptTextTest extends TestCase
         $text = DefaultPromptText::fromInput($input);
 
         $this->assertSame($expected, $text->value);
-        $this->assertTrue($text->formatted);
+        $this->assertTrue($text->formatSucceeded);
     }
 
     public function test_丸括弧内を分割せず括弧全体の重複だけを取り除く(): void
@@ -37,7 +37,7 @@ class DefaultPromptTextTest extends TestCase
         $text = DefaultPromptText::fromInput($input);
 
         $this->assertSame($expected, $text->value);
-        $this->assertTrue($text->formatted);
+        $this->assertTrue($text->formatSucceeded);
     }
 
     public function test_入れ子の丸括弧とエスケープした括弧を一まとまりとして保持する(): void
@@ -48,7 +48,7 @@ class DefaultPromptTextTest extends TestCase
         $text = DefaultPromptText::fromInput($input);
 
         $this->assertSame($expected, $text->value);
-        $this->assertTrue($text->formatted);
+        $this->assertTrue($text->formatSucceeded);
     }
 
     public function test_対応しない丸括弧を含む場合は原文を保持する(): void
@@ -58,7 +58,7 @@ class DefaultPromptTextTest extends TestCase
         $text = DefaultPromptText::fromInput($input);
 
         $this->assertSame($input, $text->value);
-        $this->assertFalse($text->formatted);
+        $this->assertFalse($text->formatSucceeded);
     }
 
     public function test_空白と区切りだけの場合は空文字列にする(): void
@@ -68,6 +68,6 @@ class DefaultPromptTextTest extends TestCase
         $text = DefaultPromptText::fromInput($input);
 
         $this->assertSame('', $text->value);
-        $this->assertTrue($text->formatted);
+        $this->assertTrue($text->formatSucceeded);
     }
 }

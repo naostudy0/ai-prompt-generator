@@ -6,7 +6,7 @@ final readonly class DefaultPromptText
 {
     private function __construct(
         public string $value,
-        public bool $formatted,
+        public bool $formatSucceeded,
     ) {
     }
 
