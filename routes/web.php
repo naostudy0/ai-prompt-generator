@@ -1,6 +1,18 @@
 <?php
 
 use App\Http\Controllers\PromptPreparation\PromptPreparationPageController;
+use App\Http\Controllers\PromptPreparation\Queries\GetCharacterDirectionsController;
+use App\Http\Controllers\PromptPreparation\Queries\GetSceneDirectionsController;
+use App\Http\Controllers\PromptPreparation\Writes\SaveExpressionPromptController;
+use App\Http\Controllers\PromptPreparation\Writes\SaveGazePromptController;
+use App\Http\Controllers\PromptPreparation\Writes\SaveLocationPromptController;
+use App\Http\Controllers\PromptPreparation\Writes\SaveCompositionPromptController;
+use App\Http\Controllers\PromptPreparation\Writes\SaveActionPromptController;
+use App\Http\Controllers\PromptPreparation\Writes\DeleteExpressionPromptController;
+use App\Http\Controllers\PromptPreparation\Writes\DeleteGazePromptController;
+use App\Http\Controllers\PromptPreparation\Writes\DeleteLocationPromptController;
+use App\Http\Controllers\PromptPreparation\Writes\DeleteCompositionPromptController;
+use App\Http\Controllers\PromptPreparation\Writes\DeleteActionPromptController;
 use App\Http\Controllers\PromptPreparation\Queries\GetDefaultPromptsController;
 use App\Http\Controllers\PromptPreparation\Queries\GetLoraPromptOptionsController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteLoraController;
@@ -38,3 +50,22 @@ Route::put('/outfits/{outfit}', SaveOutfitPromptController::class)
     ->whereNumber('outfit')->name('outfits.update');
 Route::delete('/outfits/{outfit}', DeleteOutfitPromptController::class)
     ->whereNumber('outfit')->name('outfits.destroy');
+
+
+Route::get('/character-directions', GetCharacterDirectionsController::class)->name('character-directions.index');
+Route::get('/scene-directions', GetSceneDirectionsController::class)->name('scene-directions.index');
+Route::post('/expressions', SaveExpressionPromptController::class)->name('expressions.store');
+Route::put('/expressions/{expression}', SaveExpressionPromptController::class)->whereNumber('expression')->name('expressions.update');
+Route::delete('/expressions/{expression}', DeleteExpressionPromptController::class)->whereNumber('expression')->name('expressions.destroy');
+Route::post('/gazes', SaveGazePromptController::class)->name('gazes.store');
+Route::put('/gazes/{gaze}', SaveGazePromptController::class)->whereNumber('gaze')->name('gazes.update');
+Route::delete('/gazes/{gaze}', DeleteGazePromptController::class)->whereNumber('gaze')->name('gazes.destroy');
+Route::post('/locations', SaveLocationPromptController::class)->name('locations.store');
+Route::put('/locations/{location}', SaveLocationPromptController::class)->whereNumber('location')->name('locations.update');
+Route::delete('/locations/{location}', DeleteLocationPromptController::class)->whereNumber('location')->name('locations.destroy');
+Route::post('/compositions', SaveCompositionPromptController::class)->name('compositions.store');
+Route::put('/compositions/{composition}', SaveCompositionPromptController::class)->whereNumber('composition')->name('compositions.update');
+Route::delete('/compositions/{composition}', DeleteCompositionPromptController::class)->whereNumber('composition')->name('compositions.destroy');
+Route::post('/actions', SaveActionPromptController::class)->name('actions.store');
+Route::put('/actions/{action}', SaveActionPromptController::class)->whereNumber('action')->name('actions.update');
+Route::delete('/actions/{action}', DeleteActionPromptController::class)->whereNumber('action')->name('actions.destroy');

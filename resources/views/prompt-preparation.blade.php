@@ -20,6 +20,13 @@
             data-loras-url="{{ $lorasUrl }}"
             data-lora-triggers-url="{{ $loraTriggersUrl }}"
             data-outfits-url="{{ $outfitsUrl }}"
+            data-character-directions-url="{{ $characterDirectionsUrl }}"
+            data-scene-directions-url="{{ $sceneDirectionsUrl }}"
+            data-expressions-url="{{ $expressionsUrl }}"
+            data-gazes-url="{{ $gazesUrl }}"
+            data-locations-url="{{ $locationsUrl }}"
+            data-compositions-url="{{ $compositionsUrl }}"
+            data-actions-url="{{ $actionsUrl }}"
         >
             <header class="page-header">
                 <p class="eyebrow">AI IMAGE PROMPT BUILDER</p>
@@ -153,6 +160,8 @@
                             <h3>服装</h3>
                             <button class="small-button" type="button" aria-label="服装を追加" data-option-add="outfit" disabled>追加</button>
                         </div>
+                        <label class="field-label" for="outfit-search">服装を検索</label>
+                        <input id="outfit-search" class="text-input" type="search" data-outfit-search disabled>
                         <div class="option-list-scroll" tabindex="0" aria-label="服装選択肢を横にスクロール">
                             <select class="option-list" size="5" aria-label="服装を選択" data-outfit-list disabled></select>
                         </div>
@@ -162,6 +171,50 @@
                             <button class="small-button small-button--danger" type="button" aria-label="服装を削除" data-option-delete="outfit" disabled>削除</button>
                         </div>
                     </div>
+                </section>
+
+                <section class="prompt-categories" aria-labelledby="prompt-categories-heading" data-prompt-categories>
+                    <div class="subsection-heading">
+                        <div>
+                            <p class="category-label">positive</p>
+                            <h3 id="prompt-categories-heading">描写</h3>
+                        </div>
+                    </div>
+                    <div class="option-load-state">
+                        <p data-category-load-status role="status" aria-live="polite"></p>
+                        <button class="secondary-button" type="button" data-category-retry hidden>再読み込み</button>
+                    </div>
+
+                    @foreach ([
+                        ['type' => 'expression', 'label' => '表情', 'multiple' => false, 'search' => true],
+                        ['type' => 'gaze', 'label' => '視線', 'multiple' => false, 'search' => false],
+                        ['type' => 'action', 'label' => '動作', 'multiple' => true, 'search' => false],
+                        ['type' => 'location', 'label' => '場所', 'multiple' => true, 'search' => false],
+                        ['type' => 'composition', 'label' => '構図', 'multiple' => false, 'search' => false],
+                    ] as $category)
+                        <div class="linked-option" data-prompt-category="{{ $category['type'] }}" data-multiple="{{ $category['multiple'] ? 'true' : 'false' }}">
+                            <div class="subsection-heading subsection-heading--compact">
+                                <h3>{{ $category['label'] }}</h3>
+                                <button class="small-button" type="button" aria-label="{{ $category['label'] }}を追加" data-category-add disabled>追加</button>
+                            </div>
+                            @if ($category['search'])
+                                <label class="field-label" for="{{ $category['type'] }}-search">{{ $category['label'] }}を検索</label>
+                                <input id="{{ $category['type'] }}-search" class="text-input" type="search" data-category-search disabled>
+                            @endif
+                            @if ($category['multiple'])
+                                <div class="badge-options" aria-label="{{ $category['label'] }}を選択" data-category-badges></div>
+                            @else
+                                <div class="option-list-scroll" tabindex="0" aria-label="{{ $category['label'] }}選択肢を横にスクロール">
+                                    <select class="option-list" size="4" aria-label="{{ $category['label'] }}を選択" data-category-list disabled></select>
+                                </div>
+                                <div class="list-actions">
+                                    <button class="small-button" type="button" aria-label="{{ $category['label'] }}の選択を解除" data-category-clear disabled>選択解除</button>
+                                    <button class="small-button" type="button" aria-label="{{ $category['label'] }}を編集" data-category-edit disabled>編集</button>
+                                    <button class="small-button small-button--danger" type="button" aria-label="{{ $category['label'] }}を削除" data-category-delete disabled>削除</button>
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
                 </section>
 
                 <button class="display-button" type="button" data-display disabled>
@@ -251,6 +304,35 @@
                     <div class="editor-actions">
                         <button class="danger-button" type="submit" data-delete-confirm>削除</button>
                         <button class="secondary-button" type="button" data-delete-cancel>キャンセル</button>
+                    </div>
+                </form>
+            </dialog>
+
+            <dialog class="option-dialog" data-category-dialog>
+                <form data-category-form>
+                    <input type="hidden" data-category-id>
+                    <h2 data-category-dialog-title></h2>
+                    <p class="category-editing-id" data-category-editing-id hidden></p>
+                    <label class="field-label" for="category-name">登録名</label>
+                    <input id="category-name" class="text-input" data-category-name>
+                    <label class="field-label" for="category-content">文面</label>
+                    <textarea id="category-content" rows="6" data-category-content></textarea>
+                    <p class="editor-status" data-category-form-status role="status" aria-live="polite"></p>
+                    <div class="editor-actions">
+                        <button class="primary-button" type="submit" data-category-save>保存</button>
+                        <button class="secondary-button" type="button" data-category-cancel>キャンセル</button>
+                    </div>
+                </form>
+            </dialog>
+
+            <dialog class="option-dialog" data-category-delete-dialog>
+                <form data-category-delete-form>
+                    <h2>登録を削除</h2>
+                    <p data-category-delete-message></p>
+                    <p class="editor-status" data-category-delete-status role="status" aria-live="polite"></p>
+                    <div class="editor-actions">
+                        <button class="danger-button" type="submit" data-category-delete-confirm>削除</button>
+                        <button class="secondary-button" type="button" data-category-delete-cancel>キャンセル</button>
                     </div>
                 </form>
             </dialog>

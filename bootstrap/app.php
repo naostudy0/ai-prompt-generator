@@ -15,7 +15,17 @@ return Application::configure(basePath: dirname(__DIR__))
             || $request->is('lora-triggers')
             || $request->is('lora-triggers/*')
             || $request->is('outfits')
-            || $request->is('outfits/*');
+            || $request->is('outfits/*')
+            || $request->is('expressions')
+            || $request->is('expressions/*')
+            || $request->is('gazes')
+            || $request->is('gazes/*')
+            || $request->is('locations')
+            || $request->is('locations/*')
+            || $request->is('compositions')
+            || $request->is('compositions/*')
+            || $request->is('actions')
+            || $request->is('actions/*');
 
         $middleware->trimStrings(except: [$preservePromptContent]);
         $middleware->convertEmptyStringsToNull(except: [$preservePromptContent]);

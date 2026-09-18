@@ -35,6 +35,7 @@ const createDocument = () => {
                     <option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1">1</option>
                 </select>
                 <select data-trigger-list disabled></select>
+                <input data-outfit-search disabled>
                 <select data-outfit-list disabled></select>
                 ${['lora', 'trigger', 'outfit']
                     .map(
@@ -122,7 +123,7 @@ test('LoRA選択時に推奨強度とトリガーを反映し服装を上位へ�
     const outfitList = documentObject.querySelector('[data-outfit-list]');
     const strength = documentObject.querySelector('[data-lora-strength]');
     assert.equal(loaded, true);
-    assert.deepEqual(controller.getPositiveSections(), []);
+    assert.deepEqual(controller.getSelections(), { lora: '', trigger: '', outfit: '' });
 
     loraList.value = '1';
     loraList.dispatchEvent(new documentObject.defaultView.Event('change'));
@@ -140,29 +141,28 @@ test('LoRA選択時に推奨強度とトリガーを反映し服装を上位へ�
             '汎用服 — 紐付けなし — school uniform, (#23)',
         ],
     );
-    assert.equal(triggerList.value, '');
+    assert.equal(triggerList.value, '11');
     assert.equal(outfitList.value, '');
 
-    triggerList.value = '11';
-    triggerList.dispatchEvent(new documentObject.defaultView.Event('change'));
     outfitList.value = '23';
     outfitList.dispatchEvent(new documentObject.defaultView.Event('change'));
 
-    assert.deepEqual(controller.getPositiveSections(), [
-        '<lora:alpha.safetensors:0.8>,',
-        'alpha, long hair,',
-        'school uniform,',
-    ]);
+    assert.deepEqual(controller.getSelections(), {
+        lora: '<lora:alpha.safetensors:0.8>,',
+        trigger: 'alpha, long hair,',
+        outfit: 'school uniform,',
+    });
 
     loraList.value = '2';
     loraList.dispatchEvent(new documentObject.defaultView.Event('change'));
 
-    assert.equal(triggerList.value, '');
+    assert.equal(triggerList.value, '12');
     assert.equal(outfitList.value, '23');
-    assert.deepEqual(controller.getPositiveSections(), [
-        '<lora:beta.safetensors:1>,',
-        'school uniform,',
-    ]);
+    assert.deepEqual(controller.getSelections(), {
+        lora: '<lora:beta.safetensors:1>,',
+        trigger: 'beta, short hair,',
+        outfit: 'school uniform,',
+    });
 });
 
 test('LoRAを登録名とファイル名で絞り込み選択解除できる', async () => {
@@ -192,7 +192,7 @@ test('LoRAを登録名とファイル名で絞り込み選択解除できる', a
     const loraList = documentObject.querySelector('[data-lora-list]');
     loraList.value = '1';
     loraList.dispatchEvent(new documentObject.defaultView.Event('change'));
-    assert.notDeepEqual(controller.getPositiveSections(), []);
+    assert.notEqual(controller.getSelections().lora, '');
 
     search.value = 'beta-v2';
     search.dispatchEvent(new documentObject.defaultView.Event('input'));
@@ -200,13 +200,47 @@ test('LoRAを登録名とファイル名で絞り込み選択解除できる', a
         [...loraList.options].map((option) => option.value),
         ['2'],
     );
-    assert.deepEqual(controller.getPositiveSections(), []);
+    assert.equal(controller.getSelections().lora, '');
 
     loraList.value = '2';
     loraList.dispatchEvent(new documentObject.defaultView.Event('change'));
     documentObject.querySelector('[data-option-clear="lora"]').click();
 
-    assert.deepEqual(controller.getPositiveSections(), []);
+    assert.deepEqual(controller.getSelections(), { lora: '', trigger: '', outfit: '' });
+});
+
+test('服装を登録名で絞り込み選択中の服装は検索結果に残す', async () => {
+    const documentObject = createDocument();
+    const catalog = {
+        loras: [],
+        triggers: [],
+        outfits: [
+            { id: 1, loraId: null, name: '制服', content: 'school uniform,' },
+            { id: 2, loraId: null, name: 'ドレス', content: 'dress,' },
+        ],
+    };
+    const fetcher = async () => ({ ok: true, json: async () => catalog });
+    initializeLoraOptionsPage({
+        page: documentObject.querySelector('main'),
+        documentObject,
+        fetcher,
+        csrfToken: 'csrf',
+        onLoadedChange: () => {},
+        notify: () => {},
+    });
+    await flushAsyncEvents();
+    const list = documentObject.querySelector('[data-outfit-list]');
+    list.value = '1';
+    list.dispatchEvent(new documentObject.defaultView.Event('change'));
+    const search = documentObject.querySelector('[data-outfit-search]');
+    search.value = 'ドレス';
+    search.dispatchEvent(new documentObject.defaultView.Event('input'));
+
+    assert.deepEqual(
+        [...list.options].map((option) => option.value),
+        ['1', '2'],
+    );
+    assert.equal(list.value, '1');
 });
 
 test('LoRA保存中は重複送信を防ぎ失敗時は入力内容を保持する', async () => {

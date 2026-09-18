@@ -20,7 +20,9 @@ export const initializeLoraOptionsPage = ({
 
     if (!view || !(root instanceof view.HTMLElement)) {
         onLoadedChange(true);
-        return { getPositiveSections: () => [] };
+        return {
+            getSelections: () => ({ lora: '', trigger: '', outfit: '' }),
+        };
     }
 
     const { HTMLButtonElement, HTMLDialogElement, HTMLInputElement, HTMLSelectElement } = view;
@@ -30,6 +32,7 @@ export const initializeLoraOptionsPage = ({
     const loraList = root.querySelector('[data-lora-list]');
     const triggerList = root.querySelector('[data-trigger-list]');
     const outfitList = root.querySelector('[data-outfit-list]');
+    const outfitSearchInput = root.querySelector('[data-outfit-search]');
     const strengthSelect = root.querySelector('[data-lora-strength]');
     const optionDialog = page.querySelector('[data-option-dialog]');
     const optionForm = page.querySelector('[data-option-form]');
@@ -103,7 +106,22 @@ export const initializeLoraOptionsPage = ({
         const triggers = state.triggers.filter(
             (trigger) => trigger.loraId === state.selectedLoraId,
         );
-        const outfits = orderOutfits(state.outfits, state.selectedLoraId);
+        const outfitSearch =
+            outfitSearchInput instanceof HTMLInputElement
+                ? outfitSearchInput.value.trim().toLocaleLowerCase()
+                : '';
+        const matchingOutfits = state.outfits.filter(
+            (outfit) =>
+                outfitSearch === '' || outfit.name.toLocaleLowerCase().includes(outfitSearch),
+        );
+        const selectedOutfit = selectedItem('outfit');
+        const selectedOutfitDoesNotMatch =
+            selectedOutfit !== null &&
+            !matchingOutfits.some((outfit) => outfit.id === selectedOutfit.id);
+        const outfits = orderOutfits(matchingOutfits, state.selectedLoraId);
+        if (selectedOutfitDoesNotMatch) {
+            outfits.unshift(selectedOutfit);
+        }
 
         replaceOptions(
             loraList,
@@ -139,6 +157,9 @@ export const initializeLoraOptionsPage = ({
         }
         if (outfitList instanceof HTMLSelectElement) {
             outfitList.disabled = !state.loaded;
+        }
+        if (outfitSearchInput instanceof HTMLInputElement) {
+            outfitSearchInput.disabled = !state.loaded;
         }
 
         setButtonDisabled('[data-option-add="lora"]', !state.loaded);
@@ -351,9 +372,11 @@ export const initializeLoraOptionsPage = ({
         }
         render();
     });
+    outfitSearchInput?.addEventListener('input', render);
     loraList?.addEventListener('change', () => {
         state.selectedLoraId = Number(loraList.value);
-        state.selectedTriggerId = null;
+        state.selectedTriggerId =
+            state.triggers.find((trigger) => trigger.loraId === state.selectedLoraId)?.id ?? null;
         const lora = selectedItem('lora');
         strengthSelect.value = String(lora.recommendedStrength);
         render();
@@ -420,12 +443,18 @@ export const initializeLoraOptionsPage = ({
     void loadOptions();
 
     return {
-        getPositiveSections: () =>
-            createLoraPromptSections({
+        getSelections: () => {
+            const loraSections = createLoraPromptSections({
                 lora: selectedItem('lora'),
                 strength: Number(strengthSelect?.value ?? 1),
-                trigger: selectedItem('trigger'),
-                outfit: selectedItem('outfit'),
-            }),
+                trigger: null,
+                outfit: null,
+            });
+            return {
+                lora: loraSections[0] ?? '',
+                trigger: selectedItem('trigger')?.content ?? '',
+                outfit: selectedItem('outfit')?.content ?? '',
+            };
+        },
     };
 };

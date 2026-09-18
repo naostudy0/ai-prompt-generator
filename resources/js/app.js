@@ -6,6 +6,8 @@ import {
 } from './default-prompts.js';
 import { initializeLoraOptionsPage } from './lora-options-page.js';
 import { createPositivePromptOutput } from './lora-options.js';
+import { initializePromptCategoriesPage } from './prompt-categories-page.js';
+import { createPositivePromptSections } from './positive-prompt-sections.js';
 
 export const initializePromptPreparationPage = ({
     documentObject = document,
@@ -37,9 +39,21 @@ export const initializePromptPreparationPage = ({
     const selectedPrompts = { positive: true, negative: true };
     let promptsLoaded = false;
     let loraOptionsLoaded = false;
+    let promptCategoriesLoaded = false;
     let editingPrompt = false;
     let toastTimer;
-    let loraOptionsController = { getPositiveSections: () => [] };
+    let loraOptionsController = {
+        getSelections: () => ({ lora: '', trigger: '', outfit: '' }),
+    };
+    let promptCategoriesController = {
+        getSections: () => ({
+            expression: '',
+            gaze: '',
+            action: '',
+            location: '',
+            composition: '',
+        }),
+    };
 
     const isPolarity = (value) => value === 'positive' || value === 'negative';
 
@@ -89,7 +103,8 @@ export const initializePromptPreparationPage = ({
         });
 
         if (displayButton instanceof HTMLButtonElement) {
-            displayButton.disabled = disabled || !promptsLoaded || !loraOptionsLoaded;
+            displayButton.disabled =
+                disabled || !promptsLoaded || !loraOptionsLoaded || !promptCategoriesLoaded;
         }
     };
 
@@ -259,9 +274,11 @@ export const initializePromptPreparationPage = ({
 
     const displayPrompts = () => {
         const outputs = createPromptOutputs(savedPrompts, selectedPrompts);
+        const lora = loraOptionsController.getSelections();
+        const categories = promptCategoriesController.getSections();
         outputs.positive = createPositivePromptOutput(
             outputs.positive,
-            loraOptionsController.getPositiveSections(),
+            createPositivePromptSections(lora, categories),
         );
 
         for (const polarity of ['positive', 'negative']) {
@@ -366,6 +383,17 @@ export const initializePromptPreparationPage = ({
         notify: showToast,
         onLoadedChange: (loaded) => {
             loraOptionsLoaded = loaded;
+            setInputActionsDisabled(editingPrompt || !promptsLoaded);
+        },
+    });
+    promptCategoriesController = initializePromptCategoriesPage({
+        page,
+        documentObject,
+        fetcher,
+        csrfToken,
+        notify: showToast,
+        onLoadedChange: (loaded) => {
+            promptCategoriesLoaded = loaded;
             setInputActionsDisabled(editingPrompt || !promptsLoaded);
         },
     });
