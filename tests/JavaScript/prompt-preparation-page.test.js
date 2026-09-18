@@ -92,34 +92,85 @@ const addLoraControls = (documentObject) => {
     );
 };
 
-test('デフォルトとLoRAとトリガーと服装をpositiveへ順番に出力しnegativeは変えない', async () => {
+const addCategoryControls = (documentObject) => {
+    const page = documentObject.querySelector('main');
+    page.dataset.characterDirectionsUrl = '/character-directions';
+    page.dataset.sceneDirectionsUrl = '/scene-directions';
+    for (const type of ['expressions', 'gazes', 'actions', 'locations', 'compositions']) {
+        page.dataset[`${type}Url`] = `/${type}`;
+    }
+    page.insertAdjacentHTML(
+        'beforeend',
+        `<section data-prompt-categories><p data-category-load-status></p><button data-category-retry hidden></button>
+            ${[
+                ['expression', false],
+                ['gaze', false],
+                ['action', true],
+                ['location', true],
+                ['composition', false],
+            ]
+                .map(
+                    ([
+                        type,
+                        multiple,
+                    ]) => `<div data-prompt-category="${type}" data-multiple="${multiple}">
+                <button data-category-add></button>${type === 'expression' ? '<input data-category-search>' : ''}
+                ${multiple ? '<div data-category-badges></div>' : '<select data-category-list></select><button data-category-clear></button><button data-category-edit></button><button data-category-delete></button>'}
+            </div>`,
+                )
+                .join('')}
+        </section>
+        <dialog data-category-dialog><form data-category-form><h2 data-category-dialog-title></h2>
+            <p data-category-editing-id hidden></p><input data-category-id><input data-category-name>
+            <textarea data-category-content></textarea><p data-category-form-status></p>
+            <button data-category-save></button><button type="button" data-category-cancel></button>
+        </form></dialog>
+        <dialog data-category-delete-dialog><form data-category-delete-form><p data-category-delete-message></p>
+            <p data-category-delete-status></p><button data-category-delete-confirm></button>
+            <button type="button" data-category-delete-cancel></button></form></dialog>`,
+    );
+};
+
+test('全カテゴリを確定順でpositiveへ出力しnegativeは変えない', async () => {
     const documentObject = createDocument();
     addLoraControls(documentObject);
+    addCategoryControls(documentObject);
     const fileName = 'character.safetensors';
     const tags = Array.from(
         { length: 11 },
         (_, step) => `<lora:${fileName}:${step === 10 ? '1' : (step / 10).toFixed(1)}>,`,
     );
-    const fetcher = async (url) =>
-        successfulResponse(
-            url === '/default-prompts'
-                ? { positive: 'masterpiece,', negative: 'bad anatomy,' }
-                : {
-                      loras: [
-                          {
-                              id: 1,
-                              name: 'キャラクター',
-                              fileName,
-                              recommendedStrength: 0.8,
-                              tags,
-                          },
-                      ],
-                      triggers: [
-                          { id: 2, loraId: 1, name: '標準', content: 'character, long hair,' },
-                      ],
-                      outfits: [{ id: 3, loraId: 1, name: '制服', content: 'school uniform,' }],
-                  },
-        );
+    const fetcher = async (url) => {
+        if (url === '/default-prompts') {
+            return successfulResponse({ positive: 'masterpiece,', negative: 'bad anatomy,' });
+        }
+        if (url === '/character-directions') {
+            return successfulResponse({
+                expressions: [{ id: 4, name: '笑顔', content: 'smile,' }],
+                gazes: [{ id: 5, name: 'カメラ目線', content: 'looking at viewer,' }],
+            });
+        }
+        if (url === '/scene-directions') {
+            return successfulResponse({
+                actions: [{ id: 6, name: '座る', content: 'sitting,' }],
+                locations: [{ id: 7, name: '公園', content: 'park,' }],
+                compositions: [{ id: 8, name: '正面', content: 'from front,' }],
+            });
+        }
+        return successfulResponse({
+            loras: [
+                {
+                    id: 1,
+                    name: 'キャラクター',
+                    fileName,
+                    recommendedStrength: 0.8,
+                    tags,
+                },
+            ],
+            triggers: [{ id: 2, loraId: 1, name: '標準', content: 'character, long hair,' }],
+            outfits: [{ id: 3, loraId: 1, name: '制服', content: 'school uniform,' }],
+        });
+    };
 
     initializePromptPreparationPage({ documentObject, fetcher });
     await flushAsyncEvents();
@@ -133,11 +184,24 @@ test('デフォルトとLoRAとトリガーと服装をpositiveへ順番に出�
     const outfitList = documentObject.querySelector('[data-outfit-list]');
     outfitList.value = '3';
     outfitList.dispatchEvent(new documentObject.defaultView.Event('change'));
+    for (const [type, id] of [
+        ['expression', 4],
+        ['gaze', 5],
+        ['composition', 8],
+    ]) {
+        const list = documentObject.querySelector(
+            `[data-prompt-category="${type}"] [data-category-list]`,
+        );
+        list.value = String(id);
+        list.dispatchEvent(new documentObject.defaultView.Event('change'));
+    }
+    documentObject.querySelector('[data-prompt-category="action"] .prompt-badge').click();
+    documentObject.querySelector('[data-prompt-category="location"] .prompt-badge').click();
     documentObject.querySelector('[data-display]').click();
 
     assert.equal(
         documentObject.querySelector('[data-output="positive"] [data-output-content]').value,
-        'masterpiece,\n\n<lora:character.safetensors:0.8>,\n\ncharacter, long hair,\n\nschool uniform,',
+        'masterpiece,\n\n<lora:character.safetensors:0.8>,\n\ncharacter, long hair,\n\nsmile,\n\nlooking at viewer,\n\nschool uniform,\n\nsitting,\n\npark,\n\nfrom front,',
     );
     assert.equal(
         documentObject.querySelector('[data-output="negative"] [data-output-content]').value,

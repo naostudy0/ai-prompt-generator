@@ -22,6 +22,13 @@ final class PromptPreparationPageController extends Controller
             'lorasUrl' => route('loras.store'),
             'loraTriggersUrl' => route('lora-triggers.store'),
             'outfitsUrl' => route('outfits.store'),
+            'characterDirectionsUrl' => route('character-directions.index'),
+            'sceneDirectionsUrl' => route('scene-directions.index'),
+            'expressionsUrl' => route('expressions.store'),
+            'gazesUrl' => route('gazes.store'),
+            'locationsUrl' => route('locations.store'),
+            'compositionsUrl' => route('compositions.store'),
+            'actionsUrl' => route('actions.store'),
         ]);
     }
 }
