@@ -25,7 +25,7 @@ const isTrigger = (value) =>
 const isOutfit = (value) =>
     isObject(value) &&
     Number.isInteger(value.id) &&
-    (value.loraId === null || Number.isInteger(value.loraId)) &&
+    Number.isInteger(value.loraId) &&
     typeof value.name === 'string' &&
     typeof value.content === 'string';
 

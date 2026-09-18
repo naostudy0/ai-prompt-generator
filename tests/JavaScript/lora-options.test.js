@@ -99,7 +99,7 @@ test('LoRA選択肢を取得して応答形式を検証する', async () => {
             },
         ],
         triggers: [{ id: 2, loraId: 1, name: '標準', content: 'a,' }],
-        outfits: [{ id: 3, loraId: null, name: '制服', content: 'uniform,' }],
+        outfits: [{ id: 3, loraId: 1, name: '制服', content: 'uniform,' }],
     };
     const fetcher = async () => ({ ok: true, json: async () => expected });
 

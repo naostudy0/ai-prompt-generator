@@ -10,7 +10,7 @@ final class SaveOutfitPromptRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'loraId' => ['nullable', 'integer', 'exists:loras,id'],
+            'loraId' => ['required', 'integer', 'exists:loras,id'],
             'name' => ['required', 'string', 'regex:/\S/u'],
             'content' => ['required', 'string', 'regex:/[^,\s]/u'],
         ];

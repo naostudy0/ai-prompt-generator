@@ -13,6 +13,7 @@ final readonly class OptionPrompt
         public int $groupId,
         string $name,
         public PromptText $content,
+        public int $position,
     ) {
         $this->name = trim($name);
 
@@ -22,6 +23,9 @@ final readonly class OptionPrompt
 
         if ($this->name === '' || $content->value === '') {
             throw new InvalidArgumentException('Option name and content are required.');
+        }
+        if ($position < 1) {
+            throw new InvalidArgumentException('Option prompt position must be positive.');
         }
     }
 }

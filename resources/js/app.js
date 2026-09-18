@@ -311,8 +311,8 @@ export const initializePromptPreparationPage = ({
     };
 
     const resetPrompts = () => {
-        selectedPrompts.positive = false;
-        selectedPrompts.negative = false;
+        selectedPrompts.positive = true;
+        selectedPrompts.negative = true;
         promptElements.forEach((element) => {
             const polarity = element.dataset.defaultPrompt;
             if (isPolarity(polarity)) {
