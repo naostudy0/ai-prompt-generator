@@ -28,6 +28,7 @@
             data-compositions-url="{{ $compositionsUrl }}"
             data-actions-url="{{ $actionsUrl }}"
             data-prompt-options-url="{{ $promptOptionsUrl }}"
+            data-prompt-option-groups-url="{{ $promptOptionGroupsUrl }}"
         >
             <header class="page-header">
                 <p class="eyebrow">AI IMAGE PROMPT BUILDER</p>
@@ -187,12 +188,11 @@
                     </div>
 
                     @foreach ([
-                        ['type' => 'expression', 'label' => '表情', 'multiple' => false, 'search' => true],
+                        ['type' => 'expression', 'label' => '表情', 'multiple' => true, 'search' => true],
                         ['type' => 'gaze', 'label' => '視線', 'multiple' => false, 'search' => false],
                         ['type' => 'action', 'label' => '動作', 'multiple' => true, 'search' => false],
                         ['type' => 'location', 'label' => '場所', 'multiple' => true, 'search' => false],
                         ['type' => 'composition', 'label' => '構図', 'multiple' => false, 'search' => false],
-                        ['type' => 'option', 'label' => 'オプション', 'multiple' => true, 'search' => false],
                     ] as $category)
                         <div class="linked-option" data-prompt-category="{{ $category['type'] }}" data-multiple="{{ $category['multiple'] ? 'true' : 'false' }}">
                             <div class="subsection-heading subsection-heading--compact">
@@ -217,11 +217,17 @@
                             @endif
                         </div>
                     @endforeach
+
+                    <div data-option-groups></div>
+                    <div class="list-actions">
+                        <button class="small-button" type="button" data-option-group-add disabled>オプションを追加</button>
+                    </div>
                 </section>
 
-                <button class="display-button" type="button" data-display disabled>
-                    プロンプトを表示
-                </button>
+                <div class="editor-actions">
+                    <button class="display-button" type="button" data-display disabled>プロンプトを表示</button>
+                    <button class="secondary-button" type="button" data-reset disabled>リセット</button>
+                </div>
             </section>
 
             <section class="output-section" aria-labelledby="output-heading" data-output-section>

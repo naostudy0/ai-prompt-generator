@@ -7,5 +7,5 @@ export const createPositivePromptSections = (lora, categories) => [
     categories.action,
     categories.location,
     categories.composition,
-    categories.option,
+    ...categories.optionGroups,
 ];

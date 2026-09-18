@@ -31,6 +31,7 @@ export const initializePromptPreparationPage = ({
     const loadStatus = page.querySelector('[data-load-status]');
     const retryButton = page.querySelector('[data-retry]');
     const displayButton = page.querySelector('[data-display]');
+    const resetButton = page.querySelector('[data-reset]');
     const promptElements = [...page.querySelectorAll('[data-default-prompt]')];
     const outputElements = [...page.querySelectorAll('[data-output]')];
     const outputSection = page.querySelector('[data-output-section]');
@@ -44,6 +45,7 @@ export const initializePromptPreparationPage = ({
     let toastTimer;
     let loraOptionsController = {
         getSelections: () => ({ lora: '', trigger: '', outfit: '' }),
+        reset: () => {},
     };
     let promptCategoriesController = {
         getSections: () => ({
@@ -52,8 +54,9 @@ export const initializePromptPreparationPage = ({
             action: '',
             location: '',
             composition: '',
-            option: '',
+            optionGroups: [],
         }),
+        reset: () => {},
     };
 
     const isPolarity = (value) => value === 'positive' || value === 'negative';
@@ -106,6 +109,9 @@ export const initializePromptPreparationPage = ({
         if (displayButton instanceof HTMLButtonElement) {
             displayButton.disabled =
                 disabled || !promptsLoaded || !loraOptionsLoaded || !promptCategoriesLoaded;
+        }
+        if (resetButton instanceof HTMLButtonElement) {
+            resetButton.disabled = disabled || !loraOptionsLoaded || !promptCategoriesLoaded;
         }
     };
 
@@ -304,6 +310,36 @@ export const initializePromptPreparationPage = ({
         outputSection?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
     };
 
+    const resetPrompts = () => {
+        selectedPrompts.positive = false;
+        selectedPrompts.negative = false;
+        promptElements.forEach((element) => {
+            const polarity = element.dataset.defaultPrompt;
+            if (isPolarity(polarity)) {
+                updateSelection(element, polarity);
+            }
+        });
+        loraOptionsController.reset();
+        promptCategoriesController.reset();
+        outputElements.forEach((element) => {
+            const content = element.querySelector('[data-output-content]');
+            if (content instanceof HTMLTextAreaElement) {
+                content.value = '';
+                resizeOutputContent(content);
+            }
+            const status = element.querySelector('[data-copy-status]');
+            if (status instanceof HTMLElement) {
+                status.textContent = '';
+                delete status.dataset.state;
+            }
+            updateCopyAvailability(element);
+        });
+        page.querySelector('[data-lora-options]')?.scrollIntoView?.({
+            behavior: 'smooth',
+            block: 'start',
+        });
+    };
+
     const copyOutput = async (outputElement) => {
         const content = outputElement.querySelector('[data-output-content]');
         const status = outputElement.querySelector('[data-copy-status]');
@@ -376,6 +412,7 @@ export const initializePromptPreparationPage = ({
 
     retryButton?.addEventListener('click', loadDefaultPrompts);
     displayButton?.addEventListener('click', displayPrompts);
+    resetButton?.addEventListener('click', resetPrompts);
     loraOptionsController = initializeLoraOptionsPage({
         page,
         documentObject,

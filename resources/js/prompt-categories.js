@@ -40,8 +40,17 @@ export const requestPromptCategories = async (fetcher, characterUrl, sceneUrl, o
         !Array.isArray(scene.actions) ||
         !scene.actions.every(isNamedPromptCandidate) ||
         !isObject(option) ||
-        !Array.isArray(option.options) ||
-        !option.options.every(isNamedPromptCandidate)
+        !Array.isArray(option.groups) ||
+        !option.groups.every(
+            (group) =>
+                isObject(group) &&
+                Number.isInteger(group.id) &&
+                Number.isInteger(group.position) &&
+                group.position > 0 &&
+                typeof group.label === 'string' &&
+                Array.isArray(group.options) &&
+                group.options.every(isNamedPromptCandidate),
+        )
     ) {
         throw new Error('The prompt category response is invalid.');
     }
@@ -52,7 +61,7 @@ export const requestPromptCategories = async (fetcher, characterUrl, sceneUrl, o
         location: scene.locations,
         composition: scene.compositions,
         action: scene.actions,
-        option: option.options,
+        optionGroups: option.groups,
     };
 };
 
@@ -76,6 +85,15 @@ export const deleteNamedPrompt = async (fetcher, url, csrfToken, id) => {
         headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken },
     });
     assertResponse(response);
+};
+
+export const addOptionPromptGroup = async (fetcher, url, csrfToken) => {
+    const response = await fetcher(url, {
+        method: 'POST',
+        headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken },
+    });
+    assertResponse(response);
+    return response.json();
 };
 
 export const filterOptionsKeepingSelection = (options, searchText, selectedIds) => {
@@ -147,7 +165,33 @@ export const mergeUniquePromptContents = (contents) => {
     return [...new Set(elements)].join(', ') + (elements.length === 0 ? '' : ',');
 };
 
-export const createCategorySections = ({ options, selected }) => {
+export const mergeUniquePromptGroups = (groups) => {
+    const splitGroups = groups.map((contents) => contents.map(splitPromptElements));
+    if (splitGroups.some((group) => group.some((elements) => elements === null))) {
+        return groups.map((contents) => contents.join(' ')).filter((content) => content !== '');
+    }
+
+    const seen = new Set();
+    return splitGroups
+        .map((group) => {
+            const elements = group.flat().filter((element) => {
+                if (seen.has(element)) {
+                    return false;
+                }
+                seen.add(element);
+                return true;
+            });
+            return elements.join(', ') + (elements.length === 0 ? '' : ',');
+        })
+        .filter((content) => content !== '');
+};
+
+export const createCategorySections = ({
+    options,
+    selected,
+    optionGroups = [],
+    selectedOptionIds = new Set(),
+}) => {
     const selectedContent = (type) =>
         options[type]
             .filter((option) => selected[type].has(option.id))
@@ -156,11 +200,17 @@ export const createCategorySections = ({ options, selected }) => {
     const joinMultiple = (type) => selectedContent(type).join(' ');
 
     return {
-        expression: singleContent('expression'),
+        expression: mergeUniquePromptContents(selectedContent('expression')),
         gaze: singleContent('gaze'),
         action: joinMultiple('action'),
         location: mergeUniquePromptContents(selectedContent('location')),
         composition: singleContent('composition'),
-        option: mergeUniquePromptContents(selectedContent('option')),
+        optionGroups: mergeUniquePromptGroups(
+            optionGroups.map((group) =>
+                group.options
+                    .filter((option) => selectedOptionIds.has(option.id))
+                    .map((option) => option.content),
+            ),
+        ),
     };
 };
