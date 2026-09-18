@@ -52,6 +52,7 @@ export const initializePromptPreparationPage = ({
             action: '',
             location: '',
             composition: '',
+            option: '',
         }),
     };
 

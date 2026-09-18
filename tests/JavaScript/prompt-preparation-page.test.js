@@ -96,6 +96,7 @@ const addCategoryControls = (documentObject) => {
     const page = documentObject.querySelector('main');
     page.dataset.characterDirectionsUrl = '/character-directions';
     page.dataset.sceneDirectionsUrl = '/scene-directions';
+    page.dataset.promptOptionsUrl = '/prompt-options';
     for (const type of ['expressions', 'gazes', 'actions', 'locations', 'compositions']) {
         page.dataset[`${type}Url`] = `/${type}`;
     }
@@ -108,6 +109,7 @@ const addCategoryControls = (documentObject) => {
                 ['action', true],
                 ['location', true],
                 ['composition', false],
+                ['option', true],
             ]
                 .map(
                     ([
@@ -157,6 +159,14 @@ test('全カテゴリを確定順でpositiveへ出力しnegativeは変えない'
                 compositions: [{ id: 8, name: '正面', content: 'from front,' }],
             });
         }
+        if (url === '/prompt-options') {
+            return successfulResponse({
+                options: [
+                    { id: 9, name: '高精細', content: 'detailed, sharp focus,' },
+                    { id: 10, name: '精密', content: 'sharp focus, intricate,' },
+                ],
+            });
+        }
         return successfulResponse({
             loras: [
                 {
@@ -197,11 +207,13 @@ test('全カテゴリを確定順でpositiveへ出力しnegativeは変えない'
     }
     documentObject.querySelector('[data-prompt-category="action"] .prompt-badge').click();
     documentObject.querySelector('[data-prompt-category="location"] .prompt-badge').click();
+    documentObject.querySelectorAll('[data-prompt-category="option"] .prompt-badge')[1].click();
+    documentObject.querySelectorAll('[data-prompt-category="option"] .prompt-badge')[0].click();
     documentObject.querySelector('[data-display]').click();
 
     assert.equal(
         documentObject.querySelector('[data-output="positive"] [data-output-content]').value,
-        'masterpiece,\n\n<lora:character.safetensors:0.8>,\n\ncharacter, long hair,\n\nsmile,\n\nlooking at viewer,\n\nschool uniform,\n\nsitting,\n\npark,\n\nfrom front,',
+        'masterpiece,\n\n<lora:character.safetensors:0.8>,\n\ncharacter, long hair,\n\nsmile,\n\nlooking at viewer,\n\nschool uniform,\n\nsitting,\n\npark,\n\nfrom front,\n\ndetailed, sharp focus, intricate,',
     );
     assert.equal(
         documentObject.querySelector('[data-output="negative"] [data-output-content]').value,

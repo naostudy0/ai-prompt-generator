@@ -6,6 +6,7 @@ use App\Application\PromptPreparation\Ports\CharacterDirectionQueryService;
 use App\Application\PromptPreparation\Ports\SceneDirectionQueryService;
 use App\Application\PromptPreparation\Ports\DefaultPromptQueryService;
 use App\Application\PromptPreparation\Ports\LoraPromptOptionQueryService;
+use App\Application\PromptPreparation\Ports\OptionPromptQueryService;
 use App\Domain\PromptPreparation\Repositories\ActionPromptRepository;
 use App\Domain\PromptPreparation\Repositories\CompositionPromptRepository;
 use App\Domain\PromptPreparation\Repositories\ExpressionPromptRepository;
@@ -15,6 +16,7 @@ use App\Domain\PromptPreparation\Repositories\DefaultPromptRepository;
 use App\Domain\PromptPreparation\Repositories\LoraRepository;
 use App\Domain\PromptPreparation\Repositories\LoraTriggerRepository;
 use App\Domain\PromptPreparation\Repositories\OutfitPromptRepository;
+use App\Domain\PromptPreparation\Repositories\OptionPromptRepository;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentActionPromptRepository;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentCompositionPromptRepository;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentExpressionPromptRepository;
@@ -24,10 +26,12 @@ use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\Eloqu
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentLoraRepository;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentLoraTriggerRepository;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentOutfitPromptRepository;
+use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentOptionPromptRepository;
 use App\Infrastructure\PromptPreparation\Queries\EloquentCharacterDirectionQueryService;
 use App\Infrastructure\PromptPreparation\Queries\EloquentDefaultPromptQueryService;
 use App\Infrastructure\PromptPreparation\Queries\EloquentSceneDirectionQueryService;
 use App\Infrastructure\PromptPreparation\Queries\EloquentLoraPromptOptionQueryService;
+use App\Infrastructure\PromptPreparation\Queries\EloquentOptionPromptQueryService;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -50,6 +54,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(LoraTriggerRepository::class, EloquentLoraTriggerRepository::class);
         $this->app->bind(OutfitPromptRepository::class, EloquentOutfitPromptRepository::class);
         $this->app->bind(LoraPromptOptionQueryService::class, EloquentLoraPromptOptionQueryService::class);
+        $this->app->bind(OptionPromptRepository::class, EloquentOptionPromptRepository::class);
+        $this->app->bind(OptionPromptQueryService::class, EloquentOptionPromptQueryService::class);
     }
 
     /**

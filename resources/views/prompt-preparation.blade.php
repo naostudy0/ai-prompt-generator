@@ -27,6 +27,7 @@
             data-locations-url="{{ $locationsUrl }}"
             data-compositions-url="{{ $compositionsUrl }}"
             data-actions-url="{{ $actionsUrl }}"
+            data-prompt-options-url="{{ $promptOptionsUrl }}"
         >
             <header class="page-header">
                 <p class="eyebrow">AI IMAGE PROMPT BUILDER</p>
@@ -140,7 +141,7 @@
                         @endforeach
                     </select>
 
-                    <div class="linked-option">
+                    <div class="linked-option" data-selection-section="trigger">
                         <div class="subsection-heading subsection-heading--compact">
                             <h3>トリガー</h3>
                             <button class="small-button" type="button" aria-label="トリガーを追加" data-option-add="trigger" disabled>追加</button>
@@ -155,7 +156,7 @@
                         </div>
                     </div>
 
-                    <div class="linked-option">
+                    <div class="linked-option" data-selection-section="outfit">
                         <div class="subsection-heading subsection-heading--compact">
                             <h3>服装</h3>
                             <button class="small-button" type="button" aria-label="服装を追加" data-option-add="outfit" disabled>追加</button>
@@ -191,6 +192,7 @@
                         ['type' => 'action', 'label' => '動作', 'multiple' => true, 'search' => false],
                         ['type' => 'location', 'label' => '場所', 'multiple' => true, 'search' => false],
                         ['type' => 'composition', 'label' => '構図', 'multiple' => false, 'search' => false],
+                        ['type' => 'option', 'label' => 'オプション', 'multiple' => true, 'search' => false],
                     ] as $category)
                         <div class="linked-option" data-prompt-category="{{ $category['type'] }}" data-multiple="{{ $category['multiple'] ? 'true' : 'false' }}">
                             <div class="subsection-heading subsection-heading--compact">

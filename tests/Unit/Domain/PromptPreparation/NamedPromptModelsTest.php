@@ -8,6 +8,7 @@ use App\Domain\PromptPreparation\Models\ExpressionPrompt;
 use App\Domain\PromptPreparation\Models\GazePrompt;
 use App\Domain\PromptPreparation\Models\LocationPrompt;
 use App\Domain\PromptPreparation\Models\PromptText;
+use App\Domain\PromptPreparation\Models\OptionPrompt;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -17,7 +18,7 @@ class NamedPromptModelsTest extends TestCase
     #[DataProvider('modelClasses')]
     public function test_登録名の前後空白を除いて候補を作成する(string $modelClass): void
     {
-        /** @var ActionPrompt|CompositionPrompt|ExpressionPrompt|GazePrompt|LocationPrompt $model */
+        /** @var ActionPrompt|CompositionPrompt|ExpressionPrompt|GazePrompt|LocationPrompt|OptionPrompt $model */
         $model = new $modelClass(12, '  登録名  ', PromptText::fromInput('prompt'));
 
         self::assertSame(12, $model->id);
@@ -49,5 +50,6 @@ class NamedPromptModelsTest extends TestCase
         yield '場所' => [LocationPrompt::class];
         yield '構図' => [CompositionPrompt::class];
         yield '動作' => [ActionPrompt::class];
+        yield 'オプション' => [OptionPrompt::class];
     }
 }
