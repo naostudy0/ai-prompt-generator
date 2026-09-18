@@ -11,11 +11,12 @@ const createDocument = () => {
         ['action', true, false],
         ['location', true, false],
         ['composition', false, false],
+        ['option', true, false],
     ];
     const dom = new JSDOM(`<!DOCTYPE html><main
         data-character-directions-url="/character-directions" data-scene-directions-url="/scene-directions"
         data-expressions-url="/expressions" data-gazes-url="/gazes" data-actions-url="/actions"
-        data-locations-url="/locations" data-compositions-url="/compositions">
+        data-locations-url="/locations" data-compositions-url="/compositions" data-prompt-options-url="/prompt-options">
         <section data-prompt-categories><p data-category-load-status></p><button data-category-retry hidden></button>
         ${categories
             .map(
@@ -68,12 +69,21 @@ const scene = {
         { id: 8, name: '読む', content: 'reading,' },
     ],
 };
+const promptOptions = {
+    options: [
+        { id: 9, name: '高精細', content: 'detailed, sharp focus,' },
+        { id: 10, name: '精密', content: 'sharp focus, intricate,' },
+    ],
+};
 
-test('表情と視線は単一選択し場所と動作はバッジで複数選択する', async () => {
+const responseFor = (url) =>
+    url.includes('character') ? character : url.includes('scene') ? scene : promptOptions;
+
+test('表情と視線は単一選択し場所と動作とオプションはバッジで複数選択する', async () => {
     const documentObject = createDocument();
     const fetcher = async (url) => ({
         ok: true,
-        json: async () => (url.includes('character') ? character : scene),
+        json: async () => responseFor(url),
     });
     let loaded = false;
     const controller = initializePromptCategoriesPage({
@@ -94,6 +104,7 @@ test('表情と視線は単一選択し場所と動作はバッジで複数選�
         action: '',
         location: '',
         composition: '',
+        option: '',
     });
 
     const expression = documentObject.querySelector(
@@ -113,6 +124,8 @@ test('表情と視線は単一選択し場所と動作はバッジで複数選�
     );
     composition.value = '6';
     composition.dispatchEvent(new documentObject.defaultView.Event('change'));
+    documentObject.querySelectorAll('[data-prompt-category="option"] .prompt-badge')[1].click();
+    documentObject.querySelectorAll('[data-prompt-category="option"] .prompt-badge')[0].click();
 
     assert.deepEqual(controller.getSections(), {
         expression: 'smile, open mouth,',
@@ -120,6 +133,7 @@ test('表情と視線は単一選択し場所と動作はバッジで複数選�
         action: 'sitting, reading,',
         location: 'park, bench,',
         composition: 'from front,',
+        option: 'detailed, sharp focus, intricate,',
     });
     assert.equal(
         documentObject
@@ -127,13 +141,25 @@ test('表情と視線は単一選択し場所と動作はバッジで複数選�
             .getAttribute('aria-pressed'),
         'true',
     );
+    const optionBadges = documentObject.querySelectorAll(
+        '[data-prompt-category="option"] .prompt-badge',
+    );
+    assert.equal(optionBadges[0].getAttribute('aria-pressed'), 'true');
+    assert.equal(optionBadges[1].getAttribute('aria-pressed'), 'true');
+    optionBadges[0].click();
+    const updatedOptionBadges = documentObject.querySelectorAll(
+        '[data-prompt-category="option"] .prompt-badge',
+    );
+    assert.equal(updatedOptionBadges[0].getAttribute('aria-pressed'), 'false');
+    assert.equal(updatedOptionBadges[1].getAttribute('aria-pressed'), 'true');
+    assert.equal(controller.getSections().option, 'sharp focus, intricate,');
 });
 
 test('表情検索は選択中候補を元の位置に残して一致候補を絞り込む', async () => {
     const documentObject = createDocument();
     const fetcher = async (url) => ({
         ok: true,
-        json: async () => (url.includes('character') ? character : scene),
+        json: async () => responseFor(url),
     });
     initializePromptCategoriesPage({
         page: documentObject.querySelector('main'),
@@ -159,6 +185,44 @@ test('表情検索は選択中候補を元の位置に残して一致候補を�
     assert.equal(list.value, '2');
 });
 
+test('単一選択した表情と視線と構図から直後の入力セクションへスクロールする', async () => {
+    const documentObject = createDocument();
+    const scrolledSections = [];
+    for (const type of ['gaze', 'action', 'option']) {
+        documentObject.querySelector(`[data-prompt-category="${type}"]`).scrollIntoView = (
+            options,
+        ) => {
+            scrolledSections.push([type, options]);
+        };
+    }
+    initializePromptCategoriesPage({
+        page: documentObject.querySelector('main'),
+        documentObject,
+        fetcher: async (url) => ({ ok: true, json: async () => responseFor(url) }),
+        csrfToken: 'csrf',
+        onLoadedChange: () => {},
+        notify: () => {},
+    });
+    await flush();
+
+    const select = (type, value) => {
+        const list = documentObject.querySelector(
+            `[data-prompt-category="${type}"] [data-category-list]`,
+        );
+        list.value = value;
+        list.dispatchEvent(new documentObject.defaultView.Event('change'));
+    };
+    select('expression', '1');
+    select('gaze', '3');
+    select('composition', '6');
+
+    assert.deepEqual(scrolledSections, [
+        ['gaze', { behavior: 'smooth', block: 'start' }],
+        ['action', { behavior: 'smooth', block: 'start' }],
+        ['option', { behavior: 'smooth', block: 'start' }],
+    ]);
+});
+
 test('保存中は重複送信とダイアログを閉じる操作を防ぐ', async () => {
     const documentObject = createDocument();
     let saveRequestCount = 0;
@@ -173,7 +237,7 @@ test('保存中は重複送信とダイアログを閉じる操作を防ぐ', as
         }
         return {
             ok: true,
-            json: async () => (url.includes('character') ? character : scene),
+            json: async () => responseFor(url),
         };
     };
     initializePromptCategoriesPage({
@@ -193,15 +257,78 @@ test('保存中は重複送信とダイアログを閉じる操作を防ぐ', as
     await flush();
 
     documentObject.querySelector('[data-category-cancel]').click();
+    const cancelEvent = new documentObject.defaultView.Event('cancel', { cancelable: true });
+    dialog.dispatchEvent(cancelEvent);
     documentObject.querySelector('[data-category-form]').requestSubmit();
 
     assert.equal(dialog.open, true);
+    assert.equal(cancelEvent.defaultPrevented, true);
     assert.equal(saveRequestCount, 1);
     assert.equal(documentObject.querySelector('[data-category-save]').disabled, true);
+    assert.equal(documentObject.querySelector('[data-category-cancel]').disabled, true);
 
     resolveSave({ ok: true, json: async () => ({ id: 9 }) });
     await flush();
     await flush();
 
     assert.equal(dialog.open, false);
+});
+
+test('選択中オプションの編集では選択を維持し削除では対象だけを解除する', async () => {
+    const documentObject = createDocument();
+    let options = promptOptions.options.map((option) => ({ ...option }));
+    const requests = [];
+    const fetcher = async (url, request = {}) => {
+        if (request.method === 'PUT') {
+            requests.push([url, request.method]);
+            options = options.map((option) =>
+                option.id === 9
+                    ? { ...option, name: '超高精細', content: 'detailed, ultra,' }
+                    : option,
+            );
+            return { ok: true, json: async () => options[0] };
+        }
+        if (request.method === 'DELETE') {
+            requests.push([url, request.method]);
+            options = options.filter((option) => option.id !== 9);
+            return { ok: true };
+        }
+        return {
+            ok: true,
+            json: async () =>
+                url.includes('character') ? character : url.includes('scene') ? scene : { options },
+        };
+    };
+    const controller = initializePromptCategoriesPage({
+        page: documentObject.querySelector('main'),
+        documentObject,
+        fetcher,
+        csrfToken: 'csrf',
+        onLoadedChange: () => {},
+        notify: () => {},
+    });
+    await flush();
+    const optionRoot = documentObject.querySelector('[data-prompt-category="option"]');
+    optionRoot.querySelectorAll('.prompt-badge')[0].click();
+    optionRoot.querySelectorAll('.prompt-badge')[1].click();
+    optionRoot.querySelectorAll('.badge-manage-button')[0].click();
+    documentObject.querySelector('[data-category-name]').value = '超高精細';
+    documentObject.querySelector('[data-category-content]').value = 'detailed, ultra';
+    documentObject.querySelector('[data-category-form]').requestSubmit();
+    await flush();
+    await flush();
+
+    assert.equal(controller.getSections().option, 'detailed, ultra, sharp focus, intricate,');
+    optionRoot.querySelectorAll('.badge-manage-button')[1].click();
+    documentObject.querySelector('[data-category-delete-form]').requestSubmit();
+    await flush();
+    await flush();
+
+    assert.deepEqual(requests, [
+        ['/prompt-options/9', 'PUT'],
+        ['/prompt-options/9', 'DELETE'],
+    ]);
+    assert.equal(controller.getSections().option, 'sharp focus, intricate,');
+    assert.equal(optionRoot.querySelectorAll('.prompt-badge').length, 1);
+    assert.equal(optionRoot.querySelector('.prompt-badge').getAttribute('aria-pressed'), 'true');
 });

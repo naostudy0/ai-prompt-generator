@@ -29,6 +29,7 @@ final class PromptPreparationPageController extends Controller
             'locationsUrl' => route('locations.store'),
             'compositionsUrl' => route('compositions.store'),
             'actionsUrl' => route('actions.store'),
+            'promptOptionsUrl' => route('prompt-options.index'),
         ]);
     }
 }

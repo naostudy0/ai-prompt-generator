@@ -25,7 +25,9 @@ return Application::configure(basePath: dirname(__DIR__))
             || $request->is('compositions')
             || $request->is('compositions/*')
             || $request->is('actions')
-            || $request->is('actions/*');
+            || $request->is('actions/*')
+            || $request->is('prompt-options')
+            || $request->is('prompt-options/*');
 
         $middleware->trimStrings(except: [$preservePromptContent]);
         $middleware->convertEmptyStringsToNull(except: [$preservePromptContent]);

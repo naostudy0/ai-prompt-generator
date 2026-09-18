@@ -34,9 +34,9 @@ const createDocument = () => {
                 <select data-lora-strength disabled>
                     <option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1">1</option>
                 </select>
-                <select data-trigger-list disabled></select>
+                <div data-selection-section="trigger"><select data-trigger-list disabled></select></div>
                 <input data-outfit-search disabled>
-                <select data-outfit-list disabled></select>
+                <div data-selection-section="outfit"><select data-outfit-list disabled></select></div>
                 ${['lora', 'trigger', 'outfit']
                     .map(
                         (type) => `
@@ -47,6 +47,7 @@ const createDocument = () => {
                     )
                     .join('')}
             </section>
+            <div data-prompt-category="expression"></div>
             <dialog data-option-dialog>
                 <form data-option-form>
                     <h2 data-option-dialog-title></h2>
@@ -163,6 +164,49 @@ test('LoRA選択時に推奨強度とトリガーを反映し服装を上位へ�
         trigger: 'beta, short hair,',
         outfit: 'school uniform,',
     });
+});
+
+test('単一選択したLoRAとトリガーと服装から直後の入力セクションへスクロールする', async () => {
+    const documentObject = createDocument();
+    const catalog = {
+        loras: [createLora(1, 'Alpha', 'alpha.safetensors', 1)],
+        triggers: [{ id: 11, loraId: 1, name: '標準', content: 'alpha,' }],
+        outfits: [{ id: 21, loraId: null, name: '制服', content: 'uniform,' }],
+    };
+    const scrolledSections = [];
+    for (const [selector, name] of [
+        ['[data-selection-section="trigger"]', 'trigger'],
+        ['[data-selection-section="outfit"]', 'outfit'],
+        ['[data-prompt-category]', 'expression'],
+    ]) {
+        documentObject.querySelector(selector).scrollIntoView = (options) => {
+            scrolledSections.push([name, options]);
+        };
+    }
+    initializeLoraOptionsPage({
+        page: documentObject.querySelector('main'),
+        documentObject,
+        fetcher: async () => ({ ok: true, json: async () => catalog }),
+        csrfToken: 'csrf',
+        onLoadedChange: () => {},
+        notify: () => {},
+    });
+    await flushAsyncEvents();
+
+    const select = (selector, value) => {
+        const list = documentObject.querySelector(selector);
+        list.value = value;
+        list.dispatchEvent(new documentObject.defaultView.Event('change'));
+    };
+    select('[data-lora-list]', '1');
+    select('[data-trigger-list]', '11');
+    select('[data-outfit-list]', '21');
+
+    assert.deepEqual(scrolledSections, [
+        ['trigger', { behavior: 'smooth', block: 'start' }],
+        ['outfit', { behavior: 'smooth', block: 'start' }],
+        ['expression', { behavior: 'smooth', block: 'start' }],
+    ]);
 });
 
 test('LoRAを登録名とファイル名で絞り込み選択解除できる', async () => {

@@ -6,6 +6,7 @@ import {
     requestLoraPromptOptions,
     saveLoraPromptOption,
 } from './lora-options.js';
+import { scrollToSelectionSection } from './selection-navigation.js';
 
 export const initializeLoraOptionsPage = ({
     page,
@@ -380,14 +381,17 @@ export const initializeLoraOptionsPage = ({
         const lora = selectedItem('lora');
         strengthSelect.value = String(lora.recommendedStrength);
         render();
+        scrollToSelectionSection(root.querySelector('[data-selection-section="trigger"]'));
     });
     triggerList?.addEventListener('change', () => {
         state.selectedTriggerId = Number(triggerList.value);
         render();
+        scrollToSelectionSection(root.querySelector('[data-selection-section="outfit"]'));
     });
     outfitList?.addEventListener('change', () => {
         state.selectedOutfitId = Number(outfitList.value);
         render();
+        scrollToSelectionSection(page.querySelector('[data-prompt-category]'));
     });
 
     root.querySelectorAll('[data-option-add]').forEach((button) =>

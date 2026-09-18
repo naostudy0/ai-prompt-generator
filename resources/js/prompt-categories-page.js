@@ -5,6 +5,7 @@ import {
     requestPromptCategories,
     saveNamedPrompt,
 } from './prompt-categories.js';
+import { scrollToSelectionSection } from './selection-navigation.js';
 
 const labels = {
     expression: '表情',
@@ -12,6 +13,7 @@ const labels = {
     action: '動作',
     location: '場所',
     composition: '構図',
+    option: 'オプション',
 };
 
 export const initializePromptCategoriesPage = ({
@@ -33,6 +35,7 @@ export const initializePromptCategoriesPage = ({
                 action: '',
                 location: '',
                 composition: '',
+                option: '',
             }),
         };
     }
@@ -44,7 +47,14 @@ export const initializePromptCategoriesPage = ({
     const form = page.querySelector('[data-category-form]');
     const deleteDialog = page.querySelector('[data-category-delete-dialog]');
     const deleteForm = page.querySelector('[data-category-delete-form]');
-    const options = { expression: [], gaze: [], action: [], location: [], composition: [] };
+    const options = {
+        expression: [],
+        gaze: [],
+        action: [],
+        location: [],
+        composition: [],
+        option: [],
+    };
     const selected = Object.fromEntries(Object.keys(options).map((type) => [type, new Set()]));
     const endpoints = {
         expression: page.dataset.expressionsUrl,
@@ -52,6 +62,7 @@ export const initializePromptCategoriesPage = ({
         action: page.dataset.actionsUrl,
         location: page.dataset.locationsUrl,
         composition: page.dataset.compositionsUrl,
+        option: page.dataset.promptOptionsUrl,
     };
     let loaded = false;
     let editingType = null;
@@ -110,6 +121,7 @@ export const initializePromptCategoriesPage = ({
             badge.type = 'button';
             badge.className = 'prompt-badge';
             badge.textContent = `${selected[type].has(option.id) ? '✓ ' : ''}${option.name}`;
+            badge.setAttribute('aria-label', option.name);
             badge.setAttribute('aria-pressed', selected[type].has(option.id) ? 'true' : 'false');
             badge.disabled = !loaded;
             badge.addEventListener('click', () => {
@@ -163,6 +175,7 @@ export const initializePromptCategoriesPage = ({
                 fetcher,
                 page.dataset.characterDirectionsUrl,
                 page.dataset.sceneDirectionsUrl,
+                page.dataset.promptOptionsUrl,
             );
             for (const type of Object.keys(options)) {
                 options[type] = result[type];
@@ -185,6 +198,9 @@ export const initializePromptCategoriesPage = ({
     const close = (target) => target instanceof HTMLDialogElement && target.close();
     const show = (target) => target instanceof HTMLDialogElement && target.showModal();
     const openForm = (type, option = null) => {
+        if (saving || deleting) {
+            return;
+        }
         editingType = type;
         page.querySelector('[data-category-dialog-title]').textContent =
             `${labels[type]}を${option ? '編集' : '追加'}`;
@@ -199,6 +215,9 @@ export const initializePromptCategoriesPage = ({
         page.querySelector('[data-category-name]').focus();
     };
     const openDelete = (type, option) => {
+        if (saving || deleting) {
+            return;
+        }
         deletingType = type;
         deletingId = option.id;
         page.querySelector('[data-category-delete-message]').textContent =
@@ -216,7 +235,9 @@ export const initializePromptCategoriesPage = ({
         const id = idValue === '' ? null : Number(idValue);
         const formStatus = page.querySelector('[data-category-form-status]');
         const button = page.querySelector('[data-category-save]');
+        const cancelButton = page.querySelector('[data-category-cancel]');
         button.disabled = true;
+        cancelButton.disabled = true;
         formStatus.textContent = '保存しています。';
         try {
             await saveNamedPrompt(fetcher, endpoints[operationType], csrfToken, id, {
@@ -232,6 +253,7 @@ export const initializePromptCategoriesPage = ({
         } finally {
             saving = false;
             button.disabled = false;
+            cancelButton.disabled = false;
         }
     };
     const remove = async () => {
@@ -243,7 +265,9 @@ export const initializePromptCategoriesPage = ({
         const operationId = deletingId;
         const deleteStatus = page.querySelector('[data-category-delete-status]');
         const button = page.querySelector('[data-category-delete-confirm]');
+        const cancelButton = page.querySelector('[data-category-delete-cancel]');
         button.disabled = true;
+        cancelButton.disabled = true;
         deleteStatus.textContent = '削除しています。';
         try {
             await deleteNamedPrompt(fetcher, endpoints[operationType], csrfToken, operationId);
@@ -256,6 +280,7 @@ export const initializePromptCategoriesPage = ({
         } finally {
             deleting = false;
             button.disabled = false;
+            cancelButton.disabled = false;
         }
     };
 
@@ -268,6 +293,7 @@ export const initializePromptCategoriesPage = ({
         container.querySelector('[data-category-list]')?.addEventListener('change', (event) => {
             selected[type] = new Set([Number(event.target.value)]);
             render();
+            scrollToSelectionSection(container.nextElementSibling);
         });
         container.querySelector('[data-category-clear]')?.addEventListener('click', () => {
             selected[type].clear();
@@ -299,6 +325,11 @@ export const initializePromptCategoriesPage = ({
         () => !deleting && close(deleteDialog),
     );
     for (const target of [dialog, deleteDialog]) {
+        target.addEventListener('cancel', (event) => {
+            if (saving || deleting) {
+                event.preventDefault();
+            }
+        });
         target.addEventListener('click', (event) => {
             if (saving || deleting) {
                 return;

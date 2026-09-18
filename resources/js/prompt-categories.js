@@ -1,5 +1,5 @@
 const isObject = (value) => typeof value === 'object' && value !== null && !Array.isArray(value);
-const isOption = (value) =>
+const isNamedPromptCandidate = (value) =>
     isObject(value) &&
     Number.isInteger(value.id) &&
     typeof value.name === 'string' &&
@@ -13,29 +13,35 @@ const assertResponse = (response) => {
     }
 };
 
-export const requestPromptCategories = async (fetcher, characterUrl, sceneUrl) => {
-    const [characterResponse, sceneResponse] = await Promise.all([
+export const requestPromptCategories = async (fetcher, characterUrl, sceneUrl, optionUrl) => {
+    const [characterResponse, sceneResponse, optionResponse] = await Promise.all([
         fetcher(characterUrl, { headers: { Accept: 'application/json' } }),
         fetcher(sceneUrl, { headers: { Accept: 'application/json' } }),
+        fetcher(optionUrl, { headers: { Accept: 'application/json' } }),
     ]);
     assertResponse(characterResponse);
     assertResponse(sceneResponse);
+    assertResponse(optionResponse);
     const character = await characterResponse.json();
     const scene = await sceneResponse.json();
+    const option = await optionResponse.json();
 
     if (
         !isObject(character) ||
         !Array.isArray(character.expressions) ||
-        !character.expressions.every(isOption) ||
+        !character.expressions.every(isNamedPromptCandidate) ||
         !Array.isArray(character.gazes) ||
-        !character.gazes.every(isOption) ||
+        !character.gazes.every(isNamedPromptCandidate) ||
         !isObject(scene) ||
         !Array.isArray(scene.locations) ||
-        !scene.locations.every(isOption) ||
+        !scene.locations.every(isNamedPromptCandidate) ||
         !Array.isArray(scene.compositions) ||
-        !scene.compositions.every(isOption) ||
+        !scene.compositions.every(isNamedPromptCandidate) ||
         !Array.isArray(scene.actions) ||
-        !scene.actions.every(isOption)
+        !scene.actions.every(isNamedPromptCandidate) ||
+        !isObject(option) ||
+        !Array.isArray(option.options) ||
+        !option.options.every(isNamedPromptCandidate)
     ) {
         throw new Error('The prompt category response is invalid.');
     }
@@ -46,6 +52,7 @@ export const requestPromptCategories = async (fetcher, characterUrl, sceneUrl) =
         location: scene.locations,
         composition: scene.compositions,
         action: scene.actions,
+        option: option.options,
     };
 };
 
@@ -154,5 +161,6 @@ export const createCategorySections = ({ options, selected }) => {
         action: joinMultiple('action'),
         location: mergeUniquePromptContents(selectedContent('location')),
         composition: singleContent('composition'),
+        option: mergeUniquePromptContents(selectedContent('option')),
     };
 };

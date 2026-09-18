@@ -28,6 +28,7 @@ class TopPageTest extends TestCase
             ->assertSee('動作')
             ->assertSee('場所')
             ->assertSee('構図')
+            ->assertSee('オプション')
             ->assertSee('表情を検索')
             ->assertSee('服装を検索')
             ->assertSee('プロンプトを表示')
@@ -60,6 +61,7 @@ class TopPageTest extends TestCase
             ->assertSee(route('actions.store'), false)
             ->assertSee(route('locations.store'), false)
             ->assertSee(route('compositions.store'), false)
+            ->assertSee(route('prompt-options.index'), false)
             ->assertDontSee('<h3>デフォルト</h3>', false)
             ->assertDontSee('data-preview', false);
         $content = $response->getContent();

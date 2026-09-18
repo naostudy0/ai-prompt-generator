@@ -15,6 +15,7 @@ use App\Http\Controllers\PromptPreparation\Writes\DeleteCompositionPromptControl
 use App\Http\Controllers\PromptPreparation\Writes\DeleteActionPromptController;
 use App\Http\Controllers\PromptPreparation\Queries\GetDefaultPromptsController;
 use App\Http\Controllers\PromptPreparation\Queries\GetLoraPromptOptionsController;
+use App\Http\Controllers\PromptPreparation\Queries\GetPromptOptionsController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteLoraController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteLoraTriggerController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteOutfitPromptController;
@@ -22,6 +23,8 @@ use App\Http\Controllers\PromptPreparation\Writes\SaveDefaultPromptController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveLoraController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveLoraTriggerController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveOutfitPromptController;
+use App\Http\Controllers\PromptPreparation\Writes\SaveOptionPromptController;
+use App\Http\Controllers\PromptPreparation\Writes\DeleteOptionPromptController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', PromptPreparationPageController::class)->name('prompt-preparation');
@@ -69,3 +72,10 @@ Route::delete('/compositions/{composition}', DeleteCompositionPromptController::
 Route::post('/actions', SaveActionPromptController::class)->name('actions.store');
 Route::put('/actions/{action}', SaveActionPromptController::class)->whereNumber('action')->name('actions.update');
 Route::delete('/actions/{action}', DeleteActionPromptController::class)->whereNumber('action')->name('actions.destroy');
+
+Route::get('/prompt-options', GetPromptOptionsController::class)->name('prompt-options.index');
+Route::post('/prompt-options', SaveOptionPromptController::class)->name('prompt-options.store');
+Route::put('/prompt-options/{option}', SaveOptionPromptController::class)
+    ->whereNumber('option')->name('prompt-options.update');
+Route::delete('/prompt-options/{option}', DeleteOptionPromptController::class)
+    ->whereNumber('option')->name('prompt-options.destroy');
