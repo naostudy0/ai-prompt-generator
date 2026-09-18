@@ -139,8 +139,7 @@ export const initializeLoraOptionsPage = ({
         );
         replaceOptions(outfitList, outfits, state.selectedOutfitId, (outfit) => {
             const linkedLora = state.loras.find((lora) => lora.id === outfit.loraId);
-            const relation = linkedLora ? linkedLora.name : '紐付けなし';
-            return `${outfit.name} — ${relation} — ${outfit.content} (#${outfit.id})`;
+            return `${outfit.name} — ${linkedLora?.name ?? ''} — ${outfit.content} (#${outfit.id})`;
         });
 
         if (strengthSelect instanceof HTMLSelectElement) {
@@ -166,7 +165,7 @@ export const initializeLoraOptionsPage = ({
 
         setButtonDisabled('[data-option-add="lora"]', !state.loaded);
         setButtonDisabled('[data-option-add="trigger"]', selectedLora === null);
-        setButtonDisabled('[data-option-add="outfit"]', !state.loaded);
+        setButtonDisabled('[data-option-add="outfit"]', !state.loaded || state.loras.length === 0);
         for (const type of ['lora', 'trigger', 'outfit']) {
             const unselected = selectedItem(type) === null;
             setButtonDisabled(`[data-option-edit="${type}"]`, unselected);
@@ -259,14 +258,12 @@ export const initializeLoraOptionsPage = ({
         page.querySelector('[data-association-field]').hidden = type !== 'outfit';
 
         const association = page.querySelector('[data-option-lora]');
-        replaceOptions(association, state.loras, item?.loraId ?? null, (lora) => lora.name);
-        if (association instanceof HTMLSelectElement) {
-            const none = documentObject.createElement('option');
-            none.value = '';
-            none.textContent = '紐付けなし';
-            none.selected = item?.loraId === undefined || item.loraId === null;
-            association.prepend(none);
-        }
+        replaceOptions(
+            association,
+            state.loras,
+            item?.loraId ?? state.selectedLoraId,
+            (lora) => lora.name,
+        );
 
         showDialog(optionDialog);
         page.querySelector(
@@ -294,7 +291,7 @@ export const initializeLoraOptionsPage = ({
             values = { loraId: state.selectedLoraId, name, content };
         } else {
             const loraId = page.querySelector('[data-option-lora]').value;
-            values = { loraId: loraId === '' ? null : Number(loraId), name, content };
+            values = { loraId: Number(loraId), name, content };
         }
 
         status.textContent = '保存しています。';
@@ -322,8 +319,7 @@ export const initializeLoraOptionsPage = ({
         }
         state.deletingType = type;
         state.deletingId = item.id;
-        const effect =
-            type === 'lora' ? '紐づくトリガーも削除され、服装の紐付けは解除されます。' : '';
+        const effect = type === 'lora' ? '紐づくトリガーと服装も削除されます。' : '';
         const typeName = type === 'lora' ? 'LoRA' : type === 'trigger' ? 'トリガー' : '服装';
         const identifier = type === 'lora' ? item.fileName : `${item.content}（ID: ${item.id}）`;
         page.querySelector('[data-delete-message]').textContent =
@@ -341,10 +337,15 @@ export const initializeLoraOptionsPage = ({
         page.querySelector('[data-delete-confirm]').disabled = true;
 
         try {
+            const deletesSelectedOutfit =
+                type === 'lora' && selectedItem('outfit')?.loraId === state.deletingId;
             await deleteLoraPromptOption(fetcher, endpoint, csrfToken, state.deletingId);
             if (type === 'lora') {
                 state.selectedLoraId = null;
                 state.selectedTriggerId = null;
+                if (deletesSelectedOutfit) {
+                    state.selectedOutfitId = null;
+                }
             } else if (type === 'trigger') {
                 state.selectedTriggerId = null;
             } else {
@@ -376,11 +377,12 @@ export const initializeLoraOptionsPage = ({
     });
     outfitSearchInput?.addEventListener('input', render);
     loraList?.addEventListener('change', () => {
-        state.selectedLoraId = Number(loraList.value);
+        const loraId = Number(loraList.value);
+        state.selectedLoraId = state.loras.some((lora) => lora.id === loraId) ? loraId : null;
         state.selectedTriggerId =
             state.triggers.find((trigger) => trigger.loraId === state.selectedLoraId)?.id ?? null;
         const lora = selectedItem('lora');
-        strengthSelect.value = String(lora.recommendedStrength);
+        strengthSelect.value = String(lora?.recommendedStrength ?? 1);
         render();
         scrollToSelectionSection(root.querySelector('[data-selection-section="trigger"]'));
     });
@@ -392,7 +394,7 @@ export const initializeLoraOptionsPage = ({
     outfitList?.addEventListener('change', () => {
         state.selectedOutfitId = Number(outfitList.value);
         render();
-        scrollToSelectionSection(page.querySelector('[data-prompt-category]'));
+        scrollToSelectionSection(page.querySelector('[data-option-groups]'));
     });
 
     root.querySelectorAll('[data-option-add]').forEach((button) =>

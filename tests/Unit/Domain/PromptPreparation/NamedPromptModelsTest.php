@@ -2,60 +2,42 @@
 
 namespace Tests\Unit\Domain\PromptPreparation;
 
-use App\Domain\PromptPreparation\Models\ActionPrompt;
-use App\Domain\PromptPreparation\Models\CompositionPrompt;
-use App\Domain\PromptPreparation\Models\ExpressionPrompt;
-use App\Domain\PromptPreparation\Models\GazePrompt;
-use App\Domain\PromptPreparation\Models\LocationPrompt;
-use App\Domain\PromptPreparation\Models\PromptText;
 use App\Domain\PromptPreparation\Models\OptionPrompt;
+use App\Domain\PromptPreparation\Models\OptionPromptGroup;
+use App\Domain\PromptPreparation\Models\OptionSelectionMode;
+use App\Domain\PromptPreparation\Models\PromptText;
 use InvalidArgumentException;
-use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class NamedPromptModelsTest extends TestCase
 {
-    #[DataProvider('modelClasses')]
-    public function test_登録名の前後空白を除いて候補を作成する(string $modelClass): void
+    public function test_登録名の前後空白を除いてオプションを作成する(): void
     {
-        /** @var ActionPrompt|CompositionPrompt|ExpressionPrompt|GazePrompt|LocationPrompt|OptionPrompt $model */
-        $model = $modelClass === OptionPrompt::class
-            ? new OptionPrompt(12, 1, '  登録名  ', PromptText::fromInput('prompt'))
-            : new $modelClass(12, '  登録名  ', PromptText::fromInput('prompt'));
+        $model = new OptionPrompt(12, 1, '  登録名  ', PromptText::fromInput('prompt'), 1);
 
-        self::assertSame(12, $model->id);
         self::assertSame('登録名', $model->name);
         self::assertSame('prompt,', $model->content->value);
     }
 
-    #[DataProvider('modelClasses')]
-    public function test_空の登録名では候補を作成できない(string $modelClass): void
+    public function test_空の登録名ではオプションを作成できない(): void
     {
         $this->expectException(InvalidArgumentException::class);
 
-        $modelClass === OptionPrompt::class
-            ? new OptionPrompt(null, 1, '  ', PromptText::fromInput('prompt'))
-            : new $modelClass(null, '  ', PromptText::fromInput('prompt'));
+        new OptionPrompt(null, 1, '  ', PromptText::fromInput('prompt'), 1);
     }
 
-    #[DataProvider('modelClasses')]
-    public function test_空の文面では候補を作成できない(string $modelClass): void
+    public function test_空の文面ではオプションを作成できない(): void
     {
         $this->expectException(InvalidArgumentException::class);
 
-        $modelClass === OptionPrompt::class
-            ? new OptionPrompt(null, 1, '登録名', PromptText::fromInput(''))
-            : new $modelClass(null, '登録名', PromptText::fromInput(''));
+        new OptionPrompt(null, 1, '登録名', PromptText::fromInput(''), 1);
     }
 
-    /** @return iterable<string, array{class-string}> */
-    public static function modelClasses(): iterable
+    public function test_名前と選択方式を指定してオプションブロックを作成する(): void
     {
-        yield '表情' => [ExpressionPrompt::class];
-        yield '視線' => [GazePrompt::class];
-        yield '場所' => [LocationPrompt::class];
-        yield '構図' => [CompositionPrompt::class];
-        yield '動作' => [ActionPrompt::class];
-        yield 'オプション' => [OptionPrompt::class];
+        $group = new OptionPromptGroup(null, ' 表情 ', OptionSelectionMode::Multiple, 1);
+
+        self::assertSame('表情', $group->name);
+        self::assertSame(OptionSelectionMode::Multiple, $group->selectionMode);
     }
 }

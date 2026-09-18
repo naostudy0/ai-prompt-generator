@@ -1,21 +1,13 @@
 import {
-    addOptionPromptGroup,
-    createCategorySections,
-    deleteNamedPrompt,
+    createOptionSections,
+    deleteOption,
     filterOptionsKeepingSelection,
-    requestPromptCategories,
-    saveNamedPrompt,
+    moveOption,
+    moveOptionGroup,
+    requestPromptOptions,
+    saveOption,
+    saveOptionGroup,
 } from './prompt-categories.js';
-import { scrollToSelectionSection } from './selection-navigation.js';
-
-const labels = {
-    expression: '表情',
-    gaze: '視線',
-    action: '動作',
-    location: '場所',
-    composition: '構図',
-    option: 'オプション',
-};
 
 export const initializePromptCategoriesPage = ({
     page,
@@ -29,452 +21,548 @@ export const initializePromptCategoriesPage = ({
     const root = page.querySelector('[data-prompt-categories]');
     if (!view || !(root instanceof view.HTMLElement)) {
         onLoadedChange(true);
-        return {
-            getSections: () => ({
-                expression: '',
-                gaze: '',
-                action: '',
-                location: '',
-                composition: '',
-                optionGroups: [],
-            }),
-            reset: () => {},
-        };
+        return { getSections: () => ({ optionGroups: [] }), reset: () => {} };
     }
 
-    const { HTMLButtonElement, HTMLDialogElement, HTMLInputElement, HTMLSelectElement } = view;
+    const { HTMLDialogElement } = view;
     const status = root.querySelector('[data-category-load-status]');
     const retry = root.querySelector('[data-category-retry]');
-    const dialog = page.querySelector('[data-category-dialog]');
-    const form = page.querySelector('[data-category-form]');
+    const groupsTarget = root.querySelector('[data-option-groups]');
+    const itemDialog = page.querySelector('[data-category-dialog]');
+    const itemForm = page.querySelector('[data-category-form]');
     const deleteDialog = page.querySelector('[data-category-delete-dialog]');
     const deleteForm = page.querySelector('[data-category-delete-form]');
-    const options = {
-        expression: [],
-        gaze: [],
-        action: [],
-        location: [],
-        composition: [],
-    };
-    const selected = Object.fromEntries(Object.keys(options).map((type) => [type, new Set()]));
-    let optionGroups = [];
-    let selectedOptionIds = new Set();
-    const endpoints = {
-        expression: page.dataset.expressionsUrl,
-        gaze: page.dataset.gazesUrl,
-        action: page.dataset.actionsUrl,
-        location: page.dataset.locationsUrl,
-        composition: page.dataset.compositionsUrl,
-        option: page.dataset.promptOptionsUrl,
-    };
+    const manageDialog = page.querySelector('[data-category-manage-dialog]');
+    const groupDialog = page.querySelector('[data-option-group-dialog]');
+    const groupForm = page.querySelector('[data-option-group-form]');
+    let groups = [];
+    let selectedIds = new Set();
+    const searches = new Map();
+    const groupScrollPositions = new Map();
     let loaded = false;
-    let editingType = null;
+    let busy = false;
     let editingGroupId = null;
-    let deletingType = null;
-    let deletingId = null;
-    let saving = false;
-    let deleting = false;
-    let addingGroup = false;
+    let editingItemId = null;
+    let itemGroupId = null;
+    let deletingItemId = null;
+    let managingItemId = null;
+    let draggedGroupId = null;
+    let draggedItemId = null;
 
-    const categoryRoot = (type) => root.querySelector(`[data-prompt-category="${type}"]`);
-    const item = (type, id) => options[type].find((option) => option.id === id) ?? null;
-    const selectedItem = (type) => item(type, [...selected[type]][0]);
-    const setDisabled = (element, disabled) => {
-        if (
-            element instanceof HTMLButtonElement ||
-            element instanceof HTMLInputElement ||
-            element instanceof HTMLSelectElement
-        ) {
-            element.disabled = disabled;
-        }
-    };
-
-    const renderSingle = (type, container) => {
-        const list = container.querySelector('[data-category-list]');
-        const searchInput = container.querySelector('[data-category-search]');
-        const filtered = filterOptionsKeepingSelection(
-            options[type],
-            searchInput instanceof HTMLInputElement ? searchInput.value : '',
-            selected[type],
-        );
-        list.replaceChildren();
-        filtered.forEach((option) => {
-            const element = documentObject.createElement('option');
-            element.value = String(option.id);
-            element.textContent = option.name;
-            element.selected = selected[type].has(option.id);
-            list.append(element);
-        });
-        if (selected[type].size === 0) {
-            list.selectedIndex = -1;
-        }
-        setDisabled(list, !loaded);
-        setDisabled(searchInput, !loaded);
-        const unselected = selected[type].size === 0;
-        setDisabled(container.querySelector('[data-category-clear]'), unselected);
-        setDisabled(container.querySelector('[data-category-edit]'), unselected);
-        setDisabled(container.querySelector('[data-category-delete]'), unselected);
-    };
-
-    const renderMultiple = (type, container) => {
-        const badges = container.querySelector('[data-category-badges]');
-        const searchInput = container.querySelector('[data-category-search]');
-        const filtered = filterOptionsKeepingSelection(
-            options[type],
-            searchInput instanceof HTMLInputElement ? searchInput.value : '',
-            selected[type],
-        );
-        badges.replaceChildren();
-        filtered.forEach((option) => {
-            const wrapper = documentObject.createElement('span');
-            wrapper.className = 'badge-option';
-            const badge = documentObject.createElement('button');
-            badge.type = 'button';
-            badge.className = 'prompt-badge';
-            badge.textContent = `${selected[type].has(option.id) ? '✓ ' : ''}${option.name}`;
-            badge.setAttribute('aria-label', option.name);
-            badge.setAttribute('aria-pressed', selected[type].has(option.id) ? 'true' : 'false');
-            badge.disabled = !loaded;
-            badge.addEventListener('click', () => {
-                selected[type].has(option.id)
-                    ? selected[type].delete(option.id)
-                    : selected[type].add(option.id);
-                render();
+    const normalizeSingleSelections = (preferredSelections = new Map()) => {
+        groups
+            .filter((group) => group.selectionMode === 'single')
+            .forEach((group) => {
+                const selected = group.options.filter((option) => selectedIds.has(option.id));
+                if (selected.length < 2) {
+                    return;
+                }
+                const preferredId = preferredSelections.get(group.id);
+                const retained = selected.some((option) => option.id === preferredId)
+                    ? preferredId
+                    : selected[0].id;
+                selected.forEach((option) => {
+                    if (option.id !== retained) {
+                        selectedIds.delete(option.id);
+                    }
+                });
             });
-            wrapper.append(badge);
-            const actions = documentObject.createElement('span');
-            actions.className = 'badge-option__actions';
-            actions.setAttribute('aria-label', `${labels[type]}「${option.name}」の管理`);
-            for (const [action, text] of [
-                ['edit', '編集'],
-                ['delete', '削除'],
-            ]) {
-                const button = documentObject.createElement('button');
-                button.type = 'button';
-                button.className = 'badge-manage-button';
-                button.textContent = action === 'edit' ? '✎' : '×';
-                button.setAttribute('aria-label', `${labels[type]}「${option.name}」を${text}`);
-                button.disabled = !loaded;
-                button.addEventListener('click', () =>
-                    action === 'edit' ? openForm(type, option) : openDelete(type, option),
-                );
-                actions.append(button);
-            }
-            wrapper.append(actions);
-            badges.append(wrapper);
-        });
-        setDisabled(searchInput, !loaded);
     };
 
-    const renderOptionGroups = () => {
-        const target = root.querySelector('[data-option-groups]');
-        if (!target) {
+    const close = (dialog) => dialog instanceof HTMLDialogElement && dialog.close();
+    const show = (dialog) => dialog instanceof HTMLDialogElement && dialog.showModal();
+    const groupById = (id) => groups.find((group) => group.id === id) ?? null;
+    const runMove = async (operation, successMessage, preferredSelections = new Map()) => {
+        if (busy) {
             return;
         }
-        target.replaceChildren();
-        optionGroups.forEach((group) => {
-            const container = documentObject.createElement('div');
-            container.className = 'linked-option';
-            const heading = documentObject.createElement('div');
-            heading.className = 'subsection-heading subsection-heading--compact';
-            const title = documentObject.createElement('h3');
-            title.textContent = group.label;
-            const add = documentObject.createElement('button');
-            add.type = 'button';
-            add.className = 'small-button';
-            add.textContent = '追加';
-            add.setAttribute('aria-label', `${group.label}へ項目を追加`);
-            add.disabled = !loaded;
-            add.addEventListener('click', () => openForm('option', null, group.id));
-            heading.append(title, add);
-            const badges = documentObject.createElement('div');
-            badges.className = 'badge-options';
-            badges.setAttribute('aria-label', `${group.label}を選択`);
-            group.options.forEach((option) => {
-                const wrapper = documentObject.createElement('span');
-                wrapper.className = 'badge-option';
-                const badge = documentObject.createElement('button');
-                badge.type = 'button';
-                badge.className = 'prompt-badge';
-                badge.textContent = `${selectedOptionIds.has(option.id) ? '✓ ' : ''}${option.name}`;
-                badge.setAttribute('aria-label', option.name);
-                badge.setAttribute(
-                    'aria-pressed',
-                    selectedOptionIds.has(option.id) ? 'true' : 'false',
+        busy = true;
+        render();
+        try {
+            await operation();
+            await load(preferredSelections);
+            notify(successMessage);
+        } catch {
+            notify('並べ替えを保存できませんでした。');
+            await load();
+        } finally {
+            busy = false;
+            render();
+        }
+    };
+
+    const moveGroupToIndex = (id, index) => {
+        const without = groups.filter((group) => group.id !== id);
+        const beforeId = without[index]?.id ?? null;
+        void runMove(
+            () =>
+                moveOptionGroup(
+                    fetcher,
+                    page.dataset.promptOptionGroupsUrl,
+                    csrfToken,
+                    id,
+                    beforeId,
+                ),
+            'オプションブロックを移動しました。',
+        );
+    };
+
+    const moveItemToIndex = (id, groupId, index) => {
+        const target = groupById(groupId)?.options.filter((option) => option.id !== id) ?? [];
+        const beforeId = target[index]?.id ?? null;
+        const preferredSelections = new Map();
+        const selectedTarget = target.find((option) => selectedIds.has(option.id));
+        if (selectedTarget !== undefined) {
+            preferredSelections.set(groupId, selectedTarget.id);
+        }
+        void runMove(
+            () =>
+                moveOption(
+                    fetcher,
+                    page.dataset.promptOptionsUrl,
+                    csrfToken,
+                    id,
+                    groupId,
+                    beforeId,
+                ),
+            'オプション項目を移動しました。',
+            preferredSelections,
+        );
+    };
+
+    const selectItem = (group, id) => {
+        if (selectedIds.has(id)) {
+            selectedIds.delete(id);
+        } else {
+            if (group.selectionMode === 'single') {
+                group.options.forEach((option) => selectedIds.delete(option.id));
+            }
+            selectedIds.add(id);
+        }
+        render();
+    };
+
+    const openManage = (option) => {
+        managingItemId = option.id;
+        page.querySelector('[data-category-manage-title]').textContent = option.name;
+        show(manageDialog);
+    };
+
+    const startPointerMove = (event, type, id) => {
+        if (busy || event.pointerType === 'mouse') {
+            return;
+        }
+        event.preventDefault();
+        const handle = event.currentTarget;
+        handle.classList.add('is-dragging');
+        let dropTarget = null;
+        const clearDropTarget = () => {
+            dropTarget?.classList.remove('is-drop-target');
+            dropTarget = null;
+        };
+        const finish = (finishEvent) => {
+            documentObject.removeEventListener('pointermove', move);
+            documentObject.removeEventListener('pointerup', finish);
+            documentObject.removeEventListener('pointercancel', cancel);
+            handle.classList.remove('is-dragging');
+            clearDropTarget();
+            const target = documentObject.elementFromPoint?.(
+                finishEvent.clientX,
+                finishEvent.clientY,
+            );
+            const targetGroup = target?.closest?.('[data-group-id]');
+            if (!(targetGroup instanceof view.HTMLElement)) {
+                return;
+            }
+            const groupId = Number(targetGroup.dataset.groupId);
+            if (type === 'group') {
+                moveGroupToIndex(
+                    id,
+                    groups.findIndex((group) => group.id === groupId),
                 );
-                badge.disabled = !loaded;
-                badge.addEventListener('click', () => {
-                    selectedOptionIds.has(option.id)
-                        ? selectedOptionIds.delete(option.id)
-                        : selectedOptionIds.add(option.id);
-                    render();
-                });
-                const actions = documentObject.createElement('span');
-                actions.className = 'badge-option__actions';
-                for (const [action, symbol, text] of [
-                    ['edit', '✎', '編集'],
-                    ['delete', '×', '削除'],
-                ]) {
-                    const button = documentObject.createElement('button');
-                    button.type = 'button';
-                    button.className = 'badge-manage-button';
-                    button.textContent = symbol;
-                    button.setAttribute('aria-label', `オプション「${option.name}」を${text}`);
-                    button.disabled = !loaded;
-                    button.addEventListener('click', () =>
-                        action === 'edit'
-                            ? openForm('option', option, group.id)
-                            : openDelete('option', option),
-                    );
-                    actions.append(button);
-                }
-                wrapper.append(badge, actions);
-                badges.append(wrapper);
-            });
-            container.append(heading, badges);
-            target.append(container);
-        });
-        setDisabled(root.querySelector('[data-option-group-add]'), !loaded || addingGroup);
+                return;
+            }
+            const targetItem = target?.closest?.('[data-option-id]');
+            const targetOptions = groupById(groupId)?.options ?? [];
+            const index = targetItem
+                ? targetOptions.findIndex(
+                      (option) => option.id === Number(targetItem.dataset.optionId),
+                  )
+                : targetOptions.length;
+            moveItemToIndex(id, groupId, index);
+        };
+        const cancel = () => {
+            documentObject.removeEventListener('pointermove', move);
+            documentObject.removeEventListener('pointerup', finish);
+            documentObject.removeEventListener('pointercancel', cancel);
+            handle.classList.remove('is-dragging');
+            clearDropTarget();
+        };
+        const move = (moveEvent) => {
+            const pointed = documentObject.elementFromPoint?.(moveEvent.clientX, moveEvent.clientY);
+            const nextDropTarget = pointed?.closest?.(
+                type === 'group' ? '[data-group-id]' : '[data-option-id], [data-group-id]',
+            );
+            if (nextDropTarget !== dropTarget) {
+                clearDropTarget();
+                dropTarget = nextDropTarget;
+                dropTarget?.classList.add('is-drop-target');
+            }
+            const edge = 64;
+            if (moveEvent.clientY < edge) {
+                view.scrollBy({ top: -24, behavior: 'auto' });
+            } else if (moveEvent.clientY > view.innerHeight - edge) {
+                view.scrollBy({ top: 24, behavior: 'auto' });
+            }
+        };
+        documentObject.addEventListener('pointermove', move);
+        documentObject.addEventListener('pointerup', finish);
+        documentObject.addEventListener('pointercancel', cancel);
     };
 
     const render = () => {
-        for (const type of Object.keys(options)) {
-            const container = categoryRoot(type);
-            setDisabled(container.querySelector('[data-category-add]'), !loaded);
-            container.dataset.multiple === 'true'
-                ? renderMultiple(type, container)
-                : renderSingle(type, container);
-        }
-        renderOptionGroups();
+        groupsTarget.querySelectorAll('[data-group-id]').forEach((container) => {
+            const options = container.querySelector('.badge-options');
+            if (options instanceof view.HTMLElement) {
+                groupScrollPositions.set(Number(container.dataset.groupId), options.scrollTop);
+            }
+        });
+        groupsTarget.replaceChildren();
+        groups.forEach((group, groupIndex) => {
+            const container = documentObject.createElement('section');
+            container.className = 'linked-option option-group';
+            container.dataset.groupId = String(group.id);
+            container.addEventListener('dragover', (event) => event.preventDefault());
+            container.addEventListener('drop', (event) => {
+                event.preventDefault();
+                if (draggedItemId !== null) {
+                    moveItemToIndex(draggedItemId, group.id, group.options.length);
+                }
+                if (draggedGroupId !== null) {
+                    moveGroupToIndex(draggedGroupId, groupIndex);
+                }
+            });
+
+            const heading = documentObject.createElement('div');
+            heading.className =
+                'subsection-heading subsection-heading--compact option-group__heading';
+            const drag = documentObject.createElement('button');
+            drag.type = 'button';
+            drag.className = 'drag-handle';
+            drag.textContent = '☰';
+            drag.draggable = loaded && !busy;
+            drag.setAttribute('aria-label', `${group.name}をドラッグして移動`);
+            drag.addEventListener('dragstart', () => {
+                draggedGroupId = group.id;
+            });
+            drag.addEventListener('dragend', () => {
+                draggedGroupId = null;
+            });
+            drag.addEventListener('pointerdown', (event) =>
+                startPointerMove(event, 'group', group.id),
+            );
+            const title = documentObject.createElement('h3');
+            title.textContent = group.name;
+            const mode = documentObject.createElement('span');
+            mode.className = 'selection-mode';
+            mode.textContent = group.selectionMode === 'single' ? '1つ選択' : '複数選択';
+            const groupActions = documentObject.createElement('div');
+            groupActions.className = 'list-actions';
+            for (const [label, action, disabled] of [
+                [
+                    '上へ',
+                    () => moveGroupToIndex(group.id, Math.max(0, groupIndex - 1)),
+                    groupIndex === 0,
+                ],
+                [
+                    '下へ',
+                    () => moveGroupToIndex(group.id, groupIndex + 1),
+                    groupIndex === groups.length - 1,
+                ],
+                ['編集', () => openGroupForm(group), false],
+                ['項目追加', () => openItemForm(group.id), false],
+            ]) {
+                const button = documentObject.createElement('button');
+                button.type = 'button';
+                button.className = 'small-button';
+                button.textContent = label;
+                button.disabled = !loaded || busy || disabled;
+                button.addEventListener('click', action);
+                groupActions.append(button);
+            }
+            heading.append(drag, title, mode, groupActions);
+
+            const search = documentObject.createElement('input');
+            search.type = 'search';
+            search.className = 'text-input';
+            search.placeholder = `${group.name}を検索`;
+            search.value = searches.get(group.id) ?? '';
+            search.disabled = !loaded || busy;
+            search.addEventListener('input', () => {
+                searches.set(group.id, search.value);
+                render();
+                const replacement = groupsTarget.querySelector(
+                    `[data-group-id="${group.id}"] input[type="search"]`,
+                );
+                replacement?.focus();
+                replacement?.setSelectionRange(search.value.length, search.value.length);
+            });
+
+            const badges = documentObject.createElement('div');
+            badges.className = 'badge-options';
+            filterOptionsKeepingSelection(group.options, search.value, selectedIds).forEach(
+                (option) => {
+                    const optionIndex = group.options.findIndex(
+                        (candidate) => candidate.id === option.id,
+                    );
+                    const wrapper = documentObject.createElement('span');
+                    wrapper.className = 'badge-option';
+                    wrapper.dataset.optionId = String(option.id);
+                    wrapper.addEventListener('dragover', (event) => event.preventDefault());
+                    wrapper.addEventListener('drop', (event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        if (draggedItemId !== null) {
+                            moveItemToIndex(draggedItemId, group.id, optionIndex);
+                        }
+                    });
+                    const itemDrag = documentObject.createElement('button');
+                    itemDrag.type = 'button';
+                    itemDrag.className = 'drag-handle drag-handle--item';
+                    itemDrag.textContent = '⋮⋮';
+                    itemDrag.draggable = loaded && !busy;
+                    itemDrag.setAttribute('aria-label', `${option.name}をドラッグして移動`);
+                    itemDrag.addEventListener('dragstart', () => {
+                        draggedItemId = option.id;
+                    });
+                    itemDrag.addEventListener('dragend', () => {
+                        draggedItemId = null;
+                    });
+                    itemDrag.addEventListener('pointerdown', (event) =>
+                        startPointerMove(event, 'item', option.id),
+                    );
+                    const badge = documentObject.createElement('button');
+                    badge.type = 'button';
+                    badge.className = 'prompt-badge';
+                    badge.textContent = `${selectedIds.has(option.id) ? '✓ ' : ''}${option.name}`;
+                    badge.setAttribute(
+                        'aria-pressed',
+                        selectedIds.has(option.id) ? 'true' : 'false',
+                    );
+                    badge.disabled = !loaded || busy;
+                    badge.addEventListener('click', () => selectItem(group, option.id));
+                    const actions = documentObject.createElement('span');
+                    actions.className = 'badge-option__actions';
+                    const actionsToggle = documentObject.createElement('button');
+                    actionsToggle.type = 'button';
+                    actionsToggle.className = 'badge-manage-toggle';
+                    actionsToggle.textContent = '⋯';
+                    actionsToggle.setAttribute('aria-label', `${option.name}の管理メニュー`);
+                    actionsToggle.disabled = !loaded || busy;
+                    actionsToggle.addEventListener('click', () => openManage(option));
+                    actions.append(actionsToggle);
+                    wrapper.append(itemDrag, badge, actions);
+                    badges.append(wrapper);
+                },
+            );
+            badges.scrollTop = groupScrollPositions.get(group.id) ?? 0;
+            container.append(heading, search, badges);
+            groupsTarget.append(container);
+        });
+        root.querySelector('[data-option-group-add]').disabled = !loaded || busy;
     };
 
-    const load = async () => {
+    const load = async (preferredSelections = new Map()) => {
         loaded = false;
         onLoadedChange(false);
-        render();
-        status.textContent = '描写の選択肢を読み込んでいます。';
+        status.textContent = 'オプションを読み込んでいます。';
         retry.hidden = true;
+        render();
         try {
-            const result = await requestPromptCategories(
-                fetcher,
-                page.dataset.characterDirectionsUrl,
-                page.dataset.sceneDirectionsUrl,
-                page.dataset.promptOptionsUrl,
+            groups = await requestPromptOptions(fetcher, page.dataset.promptOptionsUrl);
+            const validIds = new Set(
+                groups.flatMap((group) => group.options.map((option) => option.id)),
             );
-            for (const type of Object.keys(options)) {
-                options[type] = result[type];
-                selected[type] = new Set(
-                    [...selected[type]].filter((id) => item(type, id) !== null),
-                );
-            }
-            optionGroups = result.optionGroups;
-            const validOptionIds = new Set(
-                optionGroups.flatMap((group) => group.options.map((option) => option.id)),
-            );
-            selectedOptionIds = new Set(
-                [...selectedOptionIds].filter((id) => validOptionIds.has(id)),
-            );
+            selectedIds = new Set([...selectedIds].filter((id) => validIds.has(id)));
+            normalizeSingleSelections(preferredSelections);
             loaded = true;
             status.textContent = '';
-            retry.hidden = true;
-            render();
             onLoadedChange(true);
+            render();
         } catch {
-            status.textContent = '描写の選択肢を読み込めませんでした。';
+            status.textContent = 'オプションを読み込めませんでした。';
             retry.hidden = false;
             render();
         }
     };
 
-    const close = (target) => target instanceof HTMLDialogElement && target.close();
-    const show = (target) => target instanceof HTMLDialogElement && target.showModal();
-    const openForm = (type, option = null, groupId = null) => {
-        if (saving || deleting) {
-            return;
-        }
-        editingType = type;
-        editingGroupId = groupId;
-        page.querySelector('[data-category-dialog-title]').textContent =
-            `${labels[type]}を${option ? '編集' : '追加'}`;
+    const openGroupForm = (group = null) => {
+        editingGroupId = group?.id ?? null;
+        page.querySelector('[data-option-group-dialog-title]').textContent =
+            group === null ? 'オプションブロックを追加' : 'オプションブロックを編集';
+        page.querySelector('[data-option-group-name]').value = group?.name ?? '';
+        page.querySelector('[data-option-group-mode]').value = group?.selectionMode ?? 'multiple';
+        page.querySelector('[data-option-group-status]').textContent = '';
+        show(groupDialog);
+    };
+    const openItemForm = (groupId, option = null) => {
+        itemGroupId = groupId;
+        editingItemId = option?.id ?? null;
+        page.querySelector('[data-category-dialog-title]').textContent = option
+            ? '項目を編集'
+            : '項目を追加';
         page.querySelector('[data-category-id]').value = option?.id ?? '';
         page.querySelector('[data-category-name]').value = option?.name ?? '';
         page.querySelector('[data-category-content]').value = option?.content ?? '';
-        const editingId = page.querySelector('[data-category-editing-id]');
-        editingId.textContent = option ? `ID: ${option.id}` : '';
-        editingId.hidden = option === null;
         page.querySelector('[data-category-form-status]').textContent = '';
-        show(dialog);
-        page.querySelector('[data-category-name]').focus();
+        show(itemDialog);
     };
-    const openDelete = (type, option) => {
-        if (saving || deleting) {
-            return;
-        }
-        deletingType = type;
-        deletingId = option.id;
+    const openDelete = (option) => {
+        deletingItemId = option.id;
         page.querySelector('[data-category-delete-message]').textContent =
-            `${labels[type]}「${option.name}」— ${option.content}（ID: ${option.id}）を削除します。`;
-        page.querySelector('[data-category-delete-status]').textContent = '';
+            `「${option.name}」— ${option.content}（ID: ${option.id}）を削除します。`;
         show(deleteDialog);
     };
-    const save = async () => {
-        if (saving || editingType === null) {
-            return;
-        }
-        saving = true;
-        const operationType = editingType;
-        const idValue = page.querySelector('[data-category-id]').value;
-        const id = idValue === '' ? null : Number(idValue);
-        const formStatus = page.querySelector('[data-category-form-status]');
-        const button = page.querySelector('[data-category-save]');
-        const cancelButton = page.querySelector('[data-category-cancel]');
-        button.disabled = true;
-        cancelButton.disabled = true;
-        formStatus.textContent = '保存しています。';
-        try {
-            await saveNamedPrompt(fetcher, endpoints[operationType], csrfToken, id, {
-                name: page.querySelector('[data-category-name]').value,
-                content: page.querySelector('[data-category-content]').value,
-                ...(operationType === 'option' && id === null ? { groupId: editingGroupId } : {}),
-            });
-            close(dialog);
-            notify('保存しました。');
-            await load();
-        } catch {
-            formStatus.textContent =
-                '保存できませんでした。入力内容を確認するか、時間をおいて再度お試しください。';
-        } finally {
-            saving = false;
-            button.disabled = false;
-            cancelButton.disabled = false;
-        }
-    };
-    const remove = async () => {
-        if (deleting || deletingType === null || deletingId === null) {
-            return;
-        }
-        deleting = true;
-        const operationType = deletingType;
-        const operationId = deletingId;
-        const deleteStatus = page.querySelector('[data-category-delete-status]');
-        const button = page.querySelector('[data-category-delete-confirm]');
-        const cancelButton = page.querySelector('[data-category-delete-cancel]');
-        button.disabled = true;
-        cancelButton.disabled = true;
-        deleteStatus.textContent = '削除しています。';
-        try {
-            await deleteNamedPrompt(fetcher, endpoints[operationType], csrfToken, operationId);
-            operationType === 'option'
-                ? selectedOptionIds.delete(operationId)
-                : selected[operationType].delete(operationId);
-            close(deleteDialog);
-            notify('削除しました。');
-            await load();
-        } catch {
-            deleteStatus.textContent = '削除できませんでした。再度お試しください。';
-        } finally {
-            deleting = false;
-            button.disabled = false;
-            cancelButton.disabled = false;
-        }
-    };
 
-    const addGroup = async () => {
-        if (addingGroup) {
-            return;
-        }
-        addingGroup = true;
-        render();
-        try {
-            await addOptionPromptGroup(fetcher, page.dataset.promptOptionGroupsUrl, csrfToken);
-            notify('オプションを追加しました。');
-            await load();
-        } catch {
-            notify('オプションを追加できませんでした。');
-        } finally {
-            addingGroup = false;
-            render();
-        }
-    };
-
-    root.querySelectorAll('[data-prompt-category]').forEach((container) => {
-        const type = container.dataset.promptCategory;
-        container
-            .querySelector('[data-category-add]')
-            ?.addEventListener('click', () => openForm(type));
-        container.querySelector('[data-category-search]')?.addEventListener('input', render);
-        container.querySelector('[data-category-list]')?.addEventListener('change', (event) => {
-            selected[type] = new Set([Number(event.target.value)]);
-            render();
-            scrollToSelectionSection(container.nextElementSibling);
-        });
-        container.querySelector('[data-category-clear]')?.addEventListener('click', () => {
-            selected[type].clear();
-            render();
-        });
-        container
-            .querySelector('[data-category-edit]')
-            ?.addEventListener('click', () => openForm(type, selectedItem(type)));
-        container
-            .querySelector('[data-category-delete]')
-            ?.addEventListener('click', () => openDelete(type, selectedItem(type)));
-    });
-    retry.addEventListener('click', load);
-    root.querySelector('[data-option-group-add]')?.addEventListener('click', () => void addGroup());
-    form.addEventListener('submit', (event) => {
+    groupForm.addEventListener('submit', (event) => {
         event.preventDefault();
-        void save();
+        if (busy) {
+            return;
+        }
+        busy = true;
+        const editedGroup = editingGroupId === null ? null : groupById(editingGroupId);
+        const selectionMode = page.querySelector('[data-option-group-mode]').value;
+        const releasesSelections =
+            editedGroup?.selectionMode === 'multiple' &&
+            selectionMode === 'single' &&
+            editedGroup.options.filter((option) => selectedIds.has(option.id)).length > 1;
+        void saveOptionGroup(
+            fetcher,
+            page.dataset.promptOptionGroupsUrl,
+            csrfToken,
+            editingGroupId,
+            {
+                name: page.querySelector('[data-option-group-name]').value,
+                selectionMode,
+            },
+        )
+            .then(async () => {
+                close(groupDialog);
+                await load();
+                notify(
+                    releasesSelections
+                        ? '単一選択へ変更し、先頭の選択だけを残しました。'
+                        : 'オプションブロックを保存しました。',
+                );
+            })
+            .catch(() => {
+                page.querySelector('[data-option-group-status]').textContent =
+                    '保存できませんでした。';
+            })
+            .finally(() => {
+                busy = false;
+                render();
+            });
+    });
+    itemForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        if (busy) {
+            return;
+        }
+        busy = true;
+        void saveOption(fetcher, page.dataset.promptOptionsUrl, csrfToken, editingItemId, {
+            name: page.querySelector('[data-category-name]').value,
+            content: page.querySelector('[data-category-content]').value,
+            ...(editingItemId === null ? { groupId: itemGroupId } : {}),
+        })
+            .then(async () => {
+                close(itemDialog);
+                await load();
+                notify('オプション項目を保存しました。');
+            })
+            .catch(() => {
+                page.querySelector('[data-category-form-status]').textContent =
+                    '保存できませんでした。';
+            })
+            .finally(() => {
+                busy = false;
+                render();
+            });
     });
     deleteForm.addEventListener('submit', (event) => {
         event.preventDefault();
-        void remove();
+        if (busy || deletingItemId === null) {
+            return;
+        }
+        busy = true;
+        void deleteOption(fetcher, page.dataset.promptOptionsUrl, csrfToken, deletingItemId)
+            .then(async () => {
+                selectedIds.delete(deletingItemId);
+                close(deleteDialog);
+                await load();
+                notify('オプション項目を削除しました。');
+            })
+            .catch(() => {
+                page.querySelector('[data-category-delete-status]').textContent =
+                    '削除できませんでした。';
+            })
+            .finally(() => {
+                busy = false;
+                render();
+            });
     });
-    page.querySelector('[data-category-cancel]').addEventListener('click', () => {
-        if (!saving) {
-            close(dialog);
+
+    root.querySelector('[data-option-group-add]').addEventListener('click', () => openGroupForm());
+    retry.addEventListener('click', () => void load());
+    page.querySelector('[data-option-group-cancel]').addEventListener('click', () =>
+        close(groupDialog),
+    );
+    page.querySelector('[data-category-cancel]').addEventListener('click', () => close(itemDialog));
+    page.querySelector('[data-category-delete-cancel]').addEventListener('click', () =>
+        close(deleteDialog),
+    );
+    page.querySelector('[data-category-manage-cancel]').addEventListener('click', () =>
+        close(manageDialog),
+    );
+    page.querySelector('[data-category-manage-edit]').addEventListener('click', () => {
+        const group = groups.find((candidate) =>
+            candidate.options.some((option) => option.id === managingItemId),
+        );
+        const option = group?.options.find((candidate) => candidate.id === managingItemId);
+        close(manageDialog);
+        if (group !== undefined && option !== undefined) {
+            openItemForm(group.id, option);
         }
     });
-    page.querySelector('[data-category-delete-cancel]').addEventListener(
-        'click',
-        () => !deleting && close(deleteDialog),
-    );
-    for (const target of [dialog, deleteDialog]) {
-        target.addEventListener('cancel', (event) => {
-            if (saving || deleting) {
-                event.preventDefault();
+    page.querySelector('[data-category-manage-delete]').addEventListener('click', () => {
+        const option = groups
+            .flatMap((group) => group.options)
+            .find((candidate) => candidate.id === managingItemId);
+        close(manageDialog);
+        if (option !== undefined) {
+            openDelete(option);
+        }
+    });
+    for (const dialog of [groupDialog, itemDialog, manageDialog, deleteDialog]) {
+        dialog.addEventListener('click', (event) => {
+            if (event.target === dialog && !busy) {
+                close(dialog);
             }
         });
-        target.addEventListener('click', (event) => {
-            if (saving || deleting) {
-                return;
-            }
-            if (event.target !== target) {
-                return;
-            }
-            const box = target.getBoundingClientRect();
-            if (
-                event.clientX < box.left ||
-                event.clientX > box.right ||
-                event.clientY < box.top ||
-                event.clientY > box.bottom
-            ) {
-                close(target);
+        dialog.addEventListener('cancel', (event) => {
+            if (busy) {
+                event.preventDefault();
             }
         });
     }
 
     void load();
     return {
-        getSections: () =>
-            createCategorySections({ options, selected, optionGroups, selectedOptionIds }),
+        getSections: () => ({ optionGroups: createOptionSections(groups, selectedIds) }),
         reset: () => {
-            for (const selection of Object.values(selected)) {
-                selection.clear();
-            }
-            selectedOptionIds.clear();
-            root.querySelectorAll('[data-category-search]').forEach((input) => {
-                input.value = '';
-            });
+            selectedIds.clear();
+            searches.clear();
+            groupScrollPositions.clear();
             render();
         },
     };

@@ -52,7 +52,7 @@ final class EloquentLoraPromptOptionQueryService implements LoraPromptOptionQuer
             ->get(['id', 'lora_id', 'name', 'content'])
             ->map(fn (object $row): array => [
                 'id' => (int) $row->id,
-                'loraId' => $row->lora_id === null ? null : (int) $row->lora_id,
+                'loraId' => (int) $row->lora_id,
                 'name' => (string) $row->name,
                 'content' => (string) $row->content,
             ])->all());

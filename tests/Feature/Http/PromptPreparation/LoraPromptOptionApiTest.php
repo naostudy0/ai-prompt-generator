@@ -154,7 +154,7 @@ class LoraPromptOptionApiTest extends TestCase
         $this->assertDatabaseCount('outfits', 0);
     }
 
-    public function test_LoRAを削除するとトリガーを削除して服装の紐付けを解除する(): void
+    public function test_LoRAを削除すると紐づくトリガーと服装も削除する(): void
     {
         $loraId = $this->createLora('キャラクター', 'character.safetensors', 1);
         $triggerId = $this->postJson(route('lora-triggers.store'), [
@@ -172,7 +172,7 @@ class LoraPromptOptionApiTest extends TestCase
 
         $this->assertDatabaseMissing('loras', ['id' => $loraId]);
         $this->assertDatabaseMissing('lora_triggers', ['id' => $triggerId]);
-        $this->assertDatabaseHas('outfits', ['id' => $outfitId, 'lora_id' => null]);
+        $this->assertDatabaseMissing('outfits', ['id' => $outfitId]);
     }
 
     public function test_トリガーと服装を編集して個別に削除する(): void
@@ -184,7 +184,7 @@ class LoraPromptOptionApiTest extends TestCase
             'content' => 'before trigger',
         ])->assertCreated()->json('id');
         $outfitId = $this->postJson(route('outfits.store'), [
-            'loraId' => null,
+            'loraId' => $loraId,
             'name' => '変更前服装',
             'content' => 'before outfit',
         ])->assertCreated()->json('id');
@@ -237,7 +237,7 @@ class LoraPromptOptionApiTest extends TestCase
             'content' => 'character',
         ])->assertUnprocessable()->assertJsonValidationErrors('name');
         $this->postJson(route('outfits.store'), [
-            'loraId' => null,
+            'loraId' => $loraId,
             'name' => "\t",
             'content' => 'uniform',
         ])->assertUnprocessable()->assertJsonValidationErrors('name');

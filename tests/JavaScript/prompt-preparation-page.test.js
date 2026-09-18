@@ -95,40 +95,23 @@ const addLoraControls = (documentObject) => {
 
 const addCategoryControls = (documentObject) => {
     const page = documentObject.querySelector('main');
-    page.dataset.characterDirectionsUrl = '/character-directions';
-    page.dataset.sceneDirectionsUrl = '/scene-directions';
     page.dataset.promptOptionsUrl = '/prompt-options';
     page.dataset.promptOptionGroupsUrl = '/prompt-option-groups';
-    for (const type of ['expressions', 'gazes', 'actions', 'locations', 'compositions']) {
-        page.dataset[`${type}Url`] = `/${type}`;
-    }
     page.insertAdjacentHTML(
         'beforeend',
         `<section data-prompt-categories><p data-category-load-status></p><button data-category-retry hidden></button>
-            ${[
-                ['expression', true],
-                ['gaze', false],
-                ['action', true],
-                ['location', true],
-                ['composition', false],
-            ]
-                .map(
-                    ([
-                        type,
-                        multiple,
-                    ]) => `<div data-prompt-category="${type}" data-multiple="${multiple}">
-                <button data-category-add></button>${type === 'expression' ? '<input data-category-search>' : ''}
-                ${multiple ? '<div data-category-badges></div>' : '<select data-category-list></select><button data-category-clear></button><button data-category-edit></button><button data-category-delete></button>'}
-            </div>`,
-                )
-                .join('')}
             <div data-option-groups></div><button data-option-group-add></button>
         </section>
+        <dialog data-option-group-dialog><form data-option-group-form><h2 data-option-group-dialog-title></h2>
+            <input data-option-group-name><select data-option-group-mode><option value="single">single</option><option value="multiple">multiple</option></select>
+            <p data-option-group-status></p><button data-option-group-save></button><button type="button" data-option-group-cancel></button></form></dialog>
         <dialog data-category-dialog><form data-category-form><h2 data-category-dialog-title></h2>
-            <p data-category-editing-id hidden></p><input data-category-id><input data-category-name>
-            <textarea data-category-content></textarea><p data-category-form-status></p>
-            <button data-category-save></button><button type="button" data-category-cancel></button>
+            <input data-category-id><input data-category-name><textarea data-category-content></textarea>
+            <p data-category-form-status></p><button data-category-save></button><button type="button" data-category-cancel></button>
         </form></dialog>
+        <dialog data-category-manage-dialog><h2 data-category-manage-title></h2>
+            <button data-category-manage-edit></button><button data-category-manage-delete></button>
+            <button data-category-manage-cancel></button></dialog>
         <dialog data-category-delete-dialog><form data-category-delete-form><p data-category-delete-message></p>
             <p data-category-delete-status></p><button data-category-delete-confirm></button>
             <button type="button" data-category-delete-cancel></button></form></dialog>`,
@@ -148,29 +131,69 @@ test('全カテゴリを確定順でpositiveへ出力しnegativeは変えない'
         if (url === '/default-prompts') {
             return successfulResponse({ positive: 'masterpiece,', negative: 'bad anatomy,' });
         }
-        if (url === '/character-directions') {
-            return successfulResponse({
-                expressions: [{ id: 4, name: '笑顔', content: 'smile,' }],
-                gazes: [{ id: 5, name: 'カメラ目線', content: 'looking at viewer,' }],
-            });
-        }
-        if (url === '/scene-directions') {
-            return successfulResponse({
-                actions: [{ id: 6, name: '座る', content: 'sitting,' }],
-                locations: [{ id: 7, name: '公園', content: 'park,' }],
-                compositions: [{ id: 8, name: '正面', content: 'from front,' }],
-            });
-        }
         if (url === '/prompt-options') {
             return successfulResponse({
                 groups: [
                     {
                         id: 1,
+                        name: '表情',
+                        selectionMode: 'multiple',
                         position: 1,
-                        label: 'オプション1',
+                        options: [{ id: 4, position: 1, name: '笑顔', content: 'smile,' }],
+                    },
+                    {
+                        id: 2,
+                        name: '視線',
+                        selectionMode: 'single',
+                        position: 2,
                         options: [
-                            { id: 9, name: '高精細', content: 'detailed, sharp focus,' },
-                            { id: 10, name: '精密', content: 'sharp focus, intricate,' },
+                            {
+                                id: 5,
+                                position: 1,
+                                name: 'カメラ目線',
+                                content: 'looking at viewer,',
+                            },
+                        ],
+                    },
+                    {
+                        id: 3,
+                        name: '動作',
+                        selectionMode: 'multiple',
+                        position: 3,
+                        options: [{ id: 6, position: 1, name: '座る', content: 'sitting,' }],
+                    },
+                    {
+                        id: 4,
+                        name: '場所',
+                        selectionMode: 'multiple',
+                        position: 4,
+                        options: [{ id: 7, position: 1, name: '公園', content: 'park,' }],
+                    },
+                    {
+                        id: 5,
+                        name: '構図',
+                        selectionMode: 'single',
+                        position: 5,
+                        options: [{ id: 8, position: 1, name: '正面', content: 'from front,' }],
+                    },
+                    {
+                        id: 6,
+                        name: '画質',
+                        selectionMode: 'multiple',
+                        position: 6,
+                        options: [
+                            {
+                                id: 9,
+                                position: 1,
+                                name: '高精細',
+                                content: 'detailed, sharp focus,',
+                            },
+                            {
+                                id: 10,
+                                position: 2,
+                                name: '精密',
+                                content: 'sharp focus, intricate,',
+                            },
                         ],
                     },
                 ],
@@ -203,26 +226,14 @@ test('全カテゴリを確定順でpositiveへ出力しnegativeは変えない'
     const outfitList = documentObject.querySelector('[data-outfit-list]');
     outfitList.value = '3';
     outfitList.dispatchEvent(new documentObject.defaultView.Event('change'));
-    documentObject.querySelector('[data-prompt-category="expression"] .prompt-badge').click();
-    for (const [type, id] of [
-        ['gaze', 5],
-        ['composition', 8],
-    ]) {
-        const list = documentObject.querySelector(
-            `[data-prompt-category="${type}"] [data-category-list]`,
-        );
-        list.value = String(id);
-        list.dispatchEvent(new documentObject.defaultView.Event('change'));
-    }
-    documentObject.querySelector('[data-prompt-category="action"] .prompt-badge').click();
-    documentObject.querySelector('[data-prompt-category="location"] .prompt-badge').click();
-    documentObject.querySelectorAll('[data-option-groups] .prompt-badge')[1].click();
-    documentObject.querySelectorAll('[data-option-groups] .prompt-badge')[0].click();
+    documentObject
+        .querySelectorAll('[data-option-groups] .prompt-badge')
+        .forEach((badge) => badge.click());
     documentObject.querySelector('[data-display]').click();
 
     assert.equal(
         documentObject.querySelector('[data-output="positive"] [data-output-content]').value,
-        'masterpiece,\n\n<lora:character.safetensors:0.8>,\n\ncharacter, long hair,\n\nsmile,\n\nlooking at viewer,\n\nschool uniform,\n\nsitting,\n\npark,\n\nfrom front,\n\ndetailed, sharp focus, intricate,',
+        'masterpiece,\n\n<lora:character.safetensors:0.8>,\n\ncharacter, long hair,\n\nschool uniform,\n\nsmile,\n\nlooking at viewer,\n\nsitting,\n\npark,\n\nfrom front,\n\ndetailed, sharp focus, intricate,',
     );
     assert.equal(
         documentObject.querySelector('[data-output="negative"] [data-output-content]').value,
@@ -230,7 +241,7 @@ test('全カテゴリを確定順でpositiveへ出力しnegativeは変えない'
     );
 });
 
-test('リセットで今回の選択と出力を空にしてLoRAへ戻る', async () => {
+test('リセットでデフォルトを選択したまま今回の追加選択と出力を空にしてLoRAへ戻る', async () => {
     const documentObject = createDocument();
     addLoraControls(documentObject);
     addCategoryControls(documentObject);
@@ -243,18 +254,17 @@ test('リセットで今回の選択と出力を空にしてLoRAへ戻る', asyn
         if (url === '/default-prompts') {
             return successfulResponse({ positive: 'masterpiece,', negative: 'bad anatomy,' });
         }
-        if (url === '/character-directions') {
-            return successfulResponse({
-                expressions: [{ id: 4, name: '笑顔', content: 'smile,' }],
-                gazes: [],
-            });
-        }
-        if (url === '/scene-directions') {
-            return successfulResponse({ actions: [], locations: [], compositions: [] });
-        }
         if (url === '/prompt-options') {
             return successfulResponse({
-                groups: [{ id: 1, position: 1, label: 'オプション1', options: [] }],
+                groups: [
+                    {
+                        id: 1,
+                        name: '表情',
+                        selectionMode: 'multiple',
+                        position: 1,
+                        options: [{ id: 4, position: 1, name: '笑顔', content: 'smile,' }],
+                    },
+                ],
             });
         }
         return successfulResponse({
@@ -281,7 +291,7 @@ test('リセットで今回の選択と出力を空にしてLoRAへ戻る', asyn
     const loraList = documentObject.querySelector('[data-lora-list]');
     loraList.value = '1';
     loraList.dispatchEvent(new documentObject.defaultView.Event('change'));
-    documentObject.querySelector('[data-prompt-category="expression"] .prompt-badge').click();
+    documentObject.querySelector('[data-option-groups] .prompt-badge').click();
     documentObject.querySelector('[data-display]').click();
     documentObject.querySelector('[data-output="positive"] [data-output-content]').value +=
         ' edited';
@@ -290,7 +300,7 @@ test('リセットで今回の選択と出力を空にしてLoRAへ戻る', asyn
     assert.equal(loraList.selectedIndex, -1);
     assert.equal(
         documentObject
-            .querySelector('[data-prompt-category="expression"] .prompt-badge')
+            .querySelector('[data-option-groups] .prompt-badge')
             .getAttribute('aria-pressed'),
         'false',
     );
@@ -306,7 +316,13 @@ test('リセットで今回の選択と出力を空にしてLoRAへ戻る', asyn
         documentObject
             .querySelector('[data-default-prompt="positive"] [data-select]')
             .getAttribute('aria-pressed'),
-        'false',
+        'true',
+    );
+    assert.equal(
+        documentObject
+            .querySelector('[data-default-prompt="negative"] [data-select]')
+            .getAttribute('aria-pressed'),
+        'true',
     );
     assert.deepEqual(scrollOptions, { behavior: 'smooth', block: 'start' });
 });

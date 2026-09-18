@@ -10,13 +10,13 @@ final readonly class OutfitPrompt
 
     public function __construct(
         public ?int $id,
-        public ?int $loraId,
+        public int $loraId,
         string $name,
         public PromptText $content,
     ) {
         $trimmed = trim($name);
 
-        if ($trimmed === '' || $content->value === '') {
+        if ($loraId < 1 || $trimmed === '' || $content->value === '') {
             throw new InvalidArgumentException('Outfit name and content are required.');
         }
 

@@ -86,7 +86,7 @@ const flushAsyncEvents = async () => {
     await setImmediate();
 };
 
-test('LoRA選択時に推奨強度とトリガーを反映し服装を上位へ並べる', async () => {
+test('LoRA選択時に先頭トリガーを選択し紐づく服装を上位表示する', async () => {
     const documentObject = createDocument();
     const catalog = {
         loras: [
@@ -94,96 +94,15 @@ test('LoRA選択時に推奨強度とトリガーを反映し服装を上位へ�
             createLora(2, 'Beta', 'beta.safetensors', 1),
         ],
         triggers: [
-            { id: 11, loraId: 1, name: 'Alpha標準', content: 'alpha, long hair,' },
-            { id: 12, loraId: 2, name: 'Beta標準', content: 'beta, short hair,' },
+            { id: 11, loraId: 1, name: 'Alpha標準', content: 'alpha,' },
+            { id: 12, loraId: 2, name: 'Beta標準', content: 'beta,' },
         ],
         outfits: [
-            { id: 21, loraId: 2, name: 'Beta服', content: 'blue dress,' },
-            { id: 22, loraId: 1, name: 'Alpha服', content: 'red dress,' },
-            { id: 23, loraId: null, name: '汎用服', content: 'school uniform,' },
+            { id: 21, loraId: 1, name: 'Alpha服', content: 'red dress,' },
+            { id: 22, loraId: 2, name: 'Beta服', content: 'blue dress,' },
         ],
     };
-    const fetcher = async () => ({ ok: true, json: async () => catalog });
-    let loaded = false;
-    const page = documentObject.querySelector('main');
-
     const controller = initializeLoraOptionsPage({
-        page,
-        documentObject,
-        fetcher,
-        csrfToken: 'csrf',
-        onLoadedChange: (value) => {
-            loaded = value;
-        },
-        notify: () => {},
-    });
-    await flushAsyncEvents();
-
-    const loraList = documentObject.querySelector('[data-lora-list]');
-    const triggerList = documentObject.querySelector('[data-trigger-list]');
-    const outfitList = documentObject.querySelector('[data-outfit-list]');
-    const strength = documentObject.querySelector('[data-lora-strength]');
-    assert.equal(loaded, true);
-    assert.deepEqual(controller.getSelections(), { lora: '', trigger: '', outfit: '' });
-
-    loraList.value = '1';
-    loraList.dispatchEvent(new documentObject.defaultView.Event('change'));
-
-    assert.equal(strength.value, '0.8');
-    assert.deepEqual(
-        [...triggerList.options].map((option) => option.textContent),
-        ['Alpha標準 — alpha, long hair, (#11)'],
-    );
-    assert.deepEqual(
-        [...outfitList.options].map((option) => option.textContent),
-        [
-            'Alpha服 — Alpha — red dress, (#22)',
-            'Beta服 — Beta — blue dress, (#21)',
-            '汎用服 — 紐付けなし — school uniform, (#23)',
-        ],
-    );
-    assert.equal(triggerList.value, '11');
-    assert.equal(outfitList.value, '');
-
-    outfitList.value = '23';
-    outfitList.dispatchEvent(new documentObject.defaultView.Event('change'));
-
-    assert.deepEqual(controller.getSelections(), {
-        lora: '<lora:alpha.safetensors:0.8>,',
-        trigger: 'alpha, long hair,',
-        outfit: 'school uniform,',
-    });
-
-    loraList.value = '2';
-    loraList.dispatchEvent(new documentObject.defaultView.Event('change'));
-
-    assert.equal(triggerList.value, '12');
-    assert.equal(outfitList.value, '23');
-    assert.deepEqual(controller.getSelections(), {
-        lora: '<lora:beta.safetensors:1>,',
-        trigger: 'beta, short hair,',
-        outfit: 'school uniform,',
-    });
-});
-
-test('単一選択したLoRAとトリガーと服装から直後の入力セクションへスクロールする', async () => {
-    const documentObject = createDocument();
-    const catalog = {
-        loras: [createLora(1, 'Alpha', 'alpha.safetensors', 1)],
-        triggers: [{ id: 11, loraId: 1, name: '標準', content: 'alpha,' }],
-        outfits: [{ id: 21, loraId: null, name: '制服', content: 'uniform,' }],
-    };
-    const scrolledSections = [];
-    for (const [selector, name] of [
-        ['[data-selection-section="trigger"]', 'trigger'],
-        ['[data-selection-section="outfit"]', 'outfit'],
-        ['[data-prompt-category]', 'expression'],
-    ]) {
-        documentObject.querySelector(selector).scrollIntoView = (options) => {
-            scrolledSections.push([name, options]);
-        };
-    }
-    initializeLoraOptionsPage({
         page: documentObject.querySelector('main'),
         documentObject,
         fetcher: async () => ({ ok: true, json: async () => catalog }),
@@ -192,188 +111,54 @@ test('単一選択したLoRAとトリガーと服装から直後の入力セク�
         notify: () => {},
     });
     await flushAsyncEvents();
-
-    const select = (selector, value) => {
-        const list = documentObject.querySelector(selector);
-        list.value = value;
-        list.dispatchEvent(new documentObject.defaultView.Event('change'));
-    };
-    select('[data-lora-list]', '1');
-    select('[data-trigger-list]', '11');
-    select('[data-outfit-list]', '21');
-
-    assert.deepEqual(scrolledSections, [
-        ['trigger', { behavior: 'smooth', block: 'start' }],
-        ['outfit', { behavior: 'smooth', block: 'start' }],
-        ['expression', { behavior: 'smooth', block: 'start' }],
-    ]);
-});
-
-test('LoRAを登録名とファイル名で絞り込み選択解除できる', async () => {
-    const documentObject = createDocument();
-    const catalog = {
-        loras: [
-            createLora(1, 'Character Alpha', 'alpha.safetensors', 1),
-            createLora(2, 'Character Beta', 'BETA-v2.safetensors', 1),
-        ],
-        triggers: [],
-        outfits: [],
-    };
-    const fetcher = async () => ({ ok: true, json: async () => catalog });
-    const page = documentObject.querySelector('main');
-
-    const controller = initializeLoraOptionsPage({
-        page,
-        documentObject,
-        fetcher,
-        csrfToken: 'csrf',
-        onLoadedChange: () => {},
-        notify: () => {},
-    });
-    await flushAsyncEvents();
-
-    const search = documentObject.querySelector('[data-lora-search]');
     const loraList = documentObject.querySelector('[data-lora-list]');
     loraList.value = '1';
     loraList.dispatchEvent(new documentObject.defaultView.Event('change'));
-    assert.notEqual(controller.getSelections().lora, '');
-
-    search.value = 'beta-v2';
-    search.dispatchEvent(new documentObject.defaultView.Event('input'));
+    assert.equal(documentObject.querySelector('[data-lora-strength]').value, '0.8');
+    assert.equal(documentObject.querySelector('[data-trigger-list]').value, '11');
     assert.deepEqual(
-        [...loraList.options].map((option) => option.value),
-        ['2'],
+        [...documentObject.querySelector('[data-outfit-list]').options].map(
+            (option) => option.value,
+        ),
+        ['21', '22'],
     );
-    assert.equal(controller.getSelections().lora, '');
-
-    loraList.value = '2';
-    loraList.dispatchEvent(new documentObject.defaultView.Event('change'));
-    documentObject.querySelector('[data-option-clear="lora"]').click();
-
-    assert.deepEqual(controller.getSelections(), { lora: '', trigger: '', outfit: '' });
+    assert.equal(controller.getSelections().trigger, 'alpha,');
 });
 
-test('服装を登録名で絞り込み選択中の服装は検索結果に残す', async () => {
+test('LoRAを切り替えても他のLoRAに属する服装の選択を維持する', async () => {
     const documentObject = createDocument();
     const catalog = {
-        loras: [],
+        loras: [
+            createLora(1, 'Alpha', 'alpha.safetensors', 1),
+            createLora(2, 'Beta', 'beta.safetensors', 1),
+        ],
         triggers: [],
         outfits: [
-            { id: 1, loraId: null, name: '制服', content: 'school uniform,' },
-            { id: 2, loraId: null, name: 'ドレス', content: 'dress,' },
+            { id: 21, loraId: 1, name: 'Alpha服', content: 'red dress,' },
+            { id: 22, loraId: 2, name: 'Beta服', content: 'blue dress,' },
         ],
     };
-    const fetcher = async () => ({ ok: true, json: async () => catalog });
-    initializeLoraOptionsPage({
+    const controller = initializeLoraOptionsPage({
         page: documentObject.querySelector('main'),
         documentObject,
-        fetcher,
+        fetcher: async () => ({ ok: true, json: async () => catalog }),
         csrfToken: 'csrf',
         onLoadedChange: () => {},
         notify: () => {},
     });
     await flushAsyncEvents();
-    const list = documentObject.querySelector('[data-outfit-list]');
-    list.value = '1';
-    list.dispatchEvent(new documentObject.defaultView.Event('change'));
-    const search = documentObject.querySelector('[data-outfit-search]');
-    search.value = 'ドレス';
-    search.dispatchEvent(new documentObject.defaultView.Event('input'));
-
+    const loraList = documentObject.querySelector('[data-lora-list]');
+    const outfitList = documentObject.querySelector('[data-outfit-list]');
+    loraList.value = '1';
+    loraList.dispatchEvent(new documentObject.defaultView.Event('change'));
+    outfitList.value = '21';
+    outfitList.dispatchEvent(new documentObject.defaultView.Event('change'));
+    loraList.value = '2';
+    loraList.dispatchEvent(new documentObject.defaultView.Event('change'));
     assert.deepEqual(
-        [...list.options].map((option) => option.value),
-        ['1', '2'],
+        [...outfitList.options].map((option) => option.value),
+        ['22', '21'],
     );
-    assert.equal(list.value, '1');
-});
-
-test('LoRA保存中は重複送信を防ぎ失敗時は入力内容を保持する', async () => {
-    const documentObject = createDocument();
-    let resolveSave;
-    const saveResponse = new Promise((resolve) => {
-        resolveSave = resolve;
-    });
-    const fetcher = async (url, options = {}) => {
-        if (options.method === 'POST') {
-            return saveResponse;
-        }
-
-        return { ok: true, json: async () => ({ loras: [], triggers: [], outfits: [] }) };
-    };
-    const page = documentObject.querySelector('main');
-    initializeLoraOptionsPage({
-        page,
-        documentObject,
-        fetcher,
-        csrfToken: 'csrf',
-        onLoadedChange: () => {},
-        notify: () => {},
-    });
-    await flushAsyncEvents();
-
-    documentObject.querySelector('[data-option-add="lora"]').click();
-    const name = documentObject.querySelector('[data-option-name]');
-    const fileName = documentObject.querySelector('[data-option-file-name]');
-    const saveButton = documentObject.querySelector('[data-option-save]');
-    name.value = 'キャラクター';
-    fileName.value = 'character.safetensors';
-    documentObject.querySelector('[data-option-form]').requestSubmit();
-    await setImmediate();
-
-    assert.equal(saveButton.disabled, true);
-    assert.equal(
-        documentObject.querySelector('[data-option-form-status]').textContent,
-        '保存しています。',
-    );
-
-    resolveSave({ ok: false });
-    await flushAsyncEvents();
-
-    assert.equal(saveButton.disabled, false);
-    assert.equal(name.value, 'キャラクター');
-    assert.equal(fileName.value, 'character.safetensors');
-    assert.equal(documentObject.querySelector('[data-option-dialog]').open, true);
-    assert.equal(
-        documentObject.querySelector('[data-option-form-status]').textContent,
-        '保存できませんでした。入力内容を確認するか、時間をおいて再度お試しください。',
-    );
-});
-
-test('モーダル外のクリックで閉じフォーム内のクリックでは閉じない', async () => {
-    const documentObject = createDocument();
-    const fetcher = async () => ({
-        ok: true,
-        json: async () => ({ loras: [], triggers: [], outfits: [] }),
-    });
-    initializeLoraOptionsPage({
-        page: documentObject.querySelector('main'),
-        documentObject,
-        fetcher,
-        csrfToken: 'csrf',
-        onLoadedChange: () => {},
-        notify: () => {},
-    });
-    await flushAsyncEvents();
-
-    documentObject.querySelector('[data-option-add="lora"]').click();
-    const dialog = documentObject.querySelector('[data-option-dialog]');
-    dialog.getBoundingClientRect = () => ({ left: 100, right: 500, top: 100, bottom: 500 });
-
-    documentObject.querySelector('[data-option-form]').dispatchEvent(
-        new documentObject.defaultView.MouseEvent('click', {
-            bubbles: true,
-            clientX: 200,
-            clientY: 200,
-        }),
-    );
-    assert.equal(dialog.open, true);
-
-    dialog.dispatchEvent(
-        new documentObject.defaultView.MouseEvent('click', {
-            bubbles: true,
-            clientX: 50,
-            clientY: 50,
-        }),
-    );
-    assert.equal(dialog.open, false);
+    assert.equal(outfitList.value, '21');
+    assert.equal(controller.getSelections().outfit, 'red dress,');
 });

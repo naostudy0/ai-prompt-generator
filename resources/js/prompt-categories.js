@@ -1,7 +1,9 @@
 const isObject = (value) => typeof value === 'object' && value !== null && !Array.isArray(value);
-const isNamedPromptCandidate = (value) =>
+const isOption = (value) =>
     isObject(value) &&
     Number.isInteger(value.id) &&
+    Number.isInteger(value.position) &&
+    value.position > 0 &&
     typeof value.name === 'string' &&
     value.name.trim() !== '' &&
     typeof value.content === 'string' &&
@@ -9,65 +11,38 @@ const isNamedPromptCandidate = (value) =>
 
 const assertResponse = (response) => {
     if (!response.ok) {
-        throw new Error('The prompt category request failed.');
+        throw new Error('The prompt option request failed.');
     }
 };
 
-export const requestPromptCategories = async (fetcher, characterUrl, sceneUrl, optionUrl) => {
-    const [characterResponse, sceneResponse, optionResponse] = await Promise.all([
-        fetcher(characterUrl, { headers: { Accept: 'application/json' } }),
-        fetcher(sceneUrl, { headers: { Accept: 'application/json' } }),
-        fetcher(optionUrl, { headers: { Accept: 'application/json' } }),
-    ]);
-    assertResponse(characterResponse);
-    assertResponse(sceneResponse);
-    assertResponse(optionResponse);
-    const character = await characterResponse.json();
-    const scene = await sceneResponse.json();
-    const option = await optionResponse.json();
-
+export const requestPromptOptions = async (fetcher, url) => {
+    const response = await fetcher(url, { headers: { Accept: 'application/json' } });
+    assertResponse(response);
+    const result = await response.json();
     if (
-        !isObject(character) ||
-        !Array.isArray(character.expressions) ||
-        !character.expressions.every(isNamedPromptCandidate) ||
-        !Array.isArray(character.gazes) ||
-        !character.gazes.every(isNamedPromptCandidate) ||
-        !isObject(scene) ||
-        !Array.isArray(scene.locations) ||
-        !scene.locations.every(isNamedPromptCandidate) ||
-        !Array.isArray(scene.compositions) ||
-        !scene.compositions.every(isNamedPromptCandidate) ||
-        !Array.isArray(scene.actions) ||
-        !scene.actions.every(isNamedPromptCandidate) ||
-        !isObject(option) ||
-        !Array.isArray(option.groups) ||
-        !option.groups.every(
+        !isObject(result) ||
+        !Array.isArray(result.groups) ||
+        !result.groups.every(
             (group) =>
                 isObject(group) &&
                 Number.isInteger(group.id) &&
                 Number.isInteger(group.position) &&
                 group.position > 0 &&
-                typeof group.label === 'string' &&
+                typeof group.name === 'string' &&
+                group.name.trim() !== '' &&
+                ['single', 'multiple'].includes(group.selectionMode) &&
                 Array.isArray(group.options) &&
-                group.options.every(isNamedPromptCandidate),
+                group.options.every(isOption),
         )
     ) {
-        throw new Error('The prompt category response is invalid.');
+        throw new Error('The prompt option response is invalid.');
     }
-
-    return {
-        expression: character.expressions,
-        gaze: character.gazes,
-        location: scene.locations,
-        composition: scene.compositions,
-        action: scene.actions,
-        optionGroups: option.groups,
-    };
+    return result.groups;
 };
 
-export const saveNamedPrompt = async (fetcher, url, csrfToken, id, values) => {
-    const response = await fetcher(id === null ? url : `${url}/${id}`, {
-        method: id === null ? 'POST' : 'PUT',
+const requestJson = async (fetcher, url, csrfToken, method, values) => {
+    const response = await fetcher(url, {
+        method,
         headers: {
             Accept: 'application/json',
             'Content-Type': 'application/json',
@@ -76,24 +51,42 @@ export const saveNamedPrompt = async (fetcher, url, csrfToken, id, values) => {
         body: JSON.stringify(values),
     });
     assertResponse(response);
-    return response.json();
+    return response.status === 204 ? null : response.json();
 };
 
-export const deleteNamedPrompt = async (fetcher, url, csrfToken, id) => {
+export const saveOptionGroup = (fetcher, url, csrfToken, id, values) =>
+    requestJson(
+        fetcher,
+        id === null ? url : `${url}/${id}`,
+        csrfToken,
+        id === null ? 'POST' : 'PUT',
+        values,
+    );
+
+export const saveOption = (fetcher, url, csrfToken, id, values) =>
+    requestJson(
+        fetcher,
+        id === null ? url : `${url}/${id}`,
+        csrfToken,
+        id === null ? 'POST' : 'PUT',
+        values,
+    );
+
+export const moveOptionGroup = (fetcher, url, csrfToken, id, beforeGroupId) =>
+    requestJson(fetcher, `${url}/${id}/position`, csrfToken, 'PATCH', { beforeGroupId });
+
+export const moveOption = (fetcher, url, csrfToken, id, targetGroupId, beforeOptionId) =>
+    requestJson(fetcher, `${url}/${id}/position`, csrfToken, 'PATCH', {
+        targetGroupId,
+        beforeOptionId,
+    });
+
+export const deleteOption = async (fetcher, url, csrfToken, id) => {
     const response = await fetcher(`${url}/${id}`, {
         method: 'DELETE',
         headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken },
     });
     assertResponse(response);
-};
-
-export const addOptionPromptGroup = async (fetcher, url, csrfToken) => {
-    const response = await fetcher(url, {
-        method: 'POST',
-        headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken },
-    });
-    assertResponse(response);
-    return response.json();
 };
 
 export const filterOptionsKeepingSelection = (options, searchText, selectedIds) => {
@@ -111,7 +104,6 @@ const splitPromptElements = (content) => {
     let current = '';
     let depth = 0;
     let escaped = false;
-
     for (const character of content) {
         if (escaped) {
             current += character;
@@ -125,44 +117,29 @@ const splitPromptElements = (content) => {
         }
         if (character === '(') {
             depth++;
-        } else if (character === ')') {
+        }
+        if (character === ')') {
             if (depth === 0) {
                 return null;
             }
             depth--;
         }
         if (character === ',' && depth === 0) {
-            const element = current.trim();
-            if (element !== '') {
-                elements.push(element);
+            if (current.trim() !== '') {
+                elements.push(current.trim());
             }
             current = '';
             continue;
         }
         current += character;
     }
-
     if (depth !== 0) {
         return null;
     }
-    const last = current.trim();
-    if (last !== '') {
-        elements.push(last);
+    if (current.trim() !== '') {
+        elements.push(current.trim());
     }
     return elements;
-};
-
-export const mergeUniquePromptContents = (contents) => {
-    const elements = [];
-    for (const content of contents) {
-        const split = splitPromptElements(content);
-        if (split === null) {
-            return contents.join(' ');
-        }
-        elements.push(...split);
-    }
-
-    return [...new Set(elements)].join(', ') + (elements.length === 0 ? '' : ',');
 };
 
 export const mergeUniquePromptGroups = (groups) => {
@@ -170,7 +147,6 @@ export const mergeUniquePromptGroups = (groups) => {
     if (splitGroups.some((group) => group.some((elements) => elements === null))) {
         return groups.map((contents) => contents.join(' ')).filter((content) => content !== '');
     }
-
     const seen = new Set();
     return splitGroups
         .map((group) => {
@@ -186,31 +162,11 @@ export const mergeUniquePromptGroups = (groups) => {
         .filter((content) => content !== '');
 };
 
-export const createCategorySections = ({
-    options,
-    selected,
-    optionGroups = [],
-    selectedOptionIds = new Set(),
-}) => {
-    const selectedContent = (type) =>
-        options[type]
-            .filter((option) => selected[type].has(option.id))
-            .map((option) => option.content);
-    const singleContent = (type) => selectedContent(type)[0] ?? '';
-    const joinMultiple = (type) => selectedContent(type).join(' ');
-
-    return {
-        expression: mergeUniquePromptContents(selectedContent('expression')),
-        gaze: singleContent('gaze'),
-        action: joinMultiple('action'),
-        location: mergeUniquePromptContents(selectedContent('location')),
-        composition: singleContent('composition'),
-        optionGroups: mergeUniquePromptGroups(
-            optionGroups.map((group) =>
-                group.options
-                    .filter((option) => selectedOptionIds.has(option.id))
-                    .map((option) => option.content),
-            ),
+export const createOptionSections = (groups, selectedIds) =>
+    mergeUniquePromptGroups(
+        groups.map((group) =>
+            group.options
+                .filter((option) => selectedIds.has(option.id))
+                .map((option) => option.content),
         ),
-    };
-};
+    );

@@ -14,7 +14,7 @@ final class SaveOutfitPromptController extends Controller
     {
         $result = $handler->handle(new SaveOutfitPromptInput(
             id: $outfit,
-            loraId: $request->filled('loraId') ? $request->integer('loraId') : null,
+            loraId: $request->integer('loraId'),
             name: $request->string('name')->toString(),
             content: $request->string('content')->toString(),
         ));

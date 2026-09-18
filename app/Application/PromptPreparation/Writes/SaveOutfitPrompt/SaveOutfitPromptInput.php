@@ -6,7 +6,7 @@ final readonly class SaveOutfitPromptInput
 {
     public function __construct(
         public ?int $id,
-        public ?int $loraId,
+        public int $loraId,
         public string $name,
         public string $content,
     ) {
