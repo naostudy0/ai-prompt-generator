@@ -23,6 +23,7 @@ export const initializeLoraOptionsPage = ({
         onLoadedChange(true);
         return {
             getSelections: () => ({ lora: '', trigger: '', outfit: '' }),
+            reset: () => {},
         };
     }
 
@@ -459,6 +460,21 @@ export const initializeLoraOptionsPage = ({
                 trigger: selectedItem('trigger')?.content ?? '',
                 outfit: selectedItem('outfit')?.content ?? '',
             };
+        },
+        reset: () => {
+            state.selectedLoraId = null;
+            state.selectedTriggerId = null;
+            state.selectedOutfitId = null;
+            if (searchInput instanceof HTMLInputElement) {
+                searchInput.value = '';
+            }
+            if (outfitSearchInput instanceof HTMLInputElement) {
+                outfitSearchInput.value = '';
+            }
+            if (strengthSelect instanceof HTMLSelectElement) {
+                strengthSelect.value = '1';
+            }
+            render();
         },
     };
 };

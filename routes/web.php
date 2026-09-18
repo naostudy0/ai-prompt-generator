@@ -25,6 +25,7 @@ use App\Http\Controllers\PromptPreparation\Writes\SaveLoraTriggerController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveOutfitPromptController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveOptionPromptController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteOptionPromptController;
+use App\Http\Controllers\PromptPreparation\Writes\AddOptionPromptGroupController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', PromptPreparationPageController::class)->name('prompt-preparation');
@@ -74,6 +75,7 @@ Route::put('/actions/{action}', SaveActionPromptController::class)->whereNumber(
 Route::delete('/actions/{action}', DeleteActionPromptController::class)->whereNumber('action')->name('actions.destroy');
 
 Route::get('/prompt-options', GetPromptOptionsController::class)->name('prompt-options.index');
+Route::post('/prompt-option-groups', AddOptionPromptGroupController::class)->name('prompt-option-groups.store');
 Route::post('/prompt-options', SaveOptionPromptController::class)->name('prompt-options.store');
 Route::put('/prompt-options/{option}', SaveOptionPromptController::class)
     ->whereNumber('option')->name('prompt-options.update');

@@ -1,4 +1,5 @@
 import {
+    addOptionPromptGroup,
     createCategorySections,
     deleteNamedPrompt,
     filterOptionsKeepingSelection,
@@ -35,8 +36,9 @@ export const initializePromptCategoriesPage = ({
                 action: '',
                 location: '',
                 composition: '',
-                option: '',
+                optionGroups: [],
             }),
+            reset: () => {},
         };
     }
 
@@ -53,9 +55,10 @@ export const initializePromptCategoriesPage = ({
         action: [],
         location: [],
         composition: [],
-        option: [],
     };
     const selected = Object.fromEntries(Object.keys(options).map((type) => [type, new Set()]));
+    let optionGroups = [];
+    let selectedOptionIds = new Set();
     const endpoints = {
         expression: page.dataset.expressionsUrl,
         gaze: page.dataset.gazesUrl,
@@ -66,10 +69,12 @@ export const initializePromptCategoriesPage = ({
     };
     let loaded = false;
     let editingType = null;
+    let editingGroupId = null;
     let deletingType = null;
     let deletingId = null;
     let saving = false;
     let deleting = false;
+    let addingGroup = false;
 
     const categoryRoot = (type) => root.querySelector(`[data-prompt-category="${type}"]`);
     const item = (type, id) => options[type].find((option) => option.id === id) ?? null;
@@ -113,8 +118,14 @@ export const initializePromptCategoriesPage = ({
 
     const renderMultiple = (type, container) => {
         const badges = container.querySelector('[data-category-badges]');
+        const searchInput = container.querySelector('[data-category-search]');
+        const filtered = filterOptionsKeepingSelection(
+            options[type],
+            searchInput instanceof HTMLInputElement ? searchInput.value : '',
+            selected[type],
+        );
         badges.replaceChildren();
-        options[type].forEach((option) => {
+        filtered.forEach((option) => {
             const wrapper = documentObject.createElement('span');
             wrapper.className = 'badge-option';
             const badge = documentObject.createElement('button');
@@ -152,6 +163,78 @@ export const initializePromptCategoriesPage = ({
             wrapper.append(actions);
             badges.append(wrapper);
         });
+        setDisabled(searchInput, !loaded);
+    };
+
+    const renderOptionGroups = () => {
+        const target = root.querySelector('[data-option-groups]');
+        if (!target) {
+            return;
+        }
+        target.replaceChildren();
+        optionGroups.forEach((group) => {
+            const container = documentObject.createElement('div');
+            container.className = 'linked-option';
+            const heading = documentObject.createElement('div');
+            heading.className = 'subsection-heading subsection-heading--compact';
+            const title = documentObject.createElement('h3');
+            title.textContent = group.label;
+            const add = documentObject.createElement('button');
+            add.type = 'button';
+            add.className = 'small-button';
+            add.textContent = '追加';
+            add.setAttribute('aria-label', `${group.label}へ項目を追加`);
+            add.disabled = !loaded;
+            add.addEventListener('click', () => openForm('option', null, group.id));
+            heading.append(title, add);
+            const badges = documentObject.createElement('div');
+            badges.className = 'badge-options';
+            badges.setAttribute('aria-label', `${group.label}を選択`);
+            group.options.forEach((option) => {
+                const wrapper = documentObject.createElement('span');
+                wrapper.className = 'badge-option';
+                const badge = documentObject.createElement('button');
+                badge.type = 'button';
+                badge.className = 'prompt-badge';
+                badge.textContent = `${selectedOptionIds.has(option.id) ? '✓ ' : ''}${option.name}`;
+                badge.setAttribute('aria-label', option.name);
+                badge.setAttribute(
+                    'aria-pressed',
+                    selectedOptionIds.has(option.id) ? 'true' : 'false',
+                );
+                badge.disabled = !loaded;
+                badge.addEventListener('click', () => {
+                    selectedOptionIds.has(option.id)
+                        ? selectedOptionIds.delete(option.id)
+                        : selectedOptionIds.add(option.id);
+                    render();
+                });
+                const actions = documentObject.createElement('span');
+                actions.className = 'badge-option__actions';
+                for (const [action, symbol, text] of [
+                    ['edit', '✎', '編集'],
+                    ['delete', '×', '削除'],
+                ]) {
+                    const button = documentObject.createElement('button');
+                    button.type = 'button';
+                    button.className = 'badge-manage-button';
+                    button.textContent = symbol;
+                    button.setAttribute('aria-label', `オプション「${option.name}」を${text}`);
+                    button.disabled = !loaded;
+                    button.addEventListener('click', () =>
+                        action === 'edit'
+                            ? openForm('option', option, group.id)
+                            : openDelete('option', option),
+                    );
+                    actions.append(button);
+                }
+                wrapper.append(badge, actions);
+                badges.append(wrapper);
+            });
+            container.append(heading, badges);
+            target.append(container);
+        });
+        setDisabled(root.querySelector('[data-option-group-add]'), !loaded || addingGroup);
     };
 
     const render = () => {
@@ -162,6 +245,7 @@ export const initializePromptCategoriesPage = ({
                 ? renderMultiple(type, container)
                 : renderSingle(type, container);
         }
+        renderOptionGroups();
     };
 
     const load = async () => {
@@ -183,6 +267,13 @@ export const initializePromptCategoriesPage = ({
                     [...selected[type]].filter((id) => item(type, id) !== null),
                 );
             }
+            optionGroups = result.optionGroups;
+            const validOptionIds = new Set(
+                optionGroups.flatMap((group) => group.options.map((option) => option.id)),
+            );
+            selectedOptionIds = new Set(
+                [...selectedOptionIds].filter((id) => validOptionIds.has(id)),
+            );
             loaded = true;
             status.textContent = '';
             retry.hidden = true;
@@ -197,11 +288,12 @@ export const initializePromptCategoriesPage = ({
 
     const close = (target) => target instanceof HTMLDialogElement && target.close();
     const show = (target) => target instanceof HTMLDialogElement && target.showModal();
-    const openForm = (type, option = null) => {
+    const openForm = (type, option = null, groupId = null) => {
         if (saving || deleting) {
             return;
         }
         editingType = type;
+        editingGroupId = groupId;
         page.querySelector('[data-category-dialog-title]').textContent =
             `${labels[type]}を${option ? '編集' : '追加'}`;
         page.querySelector('[data-category-id]').value = option?.id ?? '';
@@ -243,6 +335,7 @@ export const initializePromptCategoriesPage = ({
             await saveNamedPrompt(fetcher, endpoints[operationType], csrfToken, id, {
                 name: page.querySelector('[data-category-name]').value,
                 content: page.querySelector('[data-category-content]').value,
+                ...(operationType === 'option' && id === null ? { groupId: editingGroupId } : {}),
             });
             close(dialog);
             notify('保存しました。');
@@ -271,7 +364,9 @@ export const initializePromptCategoriesPage = ({
         deleteStatus.textContent = '削除しています。';
         try {
             await deleteNamedPrompt(fetcher, endpoints[operationType], csrfToken, operationId);
-            selected[operationType].delete(operationId);
+            operationType === 'option'
+                ? selectedOptionIds.delete(operationId)
+                : selected[operationType].delete(operationId);
             close(deleteDialog);
             notify('削除しました。');
             await load();
@@ -281,6 +376,24 @@ export const initializePromptCategoriesPage = ({
             deleting = false;
             button.disabled = false;
             cancelButton.disabled = false;
+        }
+    };
+
+    const addGroup = async () => {
+        if (addingGroup) {
+            return;
+        }
+        addingGroup = true;
+        render();
+        try {
+            await addOptionPromptGroup(fetcher, page.dataset.promptOptionGroupsUrl, csrfToken);
+            notify('オプションを追加しました。');
+            await load();
+        } catch {
+            notify('オプションを追加できませんでした。');
+        } finally {
+            addingGroup = false;
+            render();
         }
     };
 
@@ -307,6 +420,7 @@ export const initializePromptCategoriesPage = ({
             ?.addEventListener('click', () => openDelete(type, selectedItem(type)));
     });
     retry.addEventListener('click', load);
+    root.querySelector('[data-option-group-add]')?.addEventListener('click', () => void addGroup());
     form.addEventListener('submit', (event) => {
         event.preventDefault();
         void save();
@@ -350,5 +464,18 @@ export const initializePromptCategoriesPage = ({
     }
 
     void load();
-    return { getSections: () => createCategorySections({ options, selected }) };
+    return {
+        getSections: () =>
+            createCategorySections({ options, selected, optionGroups, selectedOptionIds }),
+        reset: () => {
+            for (const selection of Object.values(selected)) {
+                selection.clear();
+            }
+            selectedOptionIds.clear();
+            root.querySelectorAll('[data-category-search]').forEach((input) => {
+                input.value = '';
+            });
+            render();
+        },
+    };
 };

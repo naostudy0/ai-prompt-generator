@@ -19,7 +19,9 @@ class NamedPromptModelsTest extends TestCase
     public function test_登録名の前後空白を除いて候補を作成する(string $modelClass): void
     {
         /** @var ActionPrompt|CompositionPrompt|ExpressionPrompt|GazePrompt|LocationPrompt|OptionPrompt $model */
-        $model = new $modelClass(12, '  登録名  ', PromptText::fromInput('prompt'));
+        $model = $modelClass === OptionPrompt::class
+            ? new OptionPrompt(12, 1, '  登録名  ', PromptText::fromInput('prompt'))
+            : new $modelClass(12, '  登録名  ', PromptText::fromInput('prompt'));
 
         self::assertSame(12, $model->id);
         self::assertSame('登録名', $model->name);
@@ -31,7 +33,9 @@ class NamedPromptModelsTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
 
-        new $modelClass(null, '  ', PromptText::fromInput('prompt'));
+        $modelClass === OptionPrompt::class
+            ? new OptionPrompt(null, 1, '  ', PromptText::fromInput('prompt'))
+            : new $modelClass(null, '  ', PromptText::fromInput('prompt'));
     }
 
     #[DataProvider('modelClasses')]
@@ -39,7 +43,9 @@ class NamedPromptModelsTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
 
-        new $modelClass(null, '登録名', PromptText::fromInput(''));
+        $modelClass === OptionPrompt::class
+            ? new OptionPrompt(null, 1, '登録名', PromptText::fromInput(''))
+            : new $modelClass(null, '登録名', PromptText::fromInput(''));
     }
 
     /** @return iterable<string, array{class-string}> */

@@ -19,11 +19,14 @@ class PromptOptionApiTest extends TestCase
         $sameName = $this->create('A 高精細', '(detailed)');
 
         $this->getJson(route('prompt-options.index'))->assertExactJson([
-            'options' => [
-                ['id' => $first, 'name' => 'A 高精細', 'content' => 'detailed, sharp focus,'],
-                ['id' => $sameName, 'name' => 'A 高精細', 'content' => '(detailed),'],
-                ['id' => $second, 'name' => 'B 精密', 'content' => 'sharp focus, intricate,'],
-            ],
+            'groups' => [[
+                'id' => 1, 'position' => 1, 'label' => 'オプション1',
+                'options' => [
+                    ['id' => $first, 'name' => 'A 高精細', 'content' => 'detailed, sharp focus,'],
+                    ['id' => $sameName, 'name' => 'A 高精細', 'content' => '(detailed),'],
+                    ['id' => $second, 'name' => 'B 精密', 'content' => 'sharp focus, intricate,'],
+                ],
+            ]],
         ]);
     }
 
@@ -36,6 +39,7 @@ class PromptOptionApiTest extends TestCase
             'content' => "after\nvalue",
         ])->assertOk()->assertJson([
             'id' => $id,
+            'groupId' => 1,
             'name' => '変更後',
             'content' => 'after, value,',
         ]);
@@ -51,9 +55,9 @@ class PromptOptionApiTest extends TestCase
 
     public function test_空の登録名と文面はオプションへ保存できない(): void
     {
-        $this->postJson(route('prompt-options.store'), ['name' => ' ', 'content' => 'valid'])
+        $this->postJson(route('prompt-options.store'), ['groupId' => 1, 'name' => ' ', 'content' => 'valid'])
             ->assertUnprocessable()->assertJsonValidationErrors('name');
-        $this->postJson(route('prompt-options.store'), ['name' => '登録名', 'content' => " ,\n,"])
+        $this->postJson(route('prompt-options.store'), ['groupId' => 1, 'name' => '登録名', 'content' => " ,\n,"])
             ->assertUnprocessable()->assertJsonValidationErrors('content');
 
         $this->assertDatabaseCount('option_prompts', 0);
@@ -64,6 +68,7 @@ class PromptOptionApiTest extends TestCase
         $this->putJson(route('prompt-options.update', ['option' => 999999]), [
             'name' => '存在しない候補',
             'content' => 'missing',
+            'groupId' => 1,
         ])->assertNotFound();
         $this->deleteJson(route('prompt-options.destroy', ['option' => 999999]))->assertNotFound();
     }
@@ -75,10 +80,26 @@ class PromptOptionApiTest extends TestCase
 
         $this->assertNotSame($first, $second);
         $this->assertDatabaseCount('option_prompts', 2);
-        $this->getJson(route('prompt-options.index'))->assertJsonPath('options', [
+        $this->getJson(route('prompt-options.index'))->assertJsonPath('groups.0.options', [
             ['id' => $first, 'name' => '高精細', 'content' => 'detailed,'],
             ['id' => $second, 'name' => '高精細', 'content' => 'detailed,'],
         ]);
+    }
+
+    public function test_ブロックを追加して所属するオプションを保存する(): void
+    {
+        $group = $this->postJson(route('prompt-option-groups.store'))->assertCreated()->json();
+        $thirdGroup = $this->postJson(route('prompt-option-groups.store'))->assertCreated()->json();
+        self::assertSame(2, $group['position']);
+        self::assertSame('オプション2', $group['label']);
+        self::assertSame(3, $thirdGroup['position']);
+        self::assertSame('オプション3', $thirdGroup['label']);
+
+        $id = $this->create('衣装補助', 'fabric texture', (int) $group['id']);
+        $this->getJson(route('prompt-options.index'))
+            ->assertJsonPath('groups.1.options.0.id', $id)
+            ->assertJsonPath('groups.1.options.0.name', '衣装補助')
+            ->assertJsonPath('groups.2.label', 'オプション3');
     }
 
     public function test_オプションの更新ルートにCSRF保護を適用する(): void
@@ -86,7 +107,12 @@ class PromptOptionApiTest extends TestCase
         $router = app(Router::class);
         $middlewareGroups = app(HttpKernel::class)->getMiddlewareGroups();
 
-        foreach (['prompt-options.store', 'prompt-options.update', 'prompt-options.destroy'] as $routeName) {
+        foreach ([
+            'prompt-option-groups.store',
+            'prompt-options.store',
+            'prompt-options.update',
+            'prompt-options.destroy',
+        ] as $routeName) {
             $route = $router->getRoutes()->getByName($routeName);
             $this->assertNotNull($route);
             $this->assertContains('web', $route->middleware());
@@ -94,11 +120,12 @@ class PromptOptionApiTest extends TestCase
         $this->assertContains(PreventRequestForgery::class, $middlewareGroups['web']);
     }
 
-    private function create(string $name, string $content): int
+    private function create(string $name, string $content, int $groupId = 1): int
     {
         return (int) $this->postJson(route('prompt-options.store'), [
             'name' => $name,
             'content' => $content,
+            'groupId' => $groupId,
         ])->assertCreated()->json('id');
     }
 }

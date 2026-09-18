@@ -39,17 +39,13 @@ test('括弧の対応が壊れた場所は内容を変更せず結合する', ()
     );
 });
 
-test('オプションは完全一致するタグだけを除き括弧付きと大文字の違いを残す', () => {
+test('オプショングループをまたいで完全一致するタグだけを除く', () => {
     const options = {
         expression: [],
         gaze: [],
         action: [],
         location: [],
         composition: [],
-        option: [
-            { id: 1, name: '高精細', content: 'detailed, sharp focus,' },
-            { id: 2, name: '精密', content: 'sharp focus, (detailed), Detailed,' },
-        ],
     };
     const selected = {
         expression: new Set(),
@@ -57,12 +53,23 @@ test('オプションは完全一致するタグだけを除き括弧付きと�
         action: new Set(),
         location: new Set(),
         composition: new Set(),
-        option: new Set([2, 1]),
     };
+    const optionGroups = [
+        { id: 1, options: [{ id: 1, name: '高精細', content: 'detailed, sharp focus,' }] },
+        {
+            id: 2,
+            options: [{ id: 2, name: '精密', content: 'sharp focus, (detailed), Detailed,' }],
+        },
+    ];
 
-    assert.equal(
-        createCategorySections({ options, selected }).option,
-        'detailed, sharp focus, (detailed), Detailed,',
+    assert.deepEqual(
+        createCategorySections({
+            options,
+            selected,
+            optionGroups,
+            selectedOptionIds: new Set([1, 2]),
+        }).optionGroups,
+        ['detailed, sharp focus,', '(detailed), Detailed,'],
     );
 });
 
@@ -73,18 +80,26 @@ test('括弧の対応が壊れたオプションは内容を変更せず結合�
         action: [],
         location: [],
         composition: [],
-        option: [
-            { id: 1, name: '通常', content: 'detailed, sharp focus,' },
-            { id: 2, name: '特殊記法', content: '(lighting, dramatic,' },
-        ],
     };
-    const selected = Object.fromEntries(
-        Object.keys(options).map((type) => [type, new Set(type === 'option' ? [1, 2] : [])]),
-    );
+    const selected = Object.fromEntries(Object.keys(options).map((type) => [type, new Set()]));
+    const optionGroups = [
+        {
+            id: 1,
+            options: [
+                { id: 1, name: '通常', content: 'detailed, sharp focus,' },
+                { id: 2, name: '特殊記法', content: '(lighting, dramatic,' },
+            ],
+        },
+    ];
 
-    assert.equal(
-        createCategorySections({ options, selected }).option,
-        'detailed, sharp focus, (lighting, dramatic,',
+    assert.deepEqual(
+        createCategorySections({
+            options,
+            selected,
+            optionGroups,
+            selectedOptionIds: new Set([1, 2]),
+        }).optionGroups,
+        ['detailed, sharp focus, (lighting, dramatic,'],
     );
 });
 
@@ -96,7 +111,7 @@ test('positiveの各カテゴリを確定した順序で並べる', () => {
         action: '動作',
         location: '場所',
         composition: '構図',
-        option: 'オプション',
+        optionGroups: ['オプション1', 'オプション2'],
     };
 
     assert.deepEqual(createPositivePromptSections(lora, categories), [
@@ -108,7 +123,8 @@ test('positiveの各カテゴリを確定した順序で並べる', () => {
         '動作',
         '場所',
         '構図',
-        'オプション',
+        'オプション1',
+        'オプション2',
     ]);
 });
 
@@ -125,10 +141,6 @@ test('単一選択と複数選択をカテゴリ別のセクションにする',
             { id: 6, name: 'ベンチ', content: 'bench,' },
         ],
         composition: [{ id: 7, name: '正面', content: 'from front,' }],
-        option: [
-            { id: 8, name: '高精細', content: 'detailed, sharp focus,' },
-            { id: 9, name: '精密', content: 'sharp focus, intricate,' },
-        ],
     };
     const selected = {
         expression: new Set([1]),
@@ -136,24 +148,40 @@ test('単一選択と複数選択をカテゴリ別のセクションにする',
         action: new Set([3, 4]),
         location: new Set([5, 6]),
         composition: new Set([7]),
-        option: new Set([8, 9]),
     };
+    const optionGroups = [
+        {
+            id: 1,
+            options: [
+                { id: 8, name: '高精細', content: 'detailed, sharp focus,' },
+                { id: 9, name: '精密', content: 'sharp focus, intricate,' },
+            ],
+        },
+    ];
 
-    assert.deepEqual(createCategorySections({ options, selected }), {
-        expression: 'smile, open mouth,',
-        gaze: 'looking at viewer,',
-        action: 'sitting, reading,',
-        location: 'park, bench,',
-        composition: 'from front,',
-        option: 'detailed, sharp focus, intricate,',
-    });
+    assert.deepEqual(
+        createCategorySections({
+            options,
+            selected,
+            optionGroups,
+            selectedOptionIds: new Set([8, 9]),
+        }),
+        {
+            expression: 'smile, open mouth,',
+            gaze: 'looking at viewer,',
+            action: 'sitting, reading,',
+            location: 'park, bench,',
+            composition: 'from front,',
+            optionGroups: ['detailed, sharp focus, intricate,'],
+        },
+    );
 });
 
 test('表情・視線・場所・構図・動作・オプションを同時に取得する', async () => {
     const responses = {
         '/character-directions': { expressions: [], gazes: [] },
         '/scene-directions': { locations: [], compositions: [], actions: [] },
-        '/prompt-options': { options: [] },
+        '/prompt-options': { groups: [] },
     };
     const fetcher = async (url) => ({ ok: true, json: async () => responses[url] });
 
@@ -170,7 +198,7 @@ test('表情・視線・場所・構図・動作・オプションを同時に�
         location: [],
         composition: [],
         action: [],
-        option: [],
+        optionGroups: [],
     });
 });
 
@@ -182,7 +210,7 @@ test('オプション取得が失敗した場合はカテゴリ取得を失敗�
                 ? { expressions: [], gazes: [] }
                 : url.includes('scene')
                   ? { locations: [], compositions: [], actions: [] }
-                  : { options: [] },
+                  : { groups: [] },
     });
 
     await assert.rejects(
@@ -204,7 +232,7 @@ test('空の登録名や文面を含む取得レスポンスは形式不正と�
                 ? { expressions: [{ id: 1, name: ' ', content: 'smile,' }], gazes: [] }
                 : url.includes('scene')
                   ? { locations: [], compositions: [], actions: [] }
-                  : { options: [] },
+                  : { groups: [] },
     });
 
     await assert.rejects(

@@ -6,17 +6,17 @@ import { initializePromptCategoriesPage } from '../../resources/js/prompt-catego
 
 const createDocument = () => {
     const categories = [
-        ['expression', false, true],
+        ['expression', true, true],
         ['gaze', false, false],
         ['action', true, false],
         ['location', true, false],
         ['composition', false, false],
-        ['option', true, false],
     ];
     const dom = new JSDOM(`<!DOCTYPE html><main
         data-character-directions-url="/character-directions" data-scene-directions-url="/scene-directions"
         data-expressions-url="/expressions" data-gazes-url="/gazes" data-actions-url="/actions"
-        data-locations-url="/locations" data-compositions-url="/compositions" data-prompt-options-url="/prompt-options">
+        data-locations-url="/locations" data-compositions-url="/compositions" data-prompt-options-url="/prompt-options"
+        data-prompt-option-groups-url="/prompt-option-groups">
         <section data-prompt-categories><p data-category-load-status></p><button data-category-retry hidden></button>
         ${categories
             .map(
@@ -29,7 +29,9 @@ const createDocument = () => {
             ${multiple ? '<div data-category-badges></div>' : '<select data-category-list></select><button data-category-clear></button><button data-category-edit></button><button data-category-delete></button>'}
         </div>`,
             )
-            .join('')}</section>
+            .join('')}
+            <div data-option-groups></div><button data-option-group-add></button>
+        </section>
         <dialog data-category-dialog><form data-category-form><h2 data-category-dialog-title></h2><p data-category-editing-id hidden></p><input data-category-id>
         <input data-category-name><textarea data-category-content></textarea><p data-category-form-status></p>
         <button data-category-save></button><button type="button" data-category-cancel></button></form></dialog>
@@ -70,16 +72,23 @@ const scene = {
     ],
 };
 const promptOptions = {
-    options: [
-        { id: 9, name: '高精細', content: 'detailed, sharp focus,' },
-        { id: 10, name: '精密', content: 'sharp focus, intricate,' },
+    groups: [
+        {
+            id: 1,
+            position: 1,
+            label: 'オプション1',
+            options: [
+                { id: 9, name: '高精細', content: 'detailed, sharp focus,' },
+                { id: 10, name: '精密', content: 'sharp focus, intricate,' },
+            ],
+        },
     ],
 };
 
 const responseFor = (url) =>
     url.includes('character') ? character : url.includes('scene') ? scene : promptOptions;
 
-test('表情と視線は単一選択し場所と動作とオプションはバッジで複数選択する', async () => {
+test('表情と場所と動作とオプションはバッジで複数選択する', async () => {
     const documentObject = createDocument();
     const fetcher = async (url) => ({
         ok: true,
@@ -104,14 +113,14 @@ test('表情と視線は単一選択し場所と動作とオプションはバ�
         action: '',
         location: '',
         composition: '',
-        option: '',
+        optionGroups: [],
     });
 
-    const expression = documentObject.querySelector(
-        '[data-prompt-category="expression"] [data-category-list]',
+    const expressionBadges = documentObject.querySelectorAll(
+        '[data-prompt-category="expression"] .prompt-badge',
     );
-    expression.value = '1';
-    expression.dispatchEvent(new documentObject.defaultView.Event('change'));
+    expressionBadges[1].click();
+    expressionBadges[0].click();
     const gaze = documentObject.querySelector('[data-prompt-category="gaze"] [data-category-list]');
     gaze.value = '3';
     gaze.dispatchEvent(new documentObject.defaultView.Event('change'));
@@ -124,16 +133,16 @@ test('表情と視線は単一選択し場所と動作とオプションはバ�
     );
     composition.value = '6';
     composition.dispatchEvent(new documentObject.defaultView.Event('change'));
-    documentObject.querySelectorAll('[data-prompt-category="option"] .prompt-badge')[1].click();
-    documentObject.querySelectorAll('[data-prompt-category="option"] .prompt-badge')[0].click();
+    documentObject.querySelectorAll('[data-option-groups] .prompt-badge')[1].click();
+    documentObject.querySelectorAll('[data-option-groups] .prompt-badge')[0].click();
 
     assert.deepEqual(controller.getSections(), {
-        expression: 'smile, open mouth,',
+        expression: 'smile, open mouth, angry,',
         gaze: 'looking at viewer,',
         action: 'sitting, reading,',
         location: 'park, bench,',
         composition: 'from front,',
-        option: 'detailed, sharp focus, intricate,',
+        optionGroups: ['detailed, sharp focus, intricate,'],
     });
     assert.equal(
         documentObject
@@ -141,18 +150,18 @@ test('表情と視線は単一選択し場所と動作とオプションはバ�
             .getAttribute('aria-pressed'),
         'true',
     );
-    const optionBadges = documentObject.querySelectorAll(
-        '[data-prompt-category="option"] .prompt-badge',
-    );
+    documentObject.querySelectorAll('[data-prompt-category="expression"] .prompt-badge')[0].click();
+    assert.equal(controller.getSections().expression, 'angry,');
+    const optionBadges = documentObject.querySelectorAll('[data-option-groups] .prompt-badge');
     assert.equal(optionBadges[0].getAttribute('aria-pressed'), 'true');
     assert.equal(optionBadges[1].getAttribute('aria-pressed'), 'true');
     optionBadges[0].click();
     const updatedOptionBadges = documentObject.querySelectorAll(
-        '[data-prompt-category="option"] .prompt-badge',
+        '[data-option-groups] .prompt-badge',
     );
     assert.equal(updatedOptionBadges[0].getAttribute('aria-pressed'), 'false');
     assert.equal(updatedOptionBadges[1].getAttribute('aria-pressed'), 'true');
-    assert.equal(controller.getSections().option, 'sharp focus, intricate,');
+    assert.deepEqual(controller.getSections().optionGroups, ['sharp focus, intricate,']);
 });
 
 test('表情検索は選択中候補を元の位置に残して一致候補を絞り込む', async () => {
@@ -171,27 +180,83 @@ test('表情検索は選択中候補を元の位置に残して一致候補を�
     });
     await flush();
     const root = documentObject.querySelector('[data-prompt-category="expression"]');
-    const list = root.querySelector('[data-category-list]');
-    list.value = '2';
-    list.dispatchEvent(new documentObject.defaultView.Event('change'));
+    root.querySelectorAll('.prompt-badge')[1].click();
     const search = root.querySelector('[data-category-search]');
     search.value = '笑顔';
     search.dispatchEvent(new documentObject.defaultView.Event('input'));
 
     assert.deepEqual(
-        [...list.options].map((option) => option.value),
-        ['1', '2'],
+        [...root.querySelectorAll('.prompt-badge')].map((option) =>
+            option.getAttribute('aria-label'),
+        ),
+        ['笑顔', '怒り顔'],
     );
-    assert.equal(list.value, '2');
+    assert.equal(root.querySelectorAll('.prompt-badge')[1].getAttribute('aria-pressed'), 'true');
 });
 
-test('単一選択した表情と視線と構図から直後の入力セクションへスクロールする', async () => {
+test('オプションブロックを追加して末尾に表示する', async () => {
+    const documentObject = createDocument();
+    const groups = promptOptions.groups.map((group) => ({
+        ...group,
+        options: group.options.map((option) => ({ ...option })),
+    }));
+    const requests = [];
+    const fetcher = async (url, options = {}) => {
+        if (url === '/prompt-option-groups' && options.method === 'POST') {
+            requests.push([url, options.method, options.headers['X-CSRF-TOKEN']]);
+            const position = groups.length + 1;
+            const group = {
+                id: position,
+                position,
+                label: `オプション${position}`,
+                options: [],
+            };
+            groups.push(group);
+            return { ok: true, json: async () => group };
+        }
+        return {
+            ok: true,
+            json: async () =>
+                url.includes('character') ? character : url.includes('scene') ? scene : { groups },
+        };
+    };
+    initializePromptCategoriesPage({
+        page: documentObject.querySelector('main'),
+        documentObject,
+        fetcher,
+        csrfToken: 'csrf',
+        onLoadedChange: () => {},
+        notify: () => {},
+    });
+    await flush();
+    documentObject.querySelector('[data-option-group-add]').click();
+    await flush();
+    await flush();
+    documentObject.querySelector('[data-option-group-add]').click();
+    await flush();
+    await flush();
+
+    assert.deepEqual(requests, [
+        ['/prompt-option-groups', 'POST', 'csrf'],
+        ['/prompt-option-groups', 'POST', 'csrf'],
+    ]);
+    assert.deepEqual(
+        [...documentObject.querySelectorAll('[data-option-groups] h3')].map(
+            (heading) => heading.textContent,
+        ),
+        ['オプション1', 'オプション2', 'オプション3'],
+    );
+});
+
+test('単一選択した視線と構図から直後の入力セクションへスクロールする', async () => {
     const documentObject = createDocument();
     const scrolledSections = [];
-    for (const type of ['gaze', 'action', 'option']) {
-        documentObject.querySelector(`[data-prompt-category="${type}"]`).scrollIntoView = (
-            options,
-        ) => {
+    for (const type of ['action', 'option']) {
+        const target =
+            type === 'option'
+                ? documentObject.querySelector('[data-option-groups]')
+                : documentObject.querySelector(`[data-prompt-category="${type}"]`);
+        target.scrollIntoView = (options) => {
             scrolledSections.push([type, options]);
         };
     }
@@ -212,12 +277,10 @@ test('単一選択した表情と視線と構図から直後の入力セクシ�
         list.value = value;
         list.dispatchEvent(new documentObject.defaultView.Event('change'));
     };
-    select('expression', '1');
     select('gaze', '3');
     select('composition', '6');
 
     assert.deepEqual(scrolledSections, [
-        ['gaze', { behavior: 'smooth', block: 'start' }],
         ['action', { behavior: 'smooth', block: 'start' }],
         ['option', { behavior: 'smooth', block: 'start' }],
     ]);
@@ -276,7 +339,7 @@ test('保存中は重複送信とダイアログを閉じる操作を防ぐ', as
 
 test('選択中オプションの編集では選択を維持し削除では対象だけを解除する', async () => {
     const documentObject = createDocument();
-    let options = promptOptions.options.map((option) => ({ ...option }));
+    let options = promptOptions.groups[0].options.map((option) => ({ ...option }));
     const requests = [];
     const fetcher = async (url, request = {}) => {
         if (request.method === 'PUT') {
@@ -296,7 +359,11 @@ test('選択中オプションの編集では選択を維持し削除では対�
         return {
             ok: true,
             json: async () =>
-                url.includes('character') ? character : url.includes('scene') ? scene : { options },
+                url.includes('character')
+                    ? character
+                    : url.includes('scene')
+                      ? scene
+                      : { groups: [{ ...promptOptions.groups[0], options }] },
         };
     };
     const controller = initializePromptCategoriesPage({
@@ -308,7 +375,7 @@ test('選択中オプションの編集では選択を維持し削除では対�
         notify: () => {},
     });
     await flush();
-    const optionRoot = documentObject.querySelector('[data-prompt-category="option"]');
+    const optionRoot = documentObject.querySelector('[data-option-groups]');
     optionRoot.querySelectorAll('.prompt-badge')[0].click();
     optionRoot.querySelectorAll('.prompt-badge')[1].click();
     optionRoot.querySelectorAll('.badge-manage-button')[0].click();
@@ -318,7 +385,9 @@ test('選択中オプションの編集では選択を維持し削除では対�
     await flush();
     await flush();
 
-    assert.equal(controller.getSections().option, 'detailed, ultra, sharp focus, intricate,');
+    assert.deepEqual(controller.getSections().optionGroups, [
+        'detailed, ultra, sharp focus, intricate,',
+    ]);
     optionRoot.querySelectorAll('.badge-manage-button')[1].click();
     documentObject.querySelector('[data-category-delete-form]').requestSubmit();
     await flush();
@@ -328,7 +397,7 @@ test('選択中オプションの編集では選択を維持し削除では対�
         ['/prompt-options/9', 'PUT'],
         ['/prompt-options/9', 'DELETE'],
     ]);
-    assert.equal(controller.getSections().option, 'sharp focus, intricate,');
+    assert.deepEqual(controller.getSections().optionGroups, ['sharp focus, intricate,']);
     assert.equal(optionRoot.querySelectorAll('.prompt-badge').length, 1);
     assert.equal(optionRoot.querySelector('.prompt-badge').getAttribute('aria-pressed'), 'true');
 });

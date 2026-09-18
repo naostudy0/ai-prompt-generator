@@ -10,16 +10,31 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 final class EloquentOptionPromptRepository implements OptionPromptRepository
 {
+    public function get(int $id): OptionPrompt
+    {
+        return $this->toDomain(OptionPromptRecord::query()->findOrFail($id));
+    }
+
     public function save(OptionPrompt $prompt): OptionPrompt
     {
         $record = $prompt->id === null
             ? new OptionPromptRecord()
             : OptionPromptRecord::query()->findOrFail($prompt->id);
 
-        $record->fill(['name' => $prompt->name, 'content' => $prompt->content->value])->save();
+        $record->fill([
+            'option_prompt_group_id' => $record->exists ? $record->option_prompt_group_id : $prompt->groupId,
+            'name' => $prompt->name,
+            'content' => $prompt->content->value,
+        ])->save();
 
+        return $this->toDomain($record);
+    }
+
+    private function toDomain(OptionPromptRecord $record): OptionPrompt
+    {
         return new OptionPrompt(
             id: $record->getKey(),
+            groupId: $record->option_prompt_group_id,
             name: $record->name,
             content: PromptText::fromInput($record->content),
         );
