@@ -8,6 +8,7 @@ import {
     saveOption,
     saveOptionGroup,
 } from './prompt-categories.js';
+import { scrollToSelectionSection } from './selection-navigation.js';
 
 export const initializePromptCategoriesPage = ({
     page,
@@ -15,6 +16,7 @@ export const initializePromptCategoriesPage = ({
     fetcher,
     csrfToken,
     onLoadedChange,
+    onSidebarSnapshotChange = () => {},
     notify,
 }) => {
     const view = documentObject.defaultView;
@@ -48,6 +50,23 @@ export const initializePromptCategoriesPage = ({
     let managingItemId = null;
     let draggedGroupId = null;
     let draggedItemId = null;
+
+    const getSidebarSnapshot = () => ({
+        navigationItems: loaded
+            ? groups.map((group) => ({
+                  key: `option-group-${group.id}`,
+                  label: group.name,
+                  target: `[data-option-group-id="${group.id}"]`,
+              }))
+            : [],
+        selectionGroups: groups.map((group) => ({
+            key: `option-group-${group.id}`,
+            label: group.name,
+            items: group.options
+                .filter((option) => selectedIds.has(option.id))
+                .map((option) => ({ label: option.name, meta: '', details: [] })),
+        })),
+    });
 
     const normalizeSingleSelections = (preferredSelections = new Map()) => {
         groups
@@ -131,6 +150,7 @@ export const initializePromptCategoriesPage = ({
     };
 
     const selectItem = (group, id) => {
+        const selectsItem = !selectedIds.has(id);
         if (selectedIds.has(id)) {
             selectedIds.delete(id);
         } else {
@@ -140,6 +160,15 @@ export const initializePromptCategoriesPage = ({
             selectedIds.add(id);
         }
         render();
+        if (selectsItem && group.selectionMode === 'single') {
+            const nextGroup =
+                groups[groups.findIndex((candidate) => candidate.id === group.id) + 1];
+            scrollToSelectionSection(
+                nextGroup === undefined
+                    ? null
+                    : groupsTarget.querySelector(`[data-option-group-id="${nextGroup.id}"]`),
+            );
+        }
     };
 
     const openManage = (option) => {
@@ -232,6 +261,8 @@ export const initializePromptCategoriesPage = ({
             const container = documentObject.createElement('section');
             container.className = 'linked-option option-group';
             container.dataset.groupId = String(group.id);
+            container.dataset.optionGroupId = String(group.id);
+            container.tabIndex = -1;
             container.addEventListener('dragover', (event) => event.preventDefault());
             container.addEventListener('drop', (event) => {
                 event.preventDefault();
@@ -370,6 +401,7 @@ export const initializePromptCategoriesPage = ({
             badges.scrollTop = groupScrollPositions.get(group.id) ?? 0;
         });
         root.querySelector('[data-option-group-add]').disabled = !loaded || busy;
+        onSidebarSnapshotChange(getSidebarSnapshot());
     };
 
     const load = async (preferredSelections = new Map()) => {
@@ -469,6 +501,9 @@ export const initializePromptCategoriesPage = ({
         if (busy) {
             return;
         }
+        const scrollingElement = documentObject.scrollingElement ?? documentObject.documentElement;
+        const scrollLeft = scrollingElement.scrollLeft;
+        const scrollTop = scrollingElement.scrollTop;
         busy = true;
         void saveOption(fetcher, page.dataset.promptOptionsUrl, csrfToken, editingItemId, {
             name: page.querySelector('[data-category-name]').value,
@@ -487,6 +522,8 @@ export const initializePromptCategoriesPage = ({
             .finally(() => {
                 busy = false;
                 render();
+                scrollingElement.scrollLeft = scrollLeft;
+                scrollingElement.scrollTop = scrollTop;
             });
     });
     deleteForm.addEventListener('submit', (event) => {

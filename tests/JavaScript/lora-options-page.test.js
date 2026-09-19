@@ -88,6 +88,7 @@ const flushAsyncEvents = async () => {
 
 test('LoRA選択時に先頭トリガーを選択し紐づく服装を上位表示する', async () => {
     const documentObject = createDocument();
+    let sidebarSnapshot;
     const catalog = {
         loras: [
             createLora(1, 'Alpha', 'alpha.safetensors', 0.8),
@@ -108,6 +109,9 @@ test('LoRA選択時に先頭トリガーを選択し紐づく服装を上位表�
         fetcher: async () => ({ ok: true, json: async () => catalog }),
         csrfToken: 'csrf',
         onLoadedChange: () => {},
+        onSidebarSnapshotChange: (snapshot) => {
+            sidebarSnapshot = snapshot;
+        },
         notify: () => {},
     });
     await flushAsyncEvents();
@@ -116,6 +120,9 @@ test('LoRA選択時に先頭トリガーを選択し紐づく服装を上位表�
     loraList.dispatchEvent(new documentObject.defaultView.Event('change'));
     assert.equal(documentObject.querySelector('[data-lora-strength]').value, '0.8');
     assert.equal(documentObject.querySelector('[data-trigger-list]').value, '11');
+    const outfitList = documentObject.querySelector('[data-outfit-list]');
+    outfitList.value = '21';
+    outfitList.dispatchEvent(new documentObject.defaultView.Event('change'));
     assert.deepEqual(
         [...documentObject.querySelector('[data-outfit-list]').options].map(
             (option) => option.value,
@@ -123,6 +130,20 @@ test('LoRA選択時に先頭トリガーを選択し紐づく服装を上位表�
         ['21', '22'],
     );
     assert.equal(controller.getSelections().trigger, 'alpha,');
+    assert.deepEqual(sidebarSnapshot.selectionGroups, [
+        {
+            key: 'character-lora',
+            label: '人物・キャラクターLoRA',
+            items: [
+                {
+                    label: 'Alpha',
+                    meta: '強度 0.8',
+                    details: ['トリガー：Alpha標準'],
+                },
+                { label: '服装：Alpha服', meta: '', details: [] },
+            ],
+        },
+    ]);
 });
 
 test('LoRAを切り替えても他のLoRAに属する服装の選択を維持する', async () => {

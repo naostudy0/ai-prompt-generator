@@ -9,6 +9,7 @@ import { initializeClothingLoraOptionsPage } from './clothing-lora-options-page.
 import { createPositivePromptOutput } from './lora-options.js';
 import { initializePromptCategoriesPage } from './prompt-categories-page.js';
 import { createPositivePromptSections } from './positive-prompt-sections.js';
+import { initializePromptSidebars } from './prompt-sidebars.js';
 
 export const initializePromptPreparationPage = ({
     documentObject = document,
@@ -32,6 +33,7 @@ export const initializePromptPreparationPage = ({
     const loadStatus = page.querySelector('[data-load-status]');
     const retryButton = page.querySelector('[data-retry]');
     const displayButton = page.querySelector('[data-display]');
+    const sidebarDisplayButton = page.querySelector('[data-sidebar-display]');
     const resetButton = page.querySelector('[data-reset]');
     const promptElements = [...page.querySelectorAll('[data-default-prompt]')];
     const outputElements = [...page.querySelectorAll('[data-output]')];
@@ -39,6 +41,13 @@ export const initializePromptPreparationPage = ({
     const toast = page.querySelector('[data-toast]');
     const savedPrompts = { positive: '', negative: '' };
     const selectedPrompts = { positive: true, negative: true };
+    const hasSelections = {
+        default: true,
+        lora: false,
+        clothingLora: false,
+        optionGroups: false,
+    };
+    const sidebars = initializePromptSidebars({ page, documentObject });
     let promptsLoaded = false;
     let loraOptionsLoaded = false;
     let clothingLoraOptionsLoaded = false;
@@ -66,6 +75,27 @@ export const initializePromptPreparationPage = ({
     };
 
     const isPolarity = (value) => value === 'positive' || value === 'negative';
+
+    const updateDefaultView = () => {
+        const items = ['positive', 'negative']
+            .filter((polarity) => selectedPrompts[polarity])
+            .map((polarity) => ({
+                label: `${polarity} デフォルト`,
+                meta: '',
+                details: [],
+            }));
+        sidebars.update('default', {
+            navigationItems: [
+                {
+                    key: 'default',
+                    label: 'デフォルト',
+                    target: '[data-default-prompts-section]',
+                },
+            ],
+            selectionGroups: [{ key: 'default', label: 'デフォルト', items }],
+        });
+        hasSelections.default = items.length > 0;
+    };
 
     const setLoadStatus = (message, failed = false) => {
         if (loadStatus instanceof HTMLElement) {
@@ -98,35 +128,46 @@ export const initializePromptPreparationPage = ({
         }, 2400);
     };
 
-    const setInputActionsDisabled = (disabled) => {
+    const updateActionAvailability = () => {
+        const defaultActionsDisabled = editingPrompt || !promptsLoaded;
         promptElements.forEach((promptElement) => {
             const editButton = promptElement.querySelector('[data-edit]');
             const selectButton = promptElement.querySelector('[data-select]');
 
             if (editButton instanceof HTMLButtonElement) {
-                editButton.disabled = disabled;
+                editButton.disabled = defaultActionsDisabled;
             }
 
             if (selectButton instanceof HTMLButtonElement) {
-                selectButton.disabled = disabled;
+                selectButton.disabled = defaultActionsDisabled;
             }
         });
 
-        if (displayButton instanceof HTMLButtonElement) {
-            displayButton.disabled =
-                disabled ||
-                !promptsLoaded ||
-                !loraOptionsLoaded ||
-                !clothingLoraOptionsLoaded ||
-                !promptCategoriesLoaded;
-        }
+        const hasLoadedSelection =
+            (promptsLoaded && hasSelections.default) ||
+            hasSelections.lora ||
+            hasSelections.clothingLora ||
+            hasSelections.optionGroups;
+        const displayDisabled = editingPrompt || !hasLoadedSelection;
+
+        [displayButton, sidebarDisplayButton].forEach((button) => {
+            if (button instanceof HTMLButtonElement) {
+                button.disabled = displayDisabled;
+            }
+        });
         if (resetButton instanceof HTMLButtonElement) {
             resetButton.disabled =
-                disabled ||
+                editingPrompt ||
                 !loraOptionsLoaded ||
                 !clothingLoraOptionsLoaded ||
                 !promptCategoriesLoaded;
         }
+    };
+
+    const updateSidebarSnapshot = (source, snapshot) => {
+        sidebars.update(source, snapshot);
+        hasSelections[source] = snapshot.selectionGroups.some((group) => group.items.length > 0);
+        updateActionAvailability();
     };
 
     const getOutputElement = (polarity) =>
@@ -190,7 +231,7 @@ export const initializePromptPreparationPage = ({
         }
 
         editingPrompt = false;
-        setInputActionsDisabled(!promptsLoaded);
+        updateActionAvailability();
 
         if (editButton instanceof HTMLButtonElement) {
             editButton.focus();
@@ -211,7 +252,7 @@ export const initializePromptPreparationPage = ({
         }
 
         editingPrompt = true;
-        setInputActionsDisabled(true);
+        updateActionAvailability();
         editor.hidden = false;
         content.value = savedPrompts[polarity];
         content.focus();
@@ -226,7 +267,7 @@ export const initializePromptPreparationPage = ({
         }
 
         promptsLoaded = false;
-        setInputActionsDisabled(true);
+        updateActionAvailability();
         setLoadStatus('デフォルト文面を読み込んでいます。');
 
         try {
@@ -235,7 +276,7 @@ export const initializePromptPreparationPage = ({
             savedPrompts.positive = prompts.positive;
             savedPrompts.negative = prompts.negative;
             promptsLoaded = true;
-            setInputActionsDisabled(editingPrompt);
+            updateActionAvailability();
             setLoadStatus('');
         } catch {
             setLoadStatus('デフォルト文面を読み込めませんでした。再度お試しください。', true);
@@ -334,6 +375,7 @@ export const initializePromptPreparationPage = ({
                 updateSelection(element, polarity);
             }
         });
+        updateDefaultView();
         loraOptionsController.reset();
         clothingLoraOptionsController.reset();
         promptCategoriesController.reset();
@@ -398,6 +440,8 @@ export const initializePromptPreparationPage = ({
         promptElement.querySelector('[data-select]')?.addEventListener('click', () => {
             selectedPrompts[polarity] = !selectedPrompts[polarity];
             updateSelection(promptElement, polarity);
+            updateDefaultView();
+            updateActionAvailability();
         });
         promptElement.querySelector('[data-edit]')?.addEventListener('click', () => {
             openEditor(promptElement);
@@ -428,16 +472,19 @@ export const initializePromptPreparationPage = ({
 
     retryButton?.addEventListener('click', loadDefaultPrompts);
     displayButton?.addEventListener('click', displayPrompts);
+    sidebarDisplayButton?.addEventListener('click', displayPrompts);
     resetButton?.addEventListener('click', resetPrompts);
+    updateDefaultView();
     loraOptionsController = initializeLoraOptionsPage({
         page,
         documentObject,
         fetcher,
         csrfToken,
         notify: showToast,
+        onSidebarSnapshotChange: (snapshot) => updateSidebarSnapshot('lora', snapshot),
         onLoadedChange: (loaded) => {
             loraOptionsLoaded = loaded;
-            setInputActionsDisabled(editingPrompt || !promptsLoaded);
+            updateActionAvailability();
         },
     });
     clothingLoraOptionsController = initializeClothingLoraOptionsPage({
@@ -447,9 +494,10 @@ export const initializePromptPreparationPage = ({
         csrfToken,
         onLoadedChange: (loaded) => {
             clothingLoraOptionsLoaded = loaded;
-            setInputActionsDisabled(editingPrompt);
+            updateActionAvailability();
         },
         notify: showToast,
+        onSidebarSnapshotChange: (snapshot) => updateSidebarSnapshot('clothingLora', snapshot),
     });
     promptCategoriesController = initializePromptCategoriesPage({
         page,
@@ -457,9 +505,10 @@ export const initializePromptPreparationPage = ({
         fetcher,
         csrfToken,
         notify: showToast,
+        onSidebarSnapshotChange: (snapshot) => updateSidebarSnapshot('optionGroups', snapshot),
         onLoadedChange: (loaded) => {
             promptCategoriesLoaded = loaded;
-            setInputActionsDisabled(editingPrompt || !promptsLoaded);
+            updateActionAvailability();
         },
     });
     void loadDefaultPrompts();

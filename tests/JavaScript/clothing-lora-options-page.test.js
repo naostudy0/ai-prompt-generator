@@ -53,6 +53,7 @@ test('衣装LoRAを複数選択して個別の強度とトリガーを出力し�
     const documentObject = createPage();
     const page = documentObject.querySelector('main');
     let loaded = false;
+    let sidebarSnapshot;
     const controller = initializeClothingLoraOptionsPage({
         page,
         documentObject,
@@ -60,6 +61,9 @@ test('衣装LoRAを複数選択して個別の強度とトリガーを出力し�
         notify: () => {},
         onLoadedChange: (value) => {
             loaded = value;
+        },
+        onSidebarSnapshotChange: (snapshot) => {
+            sidebarSnapshot = snapshot;
         },
         fetcher: async () => ({
             ok: true,
@@ -87,6 +91,24 @@ test('衣装LoRAを複数選択して個別の強度とトリガーを出力し�
         clothingLoras: '<lora:Dress.safetensors:0.9>, <lora:Jacket.safetensors:1>,',
         clothingLoraTriggers: 'dress, jacket,',
     });
+    assert.deepEqual(sidebarSnapshot.selectionGroups, [
+        {
+            key: 'clothing-lora',
+            label: '衣装LoRA',
+            items: [
+                {
+                    label: 'Dress',
+                    meta: '強度 0.9',
+                    details: ['トリガー：標準'],
+                },
+                {
+                    label: 'Jacket',
+                    meta: '強度 1',
+                    details: ['トリガー：標準'],
+                },
+            ],
+        },
+    ]);
 
     controller.reset();
     assert.deepEqual(controller.getSelections(), {
@@ -94,4 +116,5 @@ test('衣装LoRAを複数選択して個別の強度とトリガーを出力し�
         clothingLoraTriggers: '',
     });
     assert.equal(documentObject.querySelector('[data-clothing-lora-search]').value, '');
+    assert.deepEqual(sidebarSnapshot.selectionGroups[0].items, []);
 });
