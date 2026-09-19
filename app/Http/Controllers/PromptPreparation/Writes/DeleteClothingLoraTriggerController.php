@@ -2,22 +2,22 @@
 
 namespace App\Http\Controllers\PromptPreparation\Writes;
 
-use App\Application\PromptPreparation\Writes\DeleteLora\DeleteLoraHandler;
+use App\Application\PromptPreparation\Writes\DeleteLoraTrigger\DeleteLoraTriggerHandler;
 use App\Domain\PromptPreparation\Models\Lora\LoraKind;
 use App\Domain\PromptPreparation\Exceptions\LoraKindMismatch;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Response;
 use Illuminate\Validation\ValidationException;
 
-final class DeleteLoraController extends Controller
+final class DeleteClothingLoraTriggerController extends Controller
 {
-    public function __invoke(int $lora, DeleteLoraHandler $handler): Response
+    public function __invoke(int $clothingLoraTrigger, DeleteLoraTriggerHandler $handler): Response
     {
         try {
-            $handler->handle($lora, LoraKind::Character);
+            $handler->handle($clothingLoraTrigger, LoraKind::Clothing);
         } catch (LoraKindMismatch) {
             throw ValidationException::withMessages([
-                'lora' => ['指定したLoRAは人物・キャラクターLoRAではありません。'],
+                'clothingLoraTrigger' => ['指定したトリガーは衣装LoRAのものではありません。'],
             ]);
         }
 

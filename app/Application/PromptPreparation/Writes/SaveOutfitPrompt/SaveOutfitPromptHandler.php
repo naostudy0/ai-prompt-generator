@@ -3,18 +3,23 @@
 namespace App\Application\PromptPreparation\Writes\SaveOutfitPrompt;
 
 use App\Domain\PromptPreparation\Models\OutfitPrompt;
+use App\Domain\PromptPreparation\Models\Lora\LoraKind;
 use App\Domain\PromptPreparation\Models\PromptText;
 use App\Domain\PromptPreparation\Repositories\OutfitPromptRepository;
+use App\Domain\PromptPreparation\Repositories\LoraRepository;
 use LogicException;
 
 final readonly class SaveOutfitPromptHandler
 {
-    public function __construct(private OutfitPromptRepository $repository)
-    {
+    public function __construct(
+        private OutfitPromptRepository $repository,
+        private LoraRepository $loraRepository,
+    ) {
     }
 
     public function handle(SaveOutfitPromptInput $input): SaveOutfitPromptResult
     {
+        $this->loraRepository->ensureKind($input->loraId, LoraKind::Character);
         $saved = $this->repository->save(new OutfitPrompt(
             id: $input->id,
             loraId: $input->loraId,

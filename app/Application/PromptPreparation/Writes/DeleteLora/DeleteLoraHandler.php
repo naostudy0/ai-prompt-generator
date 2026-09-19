@@ -2,6 +2,7 @@
 
 namespace App\Application\PromptPreparation\Writes\DeleteLora;
 
+use App\Domain\PromptPreparation\Models\Lora\LoraKind;
 use App\Domain\PromptPreparation\Repositories\LoraRepository;
 
 final readonly class DeleteLoraHandler
@@ -10,8 +11,8 @@ final readonly class DeleteLoraHandler
     {
     }
 
-    public function handle(int $id): void
+    public function handle(int $id, LoraKind $kind): void
     {
-        $this->repository->delete($id);
+        $this->repository->delete($id, $kind);
     }
 }

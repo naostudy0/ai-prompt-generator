@@ -2,19 +2,19 @@
 
 namespace App\Infrastructure\PromptPreparation\Queries;
 
-use App\Application\PromptPreparation\Ports\LoraPromptOptionQueryService;
-use App\Application\PromptPreparation\Queries\GetLoraPromptOptions\GetLoraPromptOptionsResult;
+use App\Application\PromptPreparation\Ports\ClothingLoraOptionQueryService;
+use App\Application\PromptPreparation\Queries\GetClothingLoraOptions\GetClothingLoraOptionsResult;
 use App\Domain\PromptPreparation\Models\Lora\LoraFileName;
 use App\Domain\PromptPreparation\Models\Lora\LoraStrength;
 use App\Domain\PromptPreparation\Models\Lora\LoraTag;
 use Illuminate\Support\Facades\DB;
 
-final class EloquentLoraPromptOptionQueryService implements LoraPromptOptionQueryService
+final class EloquentClothingLoraOptionQueryService implements ClothingLoraOptionQueryService
 {
-    public function getAll(): GetLoraPromptOptionsResult
+    public function getAll(): GetClothingLoraOptionsResult
     {
         $loras = array_values(DB::table('loras')
-            ->where('kind', 'character')
+            ->where('kind', 'clothing')
             ->orderBy('name')
             ->orderBy('id')
             ->get(['id', 'name', 'file_name', 'recommended_strength_step'])
@@ -38,7 +38,7 @@ final class EloquentLoraPromptOptionQueryService implements LoraPromptOptionQuer
 
         $triggers = array_values(DB::table('lora_triggers')
             ->join('loras', 'loras.id', '=', 'lora_triggers.lora_id')
-            ->where('loras.kind', 'character')
+            ->where('loras.kind', 'clothing')
             ->orderBy('lora_triggers.name')
             ->orderBy('lora_triggers.id')
             ->get([
@@ -54,17 +54,6 @@ final class EloquentLoraPromptOptionQueryService implements LoraPromptOptionQuer
                 'content' => (string) $row->content,
             ])->all());
 
-        $outfits = array_values(DB::table('outfits')
-            ->orderBy('name')
-            ->orderBy('id')
-            ->get(['id', 'lora_id', 'name', 'content'])
-            ->map(fn (object $row): array => [
-                'id' => (int) $row->id,
-                'loraId' => (int) $row->lora_id,
-                'name' => (string) $row->name,
-                'content' => (string) $row->content,
-            ])->all());
-
-        return new GetLoraPromptOptionsResult($loras, $triggers, $outfits);
+        return new GetClothingLoraOptionsResult($loras, $triggers);
     }
 }

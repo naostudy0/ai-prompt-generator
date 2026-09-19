@@ -5,6 +5,7 @@ import {
     writePromptToClipboard,
 } from './default-prompts.js';
 import { initializeLoraOptionsPage } from './lora-options-page.js';
+import { initializeClothingLoraOptionsPage } from './clothing-lora-options-page.js';
 import { createPositivePromptOutput } from './lora-options.js';
 import { initializePromptCategoriesPage } from './prompt-categories-page.js';
 import { createPositivePromptSections } from './positive-prompt-sections.js';
@@ -40,11 +41,16 @@ export const initializePromptPreparationPage = ({
     const selectedPrompts = { positive: true, negative: true };
     let promptsLoaded = false;
     let loraOptionsLoaded = false;
+    let clothingLoraOptionsLoaded = false;
     let promptCategoriesLoaded = false;
     let editingPrompt = false;
     let toastTimer;
     let loraOptionsController = {
         getSelections: () => ({ lora: '', trigger: '', outfit: '' }),
+        reset: () => {},
+    };
+    let clothingLoraOptionsController = {
+        getSelections: () => ({ clothingLoras: '', clothingLoraTriggers: '' }),
         reset: () => {},
     };
     let promptCategoriesController = {
@@ -108,10 +114,18 @@ export const initializePromptPreparationPage = ({
 
         if (displayButton instanceof HTMLButtonElement) {
             displayButton.disabled =
-                disabled || !promptsLoaded || !loraOptionsLoaded || !promptCategoriesLoaded;
+                disabled ||
+                !promptsLoaded ||
+                !loraOptionsLoaded ||
+                !clothingLoraOptionsLoaded ||
+                !promptCategoriesLoaded;
         }
         if (resetButton instanceof HTMLButtonElement) {
-            resetButton.disabled = disabled || !loraOptionsLoaded || !promptCategoriesLoaded;
+            resetButton.disabled =
+                disabled ||
+                !loraOptionsLoaded ||
+                !clothingLoraOptionsLoaded ||
+                !promptCategoriesLoaded;
         }
     };
 
@@ -282,10 +296,11 @@ export const initializePromptPreparationPage = ({
     const displayPrompts = () => {
         const outputs = createPromptOutputs(savedPrompts, selectedPrompts);
         const lora = loraOptionsController.getSelections();
+        const clothingLora = clothingLoraOptionsController.getSelections();
         const categories = promptCategoriesController.getSections();
         outputs.positive = createPositivePromptOutput(
             outputs.positive,
-            createPositivePromptSections(lora, categories),
+            createPositivePromptSections({ ...lora, ...clothingLora }, categories),
         );
 
         for (const polarity of ['positive', 'negative']) {
@@ -320,6 +335,7 @@ export const initializePromptPreparationPage = ({
             }
         });
         loraOptionsController.reset();
+        clothingLoraOptionsController.reset();
         promptCategoriesController.reset();
         outputElements.forEach((element) => {
             const content = element.querySelector('[data-output-content]');
@@ -423,6 +439,17 @@ export const initializePromptPreparationPage = ({
             loraOptionsLoaded = loaded;
             setInputActionsDisabled(editingPrompt || !promptsLoaded);
         },
+    });
+    clothingLoraOptionsController = initializeClothingLoraOptionsPage({
+        page,
+        documentObject,
+        fetcher,
+        csrfToken,
+        onLoadedChange: (loaded) => {
+            clothingLoraOptionsLoaded = loaded;
+            setInputActionsDisabled(editingPrompt);
+        },
+        notify: showToast,
     });
     promptCategoriesController = initializePromptCategoriesPage({
         page,

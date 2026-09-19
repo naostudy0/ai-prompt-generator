@@ -93,6 +93,28 @@ const addLoraControls = (documentObject) => {
     );
 };
 
+const addClothingLoraControls = (documentObject) => {
+    const page = documentObject.querySelector('main');
+    page.dataset.clothingLoraOptionsUrl = '/clothing-lora-options';
+    page.dataset.clothingLorasUrl = '/clothing-loras';
+    page.dataset.clothingLoraTriggersUrl = '/clothing-lora-triggers';
+    page.insertAdjacentHTML(
+        'beforeend',
+        `<section data-clothing-lora-options><p data-clothing-lora-status></p>
+            <button data-clothing-lora-retry hidden></button><input data-clothing-lora-search>
+            <button data-clothing-lora-add></button><div data-clothing-lora-list></div></section>
+        <dialog data-clothing-option-dialog><form data-clothing-option-form>
+            <h2 data-clothing-option-title></h2><div data-clothing-lora-fields></div>
+            <input data-clothing-option-file-name><select data-clothing-option-strength><option value="1">1</option></select>
+            <input data-clothing-lora-name><div data-clothing-trigger-fields><input data-clothing-trigger-name><textarea data-clothing-option-content></textarea></div>
+            <p data-clothing-option-status></p><button type="submit"></button><button type="button" data-clothing-option-cancel></button>
+        </form></dialog><dialog data-clothing-delete-dialog><form data-clothing-delete-form>
+            <p data-clothing-delete-message></p><p data-clothing-delete-status></p>
+            <button type="submit"></button><button type="button" data-clothing-delete-cancel></button>
+        </form></dialog>`,
+    );
+};
+
 const addCategoryControls = (documentObject) => {
     const page = documentObject.querySelector('main');
     page.dataset.promptOptionsUrl = '/prompt-options';
@@ -121,6 +143,7 @@ const addCategoryControls = (documentObject) => {
 test('全カテゴリを確定順でpositiveへ出力しnegativeは変えない', async () => {
     const documentObject = createDocument();
     addLoraControls(documentObject);
+    addClothingLoraControls(documentObject);
     addCategoryControls(documentObject);
     const fileName = 'character.safetensors';
     const tags = Array.from(
@@ -199,6 +222,24 @@ test('全カテゴリを確定順でpositiveへ出力しnegativeは変えない'
                 ],
             });
         }
+        if (url === '/clothing-lora-options') {
+            return successfulResponse({
+                loras: [
+                    {
+                        id: 20,
+                        name: '衣装追加',
+                        fileName: 'clothing.safetensors',
+                        recommendedStrength: 0.9,
+                        tags: Array.from(
+                            { length: 11 },
+                            (_, step) =>
+                                `<lora:clothing.safetensors:${step === 10 ? '1' : (step / 10).toFixed(1)}>,`,
+                        ),
+                    },
+                ],
+                triggers: [{ id: 21, loraId: 20, name: '標準', content: 'clothing trigger,' }],
+            });
+        }
         return successfulResponse({
             loras: [
                 {
@@ -229,11 +270,12 @@ test('全カテゴリを確定順でpositiveへ出力しnegativeは変えない'
     documentObject
         .querySelectorAll('[data-option-groups] .prompt-badge')
         .forEach((badge) => badge.click());
+    documentObject.querySelector('.clothing-lora-toggle').click();
     documentObject.querySelector('[data-display]').click();
 
     assert.equal(
         documentObject.querySelector('[data-output="positive"] [data-output-content]').value,
-        'masterpiece,\n\n<lora:character.safetensors:0.8>,\n\ncharacter, long hair,\n\nschool uniform,\n\nsmile,\n\nlooking at viewer,\n\nsitting,\n\npark,\n\nfrom front,\n\ndetailed, sharp focus, intricate,',
+        'masterpiece,\n\n<lora:character.safetensors:0.8>,\n\ncharacter, long hair,\n\n<lora:clothing.safetensors:0.9>,\n\nclothing trigger,\n\nschool uniform,\n\nsmile,\n\nlooking at viewer,\n\nsitting,\n\npark,\n\nfrom front,\n\ndetailed, sharp focus, intricate,',
     );
     assert.equal(
         documentObject.querySelector('[data-output="negative"] [data-output-content]').value,

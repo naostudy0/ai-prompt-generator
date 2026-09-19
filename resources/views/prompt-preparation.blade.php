@@ -17,6 +17,9 @@
             data-prompt-preparation
             data-default-prompts-url="{{ $defaultPromptsUrl }}"
             data-lora-options-url="{{ $loraPromptOptionsUrl }}"
+            data-clothing-lora-options-url="{{ $clothingLoraOptionsUrl }}"
+            data-clothing-loras-url="{{ $clothingLorasUrl }}"
+            data-clothing-lora-triggers-url="{{ $clothingLoraTriggersUrl }}"
             data-loras-url="{{ $lorasUrl }}"
             data-lora-triggers-url="{{ $loraTriggersUrl }}"
             data-outfits-url="{{ $outfitsUrl }}"
@@ -168,6 +171,23 @@
                     </div>
                 </section>
 
+                <section class="lora-options" aria-labelledby="clothing-lora-heading" data-clothing-lora-options>
+                    <div class="subsection-heading">
+                        <div>
+                            <p class="category-label">positive</p>
+                            <h3 id="clothing-lora-heading">衣装LoRA</h3>
+                        </div>
+                        <button class="small-button" type="button" data-clothing-lora-add disabled>追加</button>
+                    </div>
+                    <div class="option-load-state">
+                        <p data-clothing-lora-status role="status" aria-live="polite"></p>
+                        <button class="secondary-button" type="button" data-clothing-lora-retry hidden>再読み込み</button>
+                    </div>
+                    <label class="field-label" for="clothing-lora-search">衣装LoRAを検索</label>
+                    <input id="clothing-lora-search" class="text-input" type="search" data-clothing-lora-search disabled>
+                    <div class="clothing-lora-list" data-clothing-lora-list></div>
+                </section>
+
                 <section class="prompt-categories" aria-labelledby="prompt-categories-heading" data-prompt-categories>
                     <div class="subsection-heading">
                         <div>
@@ -274,6 +294,48 @@
                     <div class="editor-actions">
                         <button class="danger-button" type="submit" data-delete-confirm>削除</button>
                         <button class="secondary-button" type="button" data-delete-cancel>キャンセル</button>
+                    </div>
+                </form>
+            </dialog>
+
+            <dialog class="option-dialog" data-clothing-option-dialog>
+                <form data-clothing-option-form>
+                    <h2 data-clothing-option-title></h2>
+                    <div data-clothing-lora-fields>
+                        <label class="field-label" for="clothing-option-file-name">ファイル名</label>
+                        <input id="clothing-option-file-name" class="text-input" data-clothing-option-file-name>
+                        <label class="field-label" for="clothing-lora-name">登録名</label>
+                        <input id="clothing-lora-name" class="text-input" data-clothing-lora-name>
+                        <label class="field-label" for="clothing-option-strength">推奨強度</label>
+                        <select id="clothing-option-strength" class="text-input" data-clothing-option-strength>
+                            @foreach (range(0, 10) as $strengthStep)
+                                @php($strength = $strengthStep === 10 ? '1' : number_format($strengthStep / 10, 1))
+                                <option value="{{ $strength }}" @selected($strengthStep === 10)>{{ $strength }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div data-clothing-trigger-fields hidden>
+                        <label class="field-label" for="clothing-trigger-name">登録名</label>
+                        <input id="clothing-trigger-name" class="text-input" data-clothing-trigger-name>
+                        <label class="field-label" for="clothing-option-content">文面</label>
+                        <textarea id="clothing-option-content" rows="6" data-clothing-option-content></textarea>
+                    </div>
+                    <p class="editor-status" data-clothing-option-status role="status" aria-live="polite"></p>
+                    <div class="editor-actions">
+                        <button class="primary-button" type="submit">保存</button>
+                        <button class="secondary-button" type="button" data-clothing-option-cancel>キャンセル</button>
+                    </div>
+                </form>
+            </dialog>
+
+            <dialog class="option-dialog" data-clothing-delete-dialog>
+                <form data-clothing-delete-form>
+                    <h2>登録を削除</h2>
+                    <p data-clothing-delete-message></p>
+                    <p class="editor-status" data-clothing-delete-status role="status" aria-live="polite"></p>
+                    <div class="editor-actions">
+                        <button class="danger-button" type="submit">削除</button>
+                        <button class="secondary-button" type="button" data-clothing-delete-cancel>キャンセル</button>
                     </div>
                 </form>
             </dialog>

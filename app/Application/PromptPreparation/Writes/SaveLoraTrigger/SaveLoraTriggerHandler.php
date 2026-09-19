@@ -3,6 +3,7 @@
 namespace App\Application\PromptPreparation\Writes\SaveLoraTrigger;
 
 use App\Domain\PromptPreparation\Models\Lora\LoraTrigger;
+use App\Domain\PromptPreparation\Models\Lora\LoraKind;
 use App\Domain\PromptPreparation\Models\PromptText;
 use App\Domain\PromptPreparation\Repositories\LoraTriggerRepository;
 use LogicException;
@@ -13,14 +14,16 @@ final readonly class SaveLoraTriggerHandler
     {
     }
 
-    public function handle(SaveLoraTriggerInput $input): SaveLoraTriggerResult
-    {
+    public function handle(
+        SaveLoraTriggerInput $input,
+        LoraKind $kind,
+    ): SaveLoraTriggerResult {
         $saved = $this->repository->save(new LoraTrigger(
             id: $input->id,
             loraId: $input->loraId,
             name: $input->name,
             content: PromptText::fromInput($input->content),
-        ));
+        ), $kind);
 
         if ($saved->id === null) {
             throw new LogicException('The saved LoRA trigger must have an ID.');

@@ -102,6 +102,16 @@ test('ブロック名と選択方式を指定して追加する', async () => {
 
 test('スクロールした一覧で項目を選択しても表示位置を維持する', async () => {
     const documentObject = createDocument();
+    const scrollPositions = new WeakMap();
+    Object.defineProperty(documentObject.defaultView.HTMLElement.prototype, 'scrollTop', {
+        configurable: true,
+        get() {
+            return scrollPositions.get(this) ?? 0;
+        },
+        set(value) {
+            scrollPositions.set(this, this.isConnected ? value : 0);
+        },
+    });
     initializePromptCategoriesPage({
         page: documentObject.querySelector('main'),
         documentObject,
