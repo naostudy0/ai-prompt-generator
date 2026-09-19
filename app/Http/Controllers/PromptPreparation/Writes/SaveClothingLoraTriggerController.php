@@ -7,27 +7,30 @@ use App\Application\PromptPreparation\Writes\SaveLoraTrigger\SaveLoraTriggerInpu
 use App\Domain\PromptPreparation\Models\Lora\LoraKind;
 use App\Domain\PromptPreparation\Exceptions\LoraKindMismatch;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\PromptPreparation\SaveLoraTriggerRequest;
+use App\Http\Requests\PromptPreparation\SaveClothingLoraTriggerRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
 
-final class SaveLoraTriggerController extends Controller
+final class SaveClothingLoraTriggerController extends Controller
 {
-    public function __invoke(SaveLoraTriggerRequest $request, SaveLoraTriggerHandler $handler, ?int $trigger = null): JsonResponse
-    {
+    public function __invoke(
+        SaveClothingLoraTriggerRequest $request,
+        SaveLoraTriggerHandler $handler,
+        ?int $clothingLoraTrigger = null,
+    ): JsonResponse {
         try {
             $result = $handler->handle(new SaveLoraTriggerInput(
-                id: $trigger,
+                id: $clothingLoraTrigger,
                 loraId: $request->integer('loraId'),
                 name: $request->string('name')->toString(),
                 content: $request->string('content')->toString(),
-            ), LoraKind::Character);
+            ), LoraKind::Clothing);
         } catch (LoraKindMismatch) {
             throw ValidationException::withMessages([
-                'trigger' => ['指定したトリガーは人物・キャラクターLoRAのものではありません。'],
+                'clothingLoraTrigger' => ['指定したトリガーは衣装LoRAのものではありません。'],
             ]);
         }
 
-        return response()->json($result, $trigger === null ? 201 : 200);
+        return response()->json($result, $clothingLoraTrigger === null ? 201 : 200);
     }
 }

@@ -9,15 +9,15 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Response;
 use Illuminate\Validation\ValidationException;
 
-final class DeleteLoraController extends Controller
+final class DeleteClothingLoraController extends Controller
 {
-    public function __invoke(int $lora, DeleteLoraHandler $handler): Response
+    public function __invoke(int $clothingLora, DeleteLoraHandler $handler): Response
     {
         try {
-            $handler->handle($lora, LoraKind::Character);
+            $handler->handle($clothingLora, LoraKind::Clothing);
         } catch (LoraKindMismatch) {
             throw ValidationException::withMessages([
-                'lora' => ['指定したLoRAは人物・キャラクターLoRAではありません。'],
+                'clothingLora' => ['指定したLoRAは衣装LoRAではありません。'],
             ]);
         }
 

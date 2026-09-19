@@ -365,9 +365,9 @@ export const initializePromptCategoriesPage = ({
                     badges.append(wrapper);
                 },
             );
-            badges.scrollTop = groupScrollPositions.get(group.id) ?? 0;
             container.append(heading, search, badges);
             groupsTarget.append(container);
+            badges.scrollTop = groupScrollPositions.get(group.id) ?? 0;
         });
         root.querySelector('[data-option-group-add]').disabled = !loaded || busy;
     };

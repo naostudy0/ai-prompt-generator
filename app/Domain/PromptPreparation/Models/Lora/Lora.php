@@ -13,6 +13,7 @@ final readonly class Lora
         string $name,
         public LoraFileName $fileName,
         public LoraStrength $recommendedStrength,
+        public LoraKind $kind = LoraKind::Character,
     ) {
         $trimmed = trim($name);
 

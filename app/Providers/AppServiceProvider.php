@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Application\Shared\TransactionManager;
 use App\Application\PromptPreparation\Ports\DefaultPromptQueryService;
+use App\Application\PromptPreparation\Ports\ClothingLoraOptionQueryService;
 use App\Application\PromptPreparation\Ports\LoraPromptOptionQueryService;
 use App\Application\PromptPreparation\Ports\OptionPromptQueryService;
 use App\Domain\PromptPreparation\Repositories\DefaultPromptRepository;
@@ -19,6 +20,7 @@ use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\Eloqu
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentOptionPromptRepository;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentOptionPromptGroupRepository;
 use App\Infrastructure\PromptPreparation\Queries\EloquentDefaultPromptQueryService;
+use App\Infrastructure\PromptPreparation\Queries\EloquentClothingLoraOptionQueryService;
 use App\Infrastructure\PromptPreparation\Queries\EloquentLoraPromptOptionQueryService;
 use App\Infrastructure\PromptPreparation\Queries\EloquentOptionPromptQueryService;
 use Illuminate\Support\ServiceProvider;
@@ -33,6 +35,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(DefaultPromptRepository::class, EloquentDefaultPromptRepository::class);
         $this->app->bind(DefaultPromptQueryService::class, EloquentDefaultPromptQueryService::class);
+        $this->app->bind(ClothingLoraOptionQueryService::class, EloquentClothingLoraOptionQueryService::class);
         $this->app->bind(LoraRepository::class, EloquentLoraRepository::class);
         $this->app->bind(LoraTriggerRepository::class, EloquentLoraTriggerRepository::class);
         $this->app->bind(OutfitPromptRepository::class, EloquentOutfitPromptRepository::class);

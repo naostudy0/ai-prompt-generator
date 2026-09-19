@@ -2,12 +2,17 @@
 
 use App\Http\Controllers\PromptPreparation\PromptPreparationPageController;
 use App\Http\Controllers\PromptPreparation\Queries\GetDefaultPromptsController;
+use App\Http\Controllers\PromptPreparation\Queries\GetClothingLoraOptionsController;
 use App\Http\Controllers\PromptPreparation\Queries\GetLoraPromptOptionsController;
 use App\Http\Controllers\PromptPreparation\Queries\GetPromptOptionsController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteLoraController;
+use App\Http\Controllers\PromptPreparation\Writes\DeleteClothingLoraController;
+use App\Http\Controllers\PromptPreparation\Writes\DeleteClothingLoraTriggerController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteLoraTriggerController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteOutfitPromptController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveDefaultPromptController;
+use App\Http\Controllers\PromptPreparation\Writes\SaveClothingLoraController;
+use App\Http\Controllers\PromptPreparation\Writes\SaveClothingLoraTriggerController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveLoraController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveLoraTriggerController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveOutfitPromptController;
@@ -28,6 +33,25 @@ Route::put('/default-prompts/{polarity}', SaveDefaultPromptController::class)
 
 Route::get('/lora-prompt-options', GetLoraPromptOptionsController::class)
     ->name('lora-prompt-options.index');
+Route::get('/clothing-lora-options', GetClothingLoraOptionsController::class)
+    ->name('clothing-lora-options.index');
+
+Route::post('/clothing-loras', SaveClothingLoraController::class)
+    ->name('clothing-loras.store');
+Route::put('/clothing-loras/{clothingLora}', SaveClothingLoraController::class)
+    ->whereNumber('clothingLora')->name('clothing-loras.update');
+Route::delete('/clothing-loras/{clothingLora}', DeleteClothingLoraController::class)
+    ->whereNumber('clothingLora')->name('clothing-loras.destroy');
+Route::post('/clothing-lora-triggers', SaveClothingLoraTriggerController::class)
+    ->name('clothing-lora-triggers.store');
+Route::put(
+    '/clothing-lora-triggers/{clothingLoraTrigger}',
+    SaveClothingLoraTriggerController::class,
+)->whereNumber('clothingLoraTrigger')->name('clothing-lora-triggers.update');
+Route::delete(
+    '/clothing-lora-triggers/{clothingLoraTrigger}',
+    DeleteClothingLoraTriggerController::class,
+)->whereNumber('clothingLoraTrigger')->name('clothing-lora-triggers.destroy');
 
 Route::post('/loras', SaveLoraController::class)->name('loras.store');
 Route::put('/loras/{lora}', SaveLoraController::class)->whereNumber('lora')->name('loras.update');
