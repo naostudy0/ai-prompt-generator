@@ -13,7 +13,7 @@
     </head>
     <body>
         <main
-            class="page-shell"
+            class="page-layout"
             data-prompt-preparation
             data-default-prompts-url="{{ $defaultPromptsUrl }}"
             data-lora-options-url="{{ $loraPromptOptionsUrl }}"
@@ -26,6 +26,12 @@
             data-prompt-options-url="{{ $promptOptionsUrl }}"
             data-prompt-option-groups-url="{{ $promptOptionGroupsUrl }}"
         >
+            <nav class="prompt-sidebar section-navigation" aria-labelledby="section-navigation-heading">
+                <h2 id="section-navigation-heading">セクション</h2>
+                <div data-section-navigation-list></div>
+            </nav>
+
+            <div class="page-shell">
             <header class="page-header">
                 <p class="eyebrow">AI IMAGE PROMPT BUILDER</p>
                 <h1>プロンプトを組み立てる</h1>
@@ -44,7 +50,7 @@
                     <button class="secondary-button" type="button" data-retry hidden>再読み込み</button>
                 </div>
 
-                <div class="prompt-settings">
+                <section class="prompt-settings" aria-label="デフォルト" data-default-prompts-section tabindex="-1">
                     @foreach ([
                         ['polarity' => 'positive', 'label' => 'positive', 'updateUrl' => $positiveUpdateUrl],
                         ['polarity' => 'negative', 'label' => 'negative', 'updateUrl' => $negativeUpdateUrl],
@@ -103,9 +109,9 @@
                             </div>
                         </article>
                     @endforeach
-                </div>
+                </section>
 
-                <section class="lora-options" aria-labelledby="lora-options-heading" data-lora-options>
+                <section class="lora-options" aria-labelledby="lora-options-heading" data-lora-options tabindex="-1">
                     <div class="subsection-heading">
                         <div>
                             <p class="category-label">positive</p>
@@ -171,7 +177,7 @@
                     </div>
                 </section>
 
-                <section class="lora-options" aria-labelledby="clothing-lora-heading" data-clothing-lora-options>
+                <section class="lora-options" aria-labelledby="clothing-lora-heading" data-clothing-lora-options tabindex="-1">
                     <div class="subsection-heading">
                         <div>
                             <p class="category-label">positive</p>
@@ -395,6 +401,17 @@
                     </div>
                 </form>
             </dialog>
+            </div>
+
+            <aside class="prompt-sidebar selection-summary" aria-labelledby="selection-summary-heading">
+                <h2 id="selection-summary-heading">選択中</h2>
+                <div data-selection-summary-list></div>
+                <div class="selection-summary__action">
+                    <button class="display-button selection-summary__display-button" type="button" data-sidebar-display disabled>
+                        プロンプトを作成
+                    </button>
+                </div>
+            </aside>
         </main>
     </body>
 </html>

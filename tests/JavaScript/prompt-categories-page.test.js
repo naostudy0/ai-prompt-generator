@@ -76,12 +76,168 @@ test('複数選択と単一選択をブロック設定に従って出力する',
 test('ブロック名と選択方式を指定して追加する', async () => {
     const documentObject = createDocument();
     let request = null;
+    let currentGroups = groups;
+    let sidebarSnapshot;
     const fetcher = async (url, options = {}) => {
         if (options.method === 'POST') {
             request = JSON.parse(options.body);
+            currentGroups = [
+                ...groups,
+                {
+                    id: 3,
+                    name: request.name,
+                    selectionMode: request.selectionMode,
+                    position: 3,
+                    options: [],
+                },
+            ];
             return { ok: true, status: 201, json: async () => ({}) };
         }
-        return { ok: true, json: async () => ({ groups }) };
+        return { ok: true, json: async () => ({ groups: currentGroups }) };
+    };
+    initializePromptCategoriesPage({
+        page: documentObject.querySelector('main'),
+        documentObject,
+        fetcher,
+        csrfToken: 'csrf',
+        onLoadedChange: () => {},
+        onSidebarSnapshotChange: (snapshot) => {
+            sidebarSnapshot = snapshot;
+        },
+        notify: () => {},
+    });
+    await flush();
+    documentObject.querySelector('[data-option-group-add]').click();
+    documentObject.querySelector('[data-option-group-name]').value = '画質';
+    documentObject.querySelector('[data-option-group-mode]').value = 'single';
+    documentObject.querySelector('[data-option-group-form]').requestSubmit();
+    await flush();
+    assert.deepEqual(request, { name: '画質', selectionMode: 'single' });
+    assert.deepEqual(
+        sidebarSnapshot.navigationItems.map((item) => [item.key, item.label]),
+        [
+            ['option-group-1', '表情'],
+            ['option-group-2', '視線'],
+            ['option-group-3', '画質'],
+        ],
+    );
+});
+
+test('単一選択で項目を選んだ場合だけ次のブロックへ移動する', async () => {
+    const documentObject = createDocument();
+    const scrolledGroupIds = [];
+    let scrollOptions;
+    documentObject.defaultView.HTMLElement.prototype.scrollIntoView = function (options) {
+        if (this.dataset.optionGroupId !== undefined) {
+            scrolledGroupIds.push(this.dataset.optionGroupId);
+            scrollOptions = options;
+        }
+    };
+    const selectionGroups = [
+        groups[0],
+        groups[1],
+        {
+            id: 3,
+            name: '構図',
+            selectionMode: 'single',
+            position: 3,
+            options: [{ id: 30, position: 1, name: '正面', content: 'from front,' }],
+        },
+    ];
+    initializePromptCategoriesPage({
+        page: documentObject.querySelector('main'),
+        documentObject,
+        fetcher: async () => ({ ok: true, json: async () => ({ groups: selectionGroups }) }),
+        csrfToken: 'csrf',
+        onLoadedChange: () => {},
+        notify: () => {},
+    });
+    await flush();
+
+    documentObject.querySelector('[data-option-group-id="1"] .prompt-badge').click();
+    assert.deepEqual(scrolledGroupIds, []);
+
+    documentObject.querySelector('[data-option-group-id="2"] .prompt-badge').click();
+    assert.deepEqual(scrolledGroupIds, ['3']);
+    assert.deepEqual(scrollOptions, { behavior: 'smooth', block: 'start' });
+    assert.equal(
+        documentObject.activeElement,
+        documentObject.querySelector('[data-option-group-id="3"]'),
+    );
+
+    documentObject.querySelector('[data-option-group-id="2"] .prompt-badge').click();
+    assert.deepEqual(scrolledGroupIds, ['3']);
+});
+
+test('動きを抑える設定では単一選択後にアニメーションせず移動する', async () => {
+    const documentObject = createDocument();
+    documentObject.defaultView.matchMedia = () => ({ matches: true });
+    const selectionGroups = [
+        groups[1],
+        {
+            id: 3,
+            name: '構図',
+            selectionMode: 'single',
+            position: 2,
+            options: [{ id: 30, position: 1, name: '正面', content: 'from front,' }],
+        },
+    ];
+    let scrollOptions;
+    documentObject.defaultView.HTMLElement.prototype.scrollIntoView = function (options) {
+        if (this.dataset.optionGroupId === '3') {
+            scrollOptions = options;
+        }
+    };
+    initializePromptCategoriesPage({
+        page: documentObject.querySelector('main'),
+        documentObject,
+        fetcher: async () => ({ ok: true, json: async () => ({ groups: selectionGroups }) }),
+        csrfToken: 'csrf',
+        onLoadedChange: () => {},
+        notify: () => {},
+    });
+    await flush();
+
+    documentObject.querySelector('[data-option-group-id="2"] .prompt-badge').click();
+
+    assert.deepEqual(scrollOptions, { behavior: 'auto', block: 'start' });
+});
+
+test('項目を追加・編集した後もそれぞれの操作前のページ位置を維持する', async () => {
+    const documentObject = createDocument();
+    const requests = [];
+    let currentGroups = groups;
+    const fetcher = async (url, options = {}) => {
+        if (options.method === 'POST') {
+            const request = JSON.parse(options.body);
+            requests.push(request);
+            documentObject.documentElement.scrollTop = 1400;
+            currentGroups = currentGroups.map((group) =>
+                group.id === 1
+                    ? {
+                          ...group,
+                          options: [
+                              ...group.options,
+                              { id: 12, position: 3, name: request.name, content: 'angry,' },
+                          ],
+                      }
+                    : group,
+            );
+            return { ok: true, status: 201, json: async () => ({}) };
+        }
+        if (options.method === 'PUT') {
+            const request = JSON.parse(options.body);
+            requests.push(request);
+            documentObject.documentElement.scrollTop = 1300;
+            currentGroups = currentGroups.map((group) => ({
+                ...group,
+                options: group.options.map((option) =>
+                    option.id === 12 ? { ...option, name: request.name } : option,
+                ),
+            }));
+            return { ok: true, json: async () => ({}) };
+        }
+        return { ok: true, json: async () => ({ groups: currentGroups }) };
     };
     initializePromptCategoriesPage({
         page: documentObject.querySelector('main'),
@@ -92,12 +248,32 @@ test('ブロック名と選択方式を指定して追加する', async () => {
         notify: () => {},
     });
     await flush();
-    documentObject.querySelector('[data-option-group-add]').click();
-    documentObject.querySelector('[data-option-group-name]').value = '画質';
-    documentObject.querySelector('[data-option-group-mode]').value = 'single';
-    documentObject.querySelector('[data-option-group-form]').requestSubmit();
+    documentObject.documentElement.scrollTop = 900;
+    const addButton = [
+        ...documentObject.querySelectorAll('[data-group-id="1"] .small-button'),
+    ].find((button) => button.textContent === '項目追加');
+    addButton.click();
+    documentObject.querySelector('[data-category-name]').value = '怒り';
+    documentObject.querySelector('[data-category-content]').value = 'angry,';
+    documentObject.querySelector('[data-category-form]').requestSubmit();
     await flush();
-    assert.deepEqual(request, { name: '画質', selectionMode: 'single' });
+
+    assert.deepEqual(requests[0], { groupId: 1, name: '怒り', content: 'angry,' });
+    assert.equal(documentObject.documentElement.scrollTop, 900);
+
+    documentObject.documentElement.scrollTop = 700;
+    documentObject.querySelector('[data-option-id="12"] .badge-manage-toggle').click();
+    documentObject.querySelector('[data-category-manage-edit]').click();
+    documentObject.querySelector('[data-category-name]').value = '強い怒り';
+    documentObject.querySelector('[data-category-form]').requestSubmit();
+    await flush();
+
+    assert.deepEqual(requests[1], { name: '強い怒り', content: 'angry,' });
+    assert.equal(documentObject.documentElement.scrollTop, 700);
+    assert.match(
+        documentObject.querySelector('[data-option-id="12"] .prompt-badge').textContent,
+        /強い怒り/,
+    );
 });
 
 test('スクロールした一覧で項目を選択しても表示位置を維持する', async () => {
@@ -127,6 +303,49 @@ test('スクロールした一覧で項目を選択しても表示位置を維�
     optionList.querySelectorAll('.prompt-badge')[1].click();
 
     assert.equal(documentObject.querySelector('[data-group-id="1"] .badge-options').scrollTop, 80);
+});
+
+test('選択概要を通知し再取得失敗時は動的ナビゲーションを消す', async () => {
+    const documentObject = createDocument();
+    const snapshots = [];
+    let succeeds = true;
+    initializePromptCategoriesPage({
+        page: documentObject.querySelector('main'),
+        documentObject,
+        fetcher: async () =>
+            succeeds ? { ok: true, json: async () => ({ groups }) } : { ok: false },
+        csrfToken: 'csrf',
+        onLoadedChange: () => {},
+        onSidebarSnapshotChange: (snapshot) => snapshots.push(snapshot),
+        notify: () => {},
+    });
+    await flush();
+
+    documentObject.querySelector('[data-group-id="1"] .prompt-badge').click();
+    assert.deepEqual(snapshots.at(-1).navigationItems, [
+        {
+            key: 'option-group-1',
+            label: '表情',
+            target: '[data-option-group-id="1"]',
+        },
+        {
+            key: 'option-group-2',
+            label: '視線',
+            target: '[data-option-group-id="2"]',
+        },
+    ]);
+    assert.deepEqual(snapshots.at(-1).selectionGroups[0].items, [
+        { label: '笑顔', meta: '', details: [] },
+    ]);
+
+    succeeds = false;
+    documentObject.querySelector('[data-category-retry]').click();
+    await flush();
+
+    assert.deepEqual(snapshots.at(-1).navigationItems, []);
+    assert.deepEqual(snapshots.at(-1).selectionGroups[0].items, [
+        { label: '笑顔', meta: '', details: [] },
+    ]);
 });
 
 test('項目には移動先セレクトを置かず管理操作を一つのメニューにまとめる', async () => {

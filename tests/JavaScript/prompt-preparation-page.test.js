@@ -34,12 +34,15 @@ const createDocument = () => {
             <head><meta name="csrf-token" content="csrf-token"></head>
             <body>
                 <main data-prompt-preparation data-default-prompts-url="/default-prompts">
+                    <nav><div data-section-navigation-list></div></nav>
                     <div class="load-state">
                         <p data-load-status></p>
                         <button type="button" data-retry hidden>再読み込み</button>
                     </div>
-                    ${promptSetting('positive')}
-                    ${promptSetting('negative')}
+                    <div data-default-prompts-section tabindex="-1">
+                        ${promptSetting('positive')}
+                        ${promptSetting('negative')}
+                    </div>
                     <button type="button" data-display disabled>プロンプトを表示</button>
                     <button type="button" data-reset disabled>リセット</button>
                     <section data-output-section>
@@ -47,6 +50,10 @@ const createDocument = () => {
                         ${promptOutput('negative')}
                     </section>
                     <div data-toast hidden></div>
+                    <aside>
+                        <div data-selection-summary-list></div>
+                        <button type="button" data-sidebar-display disabled>プロンプトを作成</button>
+                    </aside>
                 </main>
             </body>
         </html>`);
@@ -63,6 +70,8 @@ const flushAsyncEvents = async () => {
     await setImmediate();
     await setImmediate();
 };
+
+const pendingResponse = () => new Promise(() => {});
 
 const addLoraControls = (documentObject) => {
     const page = documentObject.querySelector('main');
@@ -140,7 +149,7 @@ const addCategoryControls = (documentObject) => {
     );
 };
 
-test('全カテゴリを確定順でpositiveへ出力しnegativeは変えない', async () => {
+test('全カテゴリの選択概要を表示して確定順でpositiveへ出力する', async () => {
     const documentObject = createDocument();
     addLoraControls(documentObject);
     addClothingLoraControls(documentObject);
@@ -271,6 +280,49 @@ test('全カテゴリを確定順でpositiveへ出力しnegativeは変えない'
         .querySelectorAll('[data-option-groups] .prompt-badge')
         .forEach((badge) => badge.click());
     documentObject.querySelector('.clothing-lora-toggle').click();
+
+    assert.deepEqual(
+        [...documentObject.querySelectorAll('.section-navigation__link')].map(
+            (item) => item.textContent,
+        ),
+        [
+            'デフォルト',
+            '人物・キャラクターLoRA',
+            '衣装LoRA',
+            '表情',
+            '視線',
+            '動作',
+            '場所',
+            '構図',
+            '画質',
+        ],
+    );
+    assert.deepEqual(
+        [...documentObject.querySelectorAll('.selection-summary__group h3')].map(
+            (item) => item.textContent,
+        ),
+        [
+            'デフォルト',
+            '人物・キャラクターLoRA',
+            '衣装LoRA',
+            '表情',
+            '視線',
+            '動作',
+            '場所',
+            '構図',
+            '画質',
+        ],
+    );
+    assert.match(
+        documentObject.querySelector('[data-selection-summary-list]').textContent,
+        /キャラクター/,
+    );
+    assert.match(
+        documentObject.querySelector('[data-selection-summary-list]').textContent,
+        /強度 0.8/,
+    );
+    assert.match(documentObject.querySelector('[data-selection-summary-list]').textContent, /笑顔/);
+
     documentObject.querySelector('[data-display]').click();
 
     assert.equal(
@@ -367,9 +419,21 @@ test('リセットでデフォルトを選択したまま今回の追加選択�
         'true',
     );
     assert.deepEqual(scrollOptions, { behavior: 'smooth', block: 'start' });
+    assert.deepEqual(
+        [...documentObject.querySelectorAll('.selection-summary__group h3')].map(
+            (item) => item.textContent,
+        ),
+        ['デフォルト'],
+    );
+    assert.deepEqual(
+        [...documentObject.querySelectorAll('.selection-summary__item-label')].map(
+            (item) => item.textContent,
+        ),
+        ['positive デフォルト', 'negative デフォルト'],
+    );
 });
 
-test('取得したデフォルト文面を選択して出力し直接編集した内容をコピーする', async () => {
+test('右メニューからデフォルト文面を出力し直接編集した内容をコピーする', async () => {
     const documentObject = createDocument();
     const fetcher = async () =>
         successfulResponse({
@@ -401,10 +465,12 @@ test('取得したデフォルト文面を選択して出力し直接編集し�
     await flushAsyncEvents();
 
     const displayButton = documentObject.querySelector('[data-display]');
+    const sidebarDisplayButton = documentObject.querySelector('[data-sidebar-display]');
     const negativeSetting = documentObject.querySelector('[data-default-prompt="negative"]');
     assert.equal(displayButton.disabled, false);
+    assert.equal(sidebarDisplayButton.disabled, false);
     negativeSetting.querySelector('[data-select]').click();
-    displayButton.click();
+    sidebarDisplayButton.click();
 
     const positiveOutput = documentObject.querySelector('[data-output="positive"]');
     const negativeOutput = documentObject.querySelector('[data-output="negative"]');
@@ -440,6 +506,104 @@ test('取得したデフォルト文面を選択して出力し直接編集し�
         'positiveをコピーしました。',
     );
     assert.equal(documentObject.querySelector('[data-toast]').hidden, false);
+});
+
+test('他カテゴリの取得中でも選択済みのデフォルト文面を出力する', async () => {
+    const documentObject = createDocument();
+    addLoraControls(documentObject);
+    addClothingLoraControls(documentObject);
+    addCategoryControls(documentObject);
+    const fetcher = async (url) => {
+        if (url === '/default-prompts') {
+            return successfulResponse({ positive: 'masterpiece,', negative: 'bad anatomy,' });
+        }
+
+        return pendingResponse();
+    };
+
+    initializePromptPreparationPage({ documentObject, fetcher });
+    await flushAsyncEvents();
+
+    const displayButton = documentObject.querySelector('[data-display]');
+    const sidebarDisplayButton = documentObject.querySelector('[data-sidebar-display]');
+    assert.equal(displayButton.disabled, false);
+    assert.equal(sidebarDisplayButton.disabled, false);
+
+    sidebarDisplayButton.click();
+
+    assert.equal(
+        documentObject.querySelector('[data-output="positive"] [data-output-content]').value,
+        'masterpiece,',
+    );
+    assert.equal(
+        documentObject.querySelector('[data-output="negative"] [data-output-content]').value,
+        'bad anatomy,',
+    );
+
+    documentObject.querySelector('[data-default-prompt="positive"] [data-select]').click();
+    documentObject.querySelector('[data-default-prompt="negative"] [data-select]').click();
+
+    assert.equal(displayButton.disabled, true);
+    assert.equal(sidebarDisplayButton.disabled, true);
+});
+
+test('デフォルト取得中でもLoRAの選択後は他カテゴリの完了順に関係なく出力できる', async () => {
+    const documentObject = createDocument();
+    addLoraControls(documentObject);
+    addCategoryControls(documentObject);
+    let resolvePromptOptions;
+    const promptOptionsResponse = new Promise((resolve) => {
+        resolvePromptOptions = resolve;
+    });
+    const fetcher = async (url) => {
+        if (url === '/default-prompts') {
+            return pendingResponse();
+        }
+        if (url === '/prompt-options') {
+            return promptOptionsResponse;
+        }
+
+        return successfulResponse({
+            loras: [
+                {
+                    id: 1,
+                    name: 'キャラクター',
+                    fileName: 'character.safetensors',
+                    recommendedStrength: 1,
+                    tags: Array.from(
+                        { length: 11 },
+                        (_, step) =>
+                            `<lora:character.safetensors:${step === 10 ? '1' : (step / 10).toFixed(1)}>,`,
+                    ),
+                },
+            ],
+            triggers: [],
+            outfits: [],
+        });
+    };
+
+    initializePromptPreparationPage({ documentObject, fetcher });
+    await flushAsyncEvents();
+
+    const loraList = documentObject.querySelector('[data-lora-list]');
+    const displayButton = documentObject.querySelector('[data-display]');
+    const sidebarDisplayButton = documentObject.querySelector('[data-sidebar-display]');
+    loraList.value = '1';
+    loraList.dispatchEvent(new documentObject.defaultView.Event('change'));
+
+    assert.equal(displayButton.disabled, false);
+    assert.equal(sidebarDisplayButton.disabled, false);
+
+    resolvePromptOptions(successfulResponse({ groups: [] }));
+    await flushAsyncEvents();
+
+    assert.equal(displayButton.disabled, false);
+    assert.equal(sidebarDisplayButton.disabled, false);
+    sidebarDisplayButton.click();
+    assert.equal(
+        documentObject.querySelector('[data-output="positive"] [data-output-content]').value,
+        '<lora:character.safetensors:1>,',
+    );
 });
 
 test('出力内容に合わせて基準サイズ以上で高さを伸縮する', async () => {
@@ -492,9 +656,11 @@ test('取得失敗後に再読み込みし編集したデフォルト文面を�
     const loadStatus = documentObject.querySelector('[data-load-status]');
     const retryButton = documentObject.querySelector('[data-retry]');
     const displayButton = documentObject.querySelector('[data-display]');
+    const sidebarDisplayButton = documentObject.querySelector('[data-sidebar-display]');
     assert.equal(loadStatus.dataset.state, 'error');
     assert.equal(retryButton.hidden, false);
     assert.equal(displayButton.disabled, true);
+    assert.equal(sidebarDisplayButton.disabled, true);
 
     retryButton.click();
     await flushAsyncEvents();
@@ -502,6 +668,7 @@ test('取得失敗後に再読み込みし編集したデフォルト文面を�
     const positiveSetting = documentObject.querySelector('[data-default-prompt="positive"]');
     const editButton = positiveSetting.querySelector('[data-edit]');
     assert.equal(displayButton.disabled, false);
+    assert.equal(sidebarDisplayButton.disabled, false);
     assert.equal(retryButton.hidden, true);
     assert.equal(loadStatus.textContent, '');
     assert.equal(loadStatus.parentElement.hidden, true);
@@ -511,12 +678,18 @@ test('取得失敗後に再読み込みし編集したデフォルト文面を�
     const editorContent = positiveSetting.querySelector('[data-editor-content]');
     assert.equal(editor.hidden, false);
     assert.equal(editorContent.value, 'masterpiece,');
+    assert.equal(displayButton.disabled, true);
+    assert.equal(sidebarDisplayButton.disabled, true);
 
     editorContent.value = 'masterpiece\nbest quality';
     positiveSetting.querySelector('[data-save]').click();
+    assert.equal(displayButton.disabled, true);
+    assert.equal(sidebarDisplayButton.disabled, true);
     await flushAsyncEvents();
 
     assert.equal(editor.hidden, true);
+    assert.equal(displayButton.disabled, false);
+    assert.equal(sidebarDisplayButton.disabled, false);
     assert.equal(documentObject.activeElement, editButton);
     editButton.click();
     assert.equal(editorContent.value, 'masterpiece, best quality,');

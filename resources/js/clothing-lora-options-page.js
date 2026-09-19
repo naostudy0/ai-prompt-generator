@@ -14,6 +14,7 @@ export const initializeClothingLoraOptionsPage = ({
     fetcher,
     csrfToken,
     onLoadedChange,
+    onSidebarSnapshotChange = () => {},
     notify,
 }) => {
     const view = documentObject.defaultView;
@@ -49,6 +50,35 @@ export const initializeClothingLoraOptionsPage = ({
         lora: page.dataset.clothingLorasUrl,
         trigger: page.dataset.clothingLoraTriggersUrl,
     };
+
+    const getSidebarSnapshot = () => ({
+        navigationItems: [
+            {
+                key: 'clothing-lora',
+                label: '衣装LoRA',
+                target: '[data-clothing-lora-options]',
+            },
+        ],
+        selectionGroups: [
+            {
+                key: 'clothing-lora',
+                label: '衣装LoRA',
+                items: state.loras
+                    .filter((lora) => state.selections.has(lora.id))
+                    .map((lora) => {
+                        const selected = state.selections.get(lora.id);
+                        const trigger = state.triggers.find(
+                            (candidate) => candidate.id === selected.triggerId,
+                        );
+                        return {
+                            label: lora.name,
+                            meta: `強度 ${selected.strength}`,
+                            details: trigger === undefined ? [] : [`トリガー：${trigger.name}`],
+                        };
+                    }),
+            },
+        ],
+    });
 
     const closeDialog = (target) => {
         if (target instanceof HTMLDialogElement) {
@@ -174,6 +204,7 @@ export const initializeClothingLoraOptionsPage = ({
                 }
                 strength.addEventListener('change', () => {
                     selected.strength = Number(strength.value);
+                    onSidebarSnapshotChange(getSidebarSnapshot());
                 });
                 strength.disabled = !state.loaded || state.busy;
                 const triggerSelect = documentObject.createElement('select');
@@ -227,6 +258,7 @@ export const initializeClothingLoraOptionsPage = ({
         });
         search.disabled = !state.loaded;
         root.querySelector('[data-clothing-lora-add]').disabled = !state.loaded || state.busy;
+        onSidebarSnapshotChange(getSidebarSnapshot());
     };
 
     const load = async () => {

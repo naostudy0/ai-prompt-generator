@@ -14,6 +14,7 @@ export const initializeLoraOptionsPage = ({
     fetcher,
     csrfToken,
     onLoadedChange,
+    onSidebarSnapshotChange = () => {},
     notify,
 }) => {
     const view = documentObject.defaultView;
@@ -70,6 +71,33 @@ export const initializeLoraOptionsPage = ({
                   : state.selectedOutfitId;
 
         return collection.find((item) => item.id === id) ?? null;
+    };
+
+    const getSidebarSnapshot = () => {
+        const lora = selectedItem('lora');
+        const trigger = selectedItem('trigger');
+        const outfit = selectedItem('outfit');
+        const items = [];
+        if (lora !== null) {
+            items.push({
+                label: lora.name,
+                meta: `強度 ${strengthSelect?.value ?? lora.recommendedStrength}`,
+                details: trigger === null ? [] : [`トリガー：${trigger.name}`],
+            });
+        }
+        if (outfit !== null) {
+            items.push({ label: `服装：${outfit.name}`, meta: '', details: [] });
+        }
+        return {
+            navigationItems: [
+                {
+                    key: 'character-lora',
+                    label: '人物・キャラクターLoRA',
+                    target: '[data-lora-options]',
+                },
+            ],
+            selectionGroups: [{ key: 'character-lora', label: '人物・キャラクターLoRA', items }],
+        };
     };
 
     const replaceOptions = (select, items, selectedId, label) => {
@@ -172,6 +200,7 @@ export const initializeLoraOptionsPage = ({
             setButtonDisabled(`[data-option-delete="${type}"]`, unselected);
             setButtonDisabled(`[data-option-clear="${type}"]`, unselected);
         }
+        onSidebarSnapshotChange(getSidebarSnapshot());
     };
 
     const loadOptions = async () => {
@@ -396,6 +425,7 @@ export const initializeLoraOptionsPage = ({
         render();
         scrollToSelectionSection(page.querySelector('[data-option-groups]'));
     });
+    strengthSelect?.addEventListener('change', () => onSidebarSnapshotChange(getSidebarSnapshot()));
 
     root.querySelectorAll('[data-option-add]').forEach((button) =>
         button.addEventListener('click', () => openOptionDialog(button.dataset.optionAdd)),
