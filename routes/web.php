@@ -22,6 +22,10 @@ use App\Http\Controllers\PromptPreparation\Writes\MoveOptionPromptController;
 use App\Http\Controllers\PromptPreparation\Writes\MoveOptionPromptGroupController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveOptionPromptGroupController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\PromptPreparation\Queries\ListFavoritePromptsController;
+use App\Http\Controllers\PromptPreparation\Queries\GetFavoritePromptController;
+use App\Http\Controllers\PromptPreparation\Writes\SaveFavoritePromptController;
+use App\Http\Controllers\PromptPreparation\Writes\DeleteFavoritePromptController;
 
 Route::get('/', PromptPreparationPageController::class)->name('prompt-preparation');
 
@@ -83,3 +87,12 @@ Route::delete('/prompt-options/{option}', DeleteOptionPromptController::class)
     ->whereNumber('option')->name('prompt-options.destroy');
 Route::patch('/prompt-options/{option}/position', MoveOptionPromptController::class)
     ->whereNumber('option')->name('prompt-options.move');
+
+Route::get('/favorite-prompts', ListFavoritePromptsController::class)->name('favorite-prompts.index');
+Route::get('/favorite-prompts/{favoritePrompt}', GetFavoritePromptController::class)
+    ->whereNumber('favoritePrompt')->name('favorite-prompts.show');
+Route::post('/favorite-prompts', SaveFavoritePromptController::class)->name('favorite-prompts.store');
+Route::put('/favorite-prompts/{favoritePrompt}', SaveFavoritePromptController::class)
+    ->whereNumber('favoritePrompt')->name('favorite-prompts.update');
+Route::delete('/favorite-prompts/{favoritePrompt}', DeleteFavoritePromptController::class)
+    ->whereNumber('favoritePrompt')->name('favorite-prompts.destroy');

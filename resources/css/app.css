@@ -784,6 +784,83 @@ button:focus-visible {
     font-size: 0.9rem;
 }
 
+.favorite-actions {
+    margin-top: 1.25rem;
+}
+
+.favorite-dialog {
+    width: min(92vw, 32rem);
+}
+
+.favorite-list-dialog {
+    width: min(92vw, 62rem);
+    max-height: 88vh;
+}
+
+.favorite-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.favorite-card {
+    overflow: hidden;
+    border: 1px solid #35423a;
+    border-radius: 0.8rem;
+    padding: 0.75rem;
+    background: #1a211c;
+}
+
+.favorite-card img,
+.favorite-card__placeholder {
+    width: 100%;
+    height: 10rem;
+    border-radius: 0.55rem;
+    object-fit: cover;
+}
+
+.favorite-card__placeholder {
+    display: grid;
+    place-items: center;
+    color: #9ba79e;
+    background: #111512;
+}
+
+.favorite-card h3 {
+    margin-top: 0.7rem;
+    overflow-wrap: anywhere;
+}
+
+.favorite-card__summary,
+.favorite-selection-preview {
+    margin-top: 0.75rem;
+    color: #bdc8c0;
+    font-size: 0.82rem;
+}
+
+.favorite-card__summary section + section,
+.favorite-selection-preview section + section {
+    margin-top: 0.5rem;
+}
+
+.favorite-card__summary h3,
+.favorite-selection-preview h3 {
+    margin: 0;
+    color: #b7d98b;
+    font-size: 0.78rem;
+}
+
+.favorite-card__summary p,
+.favorite-selection-preview p {
+    margin-top: 0.15rem;
+}
+
+.favorite-remove-image {
+    display: block;
+    margin-top: 0.75rem;
+}
+
 @media (min-width: 1200px) {
     .page-layout {
         display: grid;
@@ -855,9 +932,24 @@ button:focus-visible {
 
     .selection-summary__group h3 {
         margin-bottom: 0.5rem;
+    }
+
+    .selection-summary__section-link {
+        padding: 0;
+        border: 0;
         color: #b7d98b;
+        background: transparent;
         font-size: 0.78rem;
+        font-weight: 700;
         letter-spacing: 0.08em;
+        cursor: pointer;
+    }
+
+    .selection-summary__section-link:hover,
+    .selection-summary__section-link:focus-visible {
+        color: #d1f4a6;
+        text-decoration: underline;
+        outline: none;
     }
 
     .selection-summary ul {
@@ -869,6 +961,34 @@ button:focus-visible {
     .selection-summary__group > ul {
         display: grid;
         gap: 0.55rem;
+    }
+
+    .selection-summary__group > ul > li {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.45rem;
+    }
+
+    .selection-summary__item-content {
+        min-width: 0;
+        flex: 1;
+    }
+
+    .selection-summary__remove {
+        padding: 0;
+        border: 0;
+        color: #ff6b6b;
+        background: transparent;
+        font-size: 1rem;
+        font-weight: 800;
+        line-height: 1;
+        cursor: pointer;
+    }
+
+    .selection-summary__remove:hover,
+    .selection-summary__remove:focus-visible {
+        color: #ff9a9a;
+        outline: none;
     }
 
     .selection-summary__item-label,

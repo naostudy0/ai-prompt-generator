@@ -14,7 +14,7 @@ export const initializePromptSidebars = ({ page, documentObject }) => {
         !(navigation instanceof view.HTMLElement) ||
         !(summary instanceof view.HTMLElement)
     ) {
-        return { update: () => {} };
+        return { update: () => {}, getSelectionGroups: () => [] };
     }
 
     const scrollToTarget = (selector) => {
@@ -22,8 +22,7 @@ export const initializePromptSidebars = ({ page, documentObject }) => {
         if (!(target instanceof view.HTMLElement)) {
             return;
         }
-        const reduceMotion = view.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-        target.scrollIntoView?.({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+        target.scrollIntoView?.({ behavior: 'auto', block: 'start' });
         target.focus({ preventScroll: true });
     };
 
@@ -48,23 +47,37 @@ export const initializePromptSidebars = ({ page, documentObject }) => {
             .flatMap((snapshot) => snapshot.selectionGroups)
             .filter((group) => group.items.length > 0)
             .forEach((group) => {
+                const navigationItem = orderedSnapshots(snapshots)
+                    .flatMap((snapshot) => snapshot.navigationItems)
+                    .find((item) => item.key === group.key);
                 const section = documentObject.createElement('section');
                 section.className = 'selection-summary__group';
                 section.dataset.sectionKey = group.key;
                 const heading = documentObject.createElement('h3');
-                heading.textContent = group.label;
+                const headingButton = documentObject.createElement('button');
+                headingButton.type = 'button';
+                headingButton.className = 'selection-summary__section-link';
+                headingButton.textContent = group.label;
+                headingButton.addEventListener('click', () => {
+                    if (navigationItem !== undefined) {
+                        scrollToTarget(navigationItem.target);
+                    }
+                });
+                heading.append(headingButton);
                 const items = documentObject.createElement('ul');
                 group.items.forEach((item) => {
                     const listItem = documentObject.createElement('li');
+                    const content = documentObject.createElement('div');
+                    content.className = 'selection-summary__item-content';
                     const label = documentObject.createElement('span');
                     label.className = 'selection-summary__item-label';
                     label.textContent = item.label;
-                    listItem.append(label);
+                    content.append(label);
                     if (item.meta !== '') {
                         const meta = documentObject.createElement('span');
                         meta.className = 'selection-summary__item-meta';
                         meta.textContent = item.meta;
-                        listItem.append(meta);
+                        content.append(meta);
                     }
                     if (item.details.length > 0) {
                         const details = documentObject.createElement('ul');
@@ -74,7 +87,17 @@ export const initializePromptSidebars = ({ page, documentObject }) => {
                             detailItem.textContent = detail;
                             details.append(detailItem);
                         });
-                        listItem.append(details);
+                        content.append(details);
+                    }
+                    listItem.append(content);
+                    if (typeof item.onRemove === 'function') {
+                        const removeButton = documentObject.createElement('button');
+                        removeButton.type = 'button';
+                        removeButton.className = 'selection-summary__remove';
+                        removeButton.textContent = '×';
+                        removeButton.setAttribute('aria-label', `${item.label}の選択を解除`);
+                        removeButton.addEventListener('click', item.onRemove);
+                        listItem.append(removeButton);
                     }
                     items.append(listItem);
                 });
@@ -89,5 +112,9 @@ export const initializePromptSidebars = ({ page, documentObject }) => {
             renderNavigation();
             renderSummary();
         },
+        getSelectionGroups: () =>
+            orderedSnapshots(snapshots)
+                .flatMap((snapshot) => snapshot.selectionGroups)
+                .filter((group) => group.items.length > 0),
     };
 };

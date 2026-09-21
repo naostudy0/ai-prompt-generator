@@ -88,6 +88,10 @@ const flushAsyncEvents = async () => {
 
 test('LoRA選択時に先頭トリガーを選択し紐づく服装を上位表示する', async () => {
     const documentObject = createDocument();
+    const scrolledSections = [];
+    documentObject.defaultView.HTMLElement.prototype.scrollIntoView = function () {
+        scrolledSections.push(this.dataset.selectionSection ?? 'other');
+    };
     let sidebarSnapshot;
     const catalog = {
         loras: [
@@ -118,11 +122,16 @@ test('LoRA選択時に先頭トリガーを選択し紐づく服装を上位表�
     const loraList = documentObject.querySelector('[data-lora-list]');
     loraList.value = '1';
     loraList.dispatchEvent(new documentObject.defaultView.Event('change'));
+    assert.deepEqual(scrolledSections, ['trigger']);
     assert.equal(documentObject.querySelector('[data-lora-strength]').value, '0.8');
-    assert.equal(documentObject.querySelector('[data-trigger-list]').value, '11');
+    const triggerList = documentObject.querySelector('[data-trigger-list]');
+    assert.equal(triggerList.value, '11');
+    triggerList.dispatchEvent(new documentObject.defaultView.Event('change'));
+    assert.deepEqual(scrolledSections, ['trigger']);
     const outfitList = documentObject.querySelector('[data-outfit-list]');
     outfitList.value = '21';
     outfitList.dispatchEvent(new documentObject.defaultView.Event('change'));
+    assert.deepEqual(scrolledSections, ['trigger']);
     assert.deepEqual(
         [...documentObject.querySelector('[data-outfit-list]').options].map(
             (option) => option.value,
@@ -130,7 +139,21 @@ test('LoRA選択時に先頭トリガーを選択し紐づく服装を上位表�
         ['21', '22'],
     );
     assert.equal(controller.getSelections().trigger, 'alpha,');
-    assert.deepEqual(sidebarSnapshot.selectionGroups, [
+    assert.equal(
+        sidebarSnapshot.selectionGroups[0].items.every(
+            (item) => typeof item.onRemove === 'function',
+        ),
+        true,
+    );
+    const selectionGroups = sidebarSnapshot.selectionGroups.map((group) => ({
+        ...group,
+        items: group.items.map((item) => ({
+            label: item.label,
+            meta: item.meta,
+            details: item.details,
+        })),
+    }));
+    assert.deepEqual(selectionGroups, [
         {
             key: 'character-lora',
             label: '人物・キャラクターLoRA',
@@ -182,4 +205,15 @@ test('LoRAを切り替えても他のLoRAに属する服装の選択を維持す
     );
     assert.equal(outfitList.value, '21');
     assert.equal(controller.getSelections().outfit, 'red dress,');
+    assert.equal(
+        controller.restoreSelection({ loraId: 1, strength: 0.8, triggerId: null, outfitId: 22 }),
+        true,
+    );
+    assert.deepEqual(controller.getSelectionSnapshot(), {
+        loraId: 1,
+        strength: 0.8,
+        triggerId: null,
+        outfitId: 22,
+    });
+    assert.equal(controller.getSelections().outfit, 'blue dress,');
 });

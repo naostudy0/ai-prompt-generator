@@ -91,7 +91,21 @@ test('衣装LoRAを複数選択して個別の強度とトリガーを出力し�
         clothingLoras: '<lora:Dress.safetensors:0.9>, <lora:Jacket.safetensors:1>,',
         clothingLoraTriggers: 'dress, jacket,',
     });
-    assert.deepEqual(sidebarSnapshot.selectionGroups, [
+    assert.equal(
+        sidebarSnapshot.selectionGroups[0].items.every(
+            (item) => typeof item.onRemove === 'function',
+        ),
+        true,
+    );
+    const selectionGroups = sidebarSnapshot.selectionGroups.map((group) => ({
+        ...group,
+        items: group.items.map((item) => ({
+            label: item.label,
+            meta: item.meta,
+            details: item.details,
+        })),
+    }));
+    assert.deepEqual(selectionGroups, [
         {
             key: 'clothing-lora',
             label: '衣装LoRA',
@@ -117,4 +131,14 @@ test('衣装LoRAを複数選択して個別の強度とトリガーを出力し�
     });
     assert.equal(documentObject.querySelector('[data-clothing-lora-search]').value, '');
     assert.deepEqual(sidebarSnapshot.selectionGroups[0].items, []);
+    assert.equal(
+        controller.restoreSelection([
+            { loraId: 2, strength: 0.7, triggerId: 12 },
+            { loraId: 999, strength: 1, triggerId: null },
+        ]),
+        false,
+    );
+    assert.deepEqual(controller.getSelectionSnapshot(), [
+        { loraId: 2, strength: 0.7, triggerId: 12 },
+    ]);
 });

@@ -10,6 +10,8 @@ import { createPositivePromptOutput } from './lora-options.js';
 import { initializePromptCategoriesPage } from './prompt-categories-page.js';
 import { createPositivePromptSections } from './positive-prompt-sections.js';
 import { initializePromptSidebars } from './prompt-sidebars.js';
+import { initializeFavoritePromptsPage } from './favorite-prompts-page.js';
+import { normalizePromptForComparison } from './prompt-text.js';
 
 export const initializePromptPreparationPage = ({
     documentObject = document,
@@ -34,6 +36,8 @@ export const initializePromptPreparationPage = ({
     const retryButton = page.querySelector('[data-retry]');
     const displayButton = page.querySelector('[data-display]');
     const sidebarDisplayButton = page.querySelector('[data-sidebar-display]');
+    const favoriteSaveButton = page.querySelector('[data-favorite-save]');
+    const favoriteOpenButton = page.querySelector('[data-favorite-open]');
     const resetButton = page.querySelector('[data-reset]');
     const promptElements = [...page.querySelectorAll('[data-default-prompt]')];
     const outputElements = [...page.querySelectorAll('[data-output]')];
@@ -56,10 +60,14 @@ export const initializePromptPreparationPage = ({
     let toastTimer;
     let loraOptionsController = {
         getSelections: () => ({ lora: '', trigger: '', outfit: '' }),
+        getSelectionSnapshot: () => ({}),
+        restoreSelection: () => false,
         reset: () => {},
     };
     let clothingLoraOptionsController = {
         getSelections: () => ({ clothingLoras: '', clothingLoraTriggers: '' }),
+        getSelectionSnapshot: () => [],
+        restoreSelection: () => false,
         reset: () => {},
     };
     let promptCategoriesController = {
@@ -71,6 +79,8 @@ export const initializePromptPreparationPage = ({
             composition: '',
             optionGroups: [],
         }),
+        getSelectionSnapshot: () => [],
+        restoreSelection: () => false,
         reset: () => {},
     };
 
@@ -83,6 +93,17 @@ export const initializePromptPreparationPage = ({
                 label: `${polarity} デフォルト`,
                 meta: '',
                 details: [],
+                onRemove: () => {
+                    selectedPrompts[polarity] = false;
+                    const element = promptElements.find(
+                        (candidate) => candidate.dataset.defaultPrompt === polarity,
+                    );
+                    if (element instanceof HTMLElement) {
+                        updateSelection(element, polarity);
+                    }
+                    updateDefaultView();
+                    updateActionAvailability();
+                },
             }));
         sidebars.update('default', {
             navigationItems: [
@@ -162,6 +183,17 @@ export const initializePromptPreparationPage = ({
                 !clothingLoraOptionsLoaded ||
                 !promptCategoriesLoaded;
         }
+        const favoritesDisabled =
+            editingPrompt ||
+            !promptsLoaded ||
+            !loraOptionsLoaded ||
+            !clothingLoraOptionsLoaded ||
+            !promptCategoriesLoaded;
+        [favoriteSaveButton, favoriteOpenButton].forEach((button) => {
+            if (button instanceof HTMLButtonElement) {
+                button.disabled = favoritesDisabled;
+            }
+        });
     };
 
     const updateSidebarSnapshot = (source, snapshot) => {
@@ -509,6 +541,83 @@ export const initializePromptPreparationPage = ({
         onLoadedChange: (loaded) => {
             promptCategoriesLoaded = loaded;
             updateActionAvailability();
+        },
+    });
+    initializeFavoritePromptsPage({
+        page,
+        documentObject,
+        fetcher,
+        csrfToken,
+        notify: showToast,
+        capture: () => ({
+            positivePrompt:
+                getOutputElement('positive')?.querySelector('[data-output-content]')?.value ?? '',
+            negativePrompt:
+                getOutputElement('negative')?.querySelector('[data-output-content]')?.value ?? '',
+            selectionSnapshot: {
+                defaults: { ...selectedPrompts },
+                lora: loraOptionsController.getSelectionSnapshot(),
+                clothingLoras: clothingLoraOptionsController.getSelectionSnapshot(),
+                optionIds: promptCategoriesController.getSelectionSnapshot(),
+            },
+            selectionSummary: sidebars.getSelectionGroups(),
+        }),
+        restore: (favorite) => {
+            const snapshot = favorite.selectionSnapshot;
+            selectedPrompts.positive = snapshot.defaults?.positive === true;
+            selectedPrompts.negative = snapshot.defaults?.negative === true;
+            promptElements.forEach((element) => {
+                if (isPolarity(element.dataset.defaultPrompt)) {
+                    updateSelection(element, element.dataset.defaultPrompt);
+                }
+            });
+            updateDefaultView();
+            loraOptionsController.restoreSelection(snapshot.lora);
+            clothingLoraOptionsController.restoreSelection(snapshot.clothingLoras);
+            promptCategoriesController.restoreSelection(snapshot.optionIds);
+            const restoredGroups = sidebars.getSelectionGroups();
+            const unavailableLabels = favorite.selectionSummary.flatMap((savedGroup) => {
+                const restoredGroup = restoredGroups.find((group) => group.key === savedGroup.key);
+                const restoredItems = new Set(
+                    restoredGroup?.items.map((item) => JSON.stringify(item)) ?? [],
+                );
+                return savedGroup.items
+                    .filter((item) => !restoredItems.has(JSON.stringify(item)))
+                    .map((item) => item.label);
+            });
+            const generated = createPromptOutputs(savedPrompts, selectedPrompts);
+            generated.positive = createPositivePromptOutput(
+                generated.positive,
+                createPositivePromptSections(
+                    {
+                        ...loraOptionsController.getSelections(),
+                        ...clothingLoraOptionsController.getSelections(),
+                    },
+                    promptCategoriesController.getSections(),
+                ),
+            );
+            for (const polarity of ['positive', 'negative']) {
+                const outputElement = getOutputElement(polarity);
+                const content = outputElement?.querySelector('[data-output-content]');
+                if (content instanceof HTMLTextAreaElement) {
+                    content.value = favorite[`${polarity}Prompt`];
+                    resizeOutputContent(content);
+                }
+                if (outputElement instanceof HTMLElement) {
+                    updateCopyAvailability(outputElement);
+                }
+            }
+            outputSection?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+            updateActionAvailability();
+            return {
+                complete: unavailableLabels.length === 0,
+                unavailableLabels,
+                matches:
+                    normalizePromptForComparison(generated.positive) ===
+                        normalizePromptForComparison(favorite.positivePrompt) &&
+                    normalizePromptForComparison(generated.negative) ===
+                        normalizePromptForComparison(favorite.negativePrompt),
+            };
         },
     });
     void loadDefaultPrompts();
