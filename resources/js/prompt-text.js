@@ -60,3 +60,11 @@ export const mergeUniquePromptGroups = (groups) => {
         })
         .filter((content) => content !== '');
 };
+
+export const normalizePromptForComparison = (content) => {
+    const elements = splitPromptElements(content);
+    if (elements === null) {
+        return content.trim().replace(/\r\n?/gu, '\n');
+    }
+    return [...new Set(elements)].join('\n');
+};

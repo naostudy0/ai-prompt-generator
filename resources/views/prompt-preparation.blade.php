@@ -25,6 +25,7 @@
             data-outfits-url="{{ $outfitsUrl }}"
             data-prompt-options-url="{{ $promptOptionsUrl }}"
             data-prompt-option-groups-url="{{ $promptOptionGroupsUrl }}"
+            data-favorite-prompts-url="{{ $favoritePromptsUrl }}"
         >
             <nav class="prompt-sidebar section-navigation" aria-labelledby="section-navigation-heading">
                 <h2 id="section-navigation-heading">セクション</h2>
@@ -253,9 +254,43 @@
                         </article>
                     @endforeach
                 </div>
+                <div class="editor-actions favorite-actions">
+                    <button class="primary-button" type="button" data-favorite-save disabled>お気に入りへ保存</button>
+                    <button class="secondary-button" type="button" data-favorite-open disabled>お気に入りを開く</button>
+                </div>
             </section>
 
             <div class="toast" data-toast role="status" aria-live="polite" hidden></div>
+
+            <dialog class="option-dialog favorite-dialog" data-favorite-form-dialog>
+                <form data-favorite-form enctype="multipart/form-data">
+                    <h2 data-favorite-form-title>お気に入りへ保存</h2>
+                    <label class="field-label" for="favorite-name">名前（任意）</label>
+                    <input id="favorite-name" class="text-input" maxlength="255" data-favorite-name>
+                    <label class="field-label" for="favorite-image">参考画像（JPEG・PNG・WebP、20MBまで）</label>
+                    <input id="favorite-image" class="text-input" type="file" accept="image/jpeg,image/png,image/webp" data-favorite-image>
+                    <label class="favorite-remove-image" data-favorite-remove-field hidden>
+                        <input type="checkbox" data-favorite-remove-image> 現在の画像を削除
+                    </label>
+                    <div class="favorite-selection-preview" data-favorite-selection-preview></div>
+                    <p class="editor-status" data-favorite-form-status role="status" aria-live="polite"></p>
+                    <div class="editor-actions">
+                        <button class="primary-button" type="submit" data-favorite-submit>保存</button>
+                        <button class="secondary-button" type="button" data-favorite-save-copy hidden>別のお気に入りとして保存</button>
+                        <button class="secondary-button" type="button" data-favorite-form-cancel>キャンセル</button>
+                    </div>
+                </form>
+            </dialog>
+
+            <dialog class="option-dialog favorite-list-dialog" data-favorite-list-dialog>
+                <div class="subsection-heading">
+                    <h2>お気に入り</h2>
+                    <button class="secondary-button" type="button" data-favorite-list-close>閉じる</button>
+                </div>
+                <p class="editor-status" data-favorite-list-status role="status" aria-live="polite"></p>
+                <button class="secondary-button" type="button" data-favorite-list-retry hidden>再読み込み</button>
+                <div class="favorite-grid" data-favorite-list></div>
+            </dialog>
 
             <dialog class="option-dialog" data-option-dialog>
                 <form data-option-form>

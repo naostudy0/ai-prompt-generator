@@ -27,6 +27,7 @@ final class PromptPreparationPageController extends Controller
             'outfitsUrl' => route('outfits.store'),
             'promptOptionsUrl' => route('prompt-options.index'),
             'promptOptionGroupsUrl' => route('prompt-option-groups.store'),
+            'favoritePromptsUrl' => route('favorite-prompts.index'),
         ]);
     }
 }

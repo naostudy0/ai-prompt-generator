@@ -24,6 +24,8 @@ export const initializeLoraOptionsPage = ({
         onLoadedChange(true);
         return {
             getSelections: () => ({ lora: '', trigger: '', outfit: '' }),
+            getSelectionSnapshot: () => ({}),
+            restoreSelection: () => false,
             reset: () => {},
         };
     }
@@ -83,10 +85,24 @@ export const initializeLoraOptionsPage = ({
                 label: lora.name,
                 meta: `強度 ${strengthSelect?.value ?? lora.recommendedStrength}`,
                 details: trigger === null ? [] : [`トリガー：${trigger.name}`],
+                onRemove: () => {
+                    state.selectedLoraId = null;
+                    state.selectedTriggerId = null;
+                    strengthSelect.value = '1';
+                    render();
+                },
             });
         }
         if (outfit !== null) {
-            items.push({ label: `服装：${outfit.name}`, meta: '', details: [] });
+            items.push({
+                label: `服装：${outfit.name}`,
+                meta: '',
+                details: [],
+                onRemove: () => {
+                    state.selectedOutfitId = null;
+                    render();
+                },
+            });
         }
         return {
             navigationItems: [
@@ -418,12 +434,10 @@ export const initializeLoraOptionsPage = ({
     triggerList?.addEventListener('change', () => {
         state.selectedTriggerId = Number(triggerList.value);
         render();
-        scrollToSelectionSection(root.querySelector('[data-selection-section="outfit"]'));
     });
     outfitList?.addEventListener('change', () => {
         state.selectedOutfitId = Number(outfitList.value);
         render();
-        scrollToSelectionSection(page.querySelector('[data-option-groups]'));
     });
     strengthSelect?.addEventListener('change', () => onSidebarSnapshotChange(getSidebarSnapshot()));
 
@@ -492,6 +506,39 @@ export const initializeLoraOptionsPage = ({
                 trigger: selectedItem('trigger')?.content ?? '',
                 outfit: selectedItem('outfit')?.content ?? '',
             };
+        },
+        getSelectionSnapshot: () => ({
+            loraId: state.selectedLoraId,
+            strength: Number(strengthSelect?.value ?? 1),
+            triggerId: state.selectedTriggerId,
+            outfitId: state.selectedOutfitId,
+        }),
+        restoreSelection: (snapshot) => {
+            const lora = state.loras.find((item) => item.id === snapshot?.loraId) ?? null;
+            state.selectedLoraId = lora?.id ?? null;
+            const trigger = state.triggers.find(
+                (item) => item.id === snapshot?.triggerId && item.loraId === lora?.id,
+            );
+            const outfit = state.outfits.find((item) => item.id === snapshot?.outfitId);
+            state.selectedTriggerId = trigger?.id ?? null;
+            state.selectedOutfitId = outfit?.id ?? null;
+            render();
+            if (lora !== null && strengthSelect instanceof HTMLSelectElement) {
+                strengthSelect.value = String(snapshot.strength);
+                if (strengthSelect.value === '') {
+                    strengthSelect.value = String(lora.recommendedStrength);
+                }
+                onSidebarSnapshotChange(getSidebarSnapshot());
+            }
+            return (
+                (snapshot?.loraId === null || snapshot?.loraId === undefined || lora !== null) &&
+                (snapshot?.triggerId === null ||
+                    snapshot?.triggerId === undefined ||
+                    trigger !== undefined) &&
+                (snapshot?.outfitId === null ||
+                    snapshot?.outfitId === undefined ||
+                    outfit !== undefined)
+            );
         },
         reset: () => {
             state.selectedLoraId = null;

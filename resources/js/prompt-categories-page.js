@@ -8,7 +8,6 @@ import {
     saveOption,
     saveOptionGroup,
 } from './prompt-categories.js';
-import { scrollToSelectionSection } from './selection-navigation.js';
 
 export const initializePromptCategoriesPage = ({
     page,
@@ -23,7 +22,12 @@ export const initializePromptCategoriesPage = ({
     const root = page.querySelector('[data-prompt-categories]');
     if (!view || !(root instanceof view.HTMLElement)) {
         onLoadedChange(true);
-        return { getSections: () => ({ optionGroups: [] }), reset: () => {} };
+        return {
+            getSections: () => ({ optionGroups: [] }),
+            getSelectionSnapshot: () => [],
+            restoreSelection: () => false,
+            reset: () => {},
+        };
     }
 
     const { HTMLDialogElement } = view;
@@ -50,6 +54,28 @@ export const initializePromptCategoriesPage = ({
     let managingItemId = null;
     let draggedGroupId = null;
     let draggedItemId = null;
+    let itemFormPagePosition = { left: 0, top: 0 };
+
+    const currentPagePosition = () => {
+        const scrollingElement = documentObject.scrollingElement ?? documentObject.documentElement;
+        return { left: scrollingElement.scrollLeft, top: scrollingElement.scrollTop };
+    };
+
+    const restorePagePosition = ({ left, top }) => {
+        const apply = () => {
+            const scrollingElement =
+                documentObject.scrollingElement ?? documentObject.documentElement;
+            scrollingElement.scrollLeft = left;
+            scrollingElement.scrollTop = top;
+        };
+        apply();
+        view.requestAnimationFrame?.(() => {
+            apply();
+            view.requestAnimationFrame?.(apply);
+        });
+        view.setTimeout(apply, 0);
+        view.setTimeout(apply, 50);
+    };
 
     const getSidebarSnapshot = () => ({
         navigationItems: loaded
@@ -64,7 +90,15 @@ export const initializePromptCategoriesPage = ({
             label: group.name,
             items: group.options
                 .filter((option) => selectedIds.has(option.id))
-                .map((option) => ({ label: option.name, meta: '', details: [] })),
+                .map((option) => ({
+                    label: option.name,
+                    meta: '',
+                    details: [],
+                    onRemove: () => {
+                        selectedIds.delete(option.id);
+                        render();
+                    },
+                })),
         })),
     });
 
@@ -150,7 +184,7 @@ export const initializePromptCategoriesPage = ({
     };
 
     const selectItem = (group, id) => {
-        const selectsItem = !selectedIds.has(id);
+        const pagePosition = currentPagePosition();
         if (selectedIds.has(id)) {
             selectedIds.delete(id);
         } else {
@@ -160,15 +194,7 @@ export const initializePromptCategoriesPage = ({
             selectedIds.add(id);
         }
         render();
-        if (selectsItem && group.selectionMode === 'single') {
-            const nextGroup =
-                groups[groups.findIndex((candidate) => candidate.id === group.id) + 1];
-            scrollToSelectionSection(
-                nextGroup === undefined
-                    ? null
-                    : groupsTarget.querySelector(`[data-option-group-id="${nextGroup.id}"]`),
-            );
-        }
+        restorePagePosition(pagePosition);
     };
 
     const openManage = (option) => {
@@ -335,7 +361,7 @@ export const initializePromptCategoriesPage = ({
                 const replacement = groupsTarget.querySelector(
                     `[data-group-id="${group.id}"] input[type="search"]`,
                 );
-                replacement?.focus();
+                replacement?.focus({ preventScroll: true });
                 replacement?.setSelectionRange(search.value.length, search.value.length);
             });
 
@@ -438,6 +464,7 @@ export const initializePromptCategoriesPage = ({
         show(groupDialog);
     };
     const openItemForm = (groupId, option = null) => {
+        itemFormPagePosition = currentPagePosition();
         itemGroupId = groupId;
         editingItemId = option?.id ?? null;
         page.querySelector('[data-category-dialog-title]').textContent = option
@@ -501,9 +528,6 @@ export const initializePromptCategoriesPage = ({
         if (busy) {
             return;
         }
-        const scrollingElement = documentObject.scrollingElement ?? documentObject.documentElement;
-        const scrollLeft = scrollingElement.scrollLeft;
-        const scrollTop = scrollingElement.scrollTop;
         busy = true;
         void saveOption(fetcher, page.dataset.promptOptionsUrl, csrfToken, editingItemId, {
             name: page.querySelector('[data-category-name]').value,
@@ -522,8 +546,7 @@ export const initializePromptCategoriesPage = ({
             .finally(() => {
                 busy = false;
                 render();
-                scrollingElement.scrollLeft = scrollLeft;
-                scrollingElement.scrollTop = scrollTop;
+                restorePagePosition(itemFormPagePosition);
             });
     });
     deleteForm.addEventListener('submit', (event) => {
@@ -596,6 +619,17 @@ export const initializePromptCategoriesPage = ({
     void load();
     return {
         getSections: () => ({ optionGroups: createOptionSections(groups, selectedIds) }),
+        getSelectionSnapshot: () => [...selectedIds],
+        restoreSelection: (snapshot) => {
+            const requested = new Set(Array.isArray(snapshot) ? snapshot : []);
+            const available = new Set(
+                groups.flatMap((group) => group.options.map((item) => item.id)),
+            );
+            selectedIds = new Set([...requested].filter((id) => available.has(id)));
+            normalizeSingleSelections();
+            render();
+            return [...requested].every((id) => selectedIds.has(id));
+        },
         reset: () => {
             selectedIds.clear();
             searches.clear();

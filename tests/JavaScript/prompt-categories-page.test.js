@@ -71,6 +71,11 @@ test('複数選択と単一選択をブロック設定に従って出力する',
     });
     controller.reset();
     assert.deepEqual(controller.getSections(), { optionGroups: [] });
+    assert.equal(controller.restoreSelection([10, 21, 999]), false);
+    assert.deepEqual(controller.getSelectionSnapshot(), [10, 21]);
+    assert.deepEqual(controller.getSections(), {
+        optionGroups: ['smile,', 'looking away,'],
+    });
 });
 
 test('ブロック名と選択方式を指定して追加する', async () => {
@@ -123,14 +128,12 @@ test('ブロック名と選択方式を指定して追加する', async () => {
     );
 });
 
-test('単一選択で項目を選んだ場合だけ次のブロックへ移動する', async () => {
+test('単一選択と複数選択で項目を選んでもページ位置を移動しない', async () => {
     const documentObject = createDocument();
     const scrolledGroupIds = [];
-    let scrollOptions;
-    documentObject.defaultView.HTMLElement.prototype.scrollIntoView = function (options) {
+    documentObject.defaultView.HTMLElement.prototype.scrollIntoView = function () {
         if (this.dataset.optionGroupId !== undefined) {
             scrolledGroupIds.push(this.dataset.optionGroupId);
-            scrollOptions = options;
         }
     };
     const selectionGroups = [
@@ -153,54 +156,20 @@ test('単一選択で項目を選んだ場合だけ次のブロックへ移動�
         notify: () => {},
     });
     await flush();
+    documentObject.documentElement.scrollTop = 640;
 
     documentObject.querySelector('[data-option-group-id="1"] .prompt-badge').click();
+    await new Promise((resolve) => documentObject.defaultView.setTimeout(resolve, 60));
     assert.deepEqual(scrolledGroupIds, []);
+    assert.equal(documentObject.documentElement.scrollTop, 640);
 
     documentObject.querySelector('[data-option-group-id="2"] .prompt-badge').click();
-    assert.deepEqual(scrolledGroupIds, ['3']);
-    assert.deepEqual(scrollOptions, { behavior: 'smooth', block: 'start' });
-    assert.equal(
-        documentObject.activeElement,
-        documentObject.querySelector('[data-option-group-id="3"]'),
-    );
+    await new Promise((resolve) => documentObject.defaultView.setTimeout(resolve, 60));
+    assert.deepEqual(scrolledGroupIds, []);
+    assert.equal(documentObject.documentElement.scrollTop, 640);
 
     documentObject.querySelector('[data-option-group-id="2"] .prompt-badge').click();
-    assert.deepEqual(scrolledGroupIds, ['3']);
-});
-
-test('動きを抑える設定では単一選択後にアニメーションせず移動する', async () => {
-    const documentObject = createDocument();
-    documentObject.defaultView.matchMedia = () => ({ matches: true });
-    const selectionGroups = [
-        groups[1],
-        {
-            id: 3,
-            name: '構図',
-            selectionMode: 'single',
-            position: 2,
-            options: [{ id: 30, position: 1, name: '正面', content: 'from front,' }],
-        },
-    ];
-    let scrollOptions;
-    documentObject.defaultView.HTMLElement.prototype.scrollIntoView = function (options) {
-        if (this.dataset.optionGroupId === '3') {
-            scrollOptions = options;
-        }
-    };
-    initializePromptCategoriesPage({
-        page: documentObject.querySelector('main'),
-        documentObject,
-        fetcher: async () => ({ ok: true, json: async () => ({ groups: selectionGroups }) }),
-        csrfToken: 'csrf',
-        onLoadedChange: () => {},
-        notify: () => {},
-    });
-    await flush();
-
-    documentObject.querySelector('[data-option-group-id="2"] .prompt-badge').click();
-
-    assert.deepEqual(scrollOptions, { behavior: 'auto', block: 'start' });
+    assert.deepEqual(scrolledGroupIds, []);
 });
 
 test('項目を追加・編集した後もそれぞれの操作前のページ位置を維持する', async () => {
@@ -249,6 +218,14 @@ test('項目を追加・編集した後もそれぞれの操作前のページ�
     });
     await flush();
     documentObject.documentElement.scrollTop = 900;
+    const itemDialog = documentObject.querySelector('[data-category-dialog]');
+    const closeItemDialog = itemDialog.close;
+    itemDialog.close = () => {
+        closeItemDialog();
+        documentObject.defaultView.setTimeout(() => {
+            documentObject.documentElement.scrollTop = 5000;
+        }, 0);
+    };
     const addButton = [
         ...documentObject.querySelectorAll('[data-group-id="1"] .small-button'),
     ].find((button) => button.textContent === '項目追加');
@@ -257,6 +234,7 @@ test('項目を追加・編集した後もそれぞれの操作前のページ�
     documentObject.querySelector('[data-category-content]').value = 'angry,';
     documentObject.querySelector('[data-category-form]').requestSubmit();
     await flush();
+    await new Promise((resolve) => documentObject.defaultView.setTimeout(resolve, 60));
 
     assert.deepEqual(requests[0], { groupId: 1, name: '怒り', content: 'angry,' });
     assert.equal(documentObject.documentElement.scrollTop, 900);
@@ -267,6 +245,7 @@ test('項目を追加・編集した後もそれぞれの操作前のページ�
     documentObject.querySelector('[data-category-name]').value = '強い怒り';
     documentObject.querySelector('[data-category-form]').requestSubmit();
     await flush();
+    await new Promise((resolve) => documentObject.defaultView.setTimeout(resolve, 60));
 
     assert.deepEqual(requests[1], { name: '強い怒り', content: 'angry,' });
     assert.equal(documentObject.documentElement.scrollTop, 700);
@@ -334,18 +313,29 @@ test('選択概要を通知し再取得失敗時は動的ナビゲーション�
             target: '[data-option-group-id="2"]',
         },
     ]);
-    assert.deepEqual(snapshots.at(-1).selectionGroups[0].items, [
-        { label: '笑顔', meta: '', details: [] },
-    ]);
+    assert.equal(typeof snapshots.at(-1).selectionGroups[0].items[0].onRemove, 'function');
+    assert.deepEqual(
+        snapshots.at(-1).selectionGroups[0].items.map((item) => ({
+            label: item.label,
+            meta: item.meta,
+            details: item.details,
+        })),
+        [{ label: '笑顔', meta: '', details: [] }],
+    );
 
     succeeds = false;
     documentObject.querySelector('[data-category-retry]').click();
     await flush();
 
     assert.deepEqual(snapshots.at(-1).navigationItems, []);
-    assert.deepEqual(snapshots.at(-1).selectionGroups[0].items, [
-        { label: '笑顔', meta: '', details: [] },
-    ]);
+    assert.deepEqual(
+        snapshots.at(-1).selectionGroups[0].items.map((item) => ({
+            label: item.label,
+            meta: item.meta,
+            details: item.details,
+        })),
+        [{ label: '笑顔', meta: '', details: [] }],
+    );
 });
 
 test('項目には移動先セレクトを置かず管理操作を一つのメニューにまとめる', async () => {

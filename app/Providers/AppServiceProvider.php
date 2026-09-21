@@ -7,22 +7,28 @@ use App\Application\PromptPreparation\Ports\DefaultPromptQueryService;
 use App\Application\PromptPreparation\Ports\ClothingLoraOptionQueryService;
 use App\Application\PromptPreparation\Ports\LoraPromptOptionQueryService;
 use App\Application\PromptPreparation\Ports\OptionPromptQueryService;
+use App\Application\PromptPreparation\Ports\FavoriteImageStorage;
+use App\Application\PromptPreparation\Ports\FavoritePromptQueryService;
 use App\Domain\PromptPreparation\Repositories\DefaultPromptRepository;
 use App\Domain\PromptPreparation\Repositories\LoraRepository;
 use App\Domain\PromptPreparation\Repositories\LoraTriggerRepository;
 use App\Domain\PromptPreparation\Repositories\OutfitPromptRepository;
 use App\Domain\PromptPreparation\Repositories\OptionPromptRepository;
 use App\Domain\PromptPreparation\Repositories\OptionPromptGroupRepository;
+use App\Domain\PromptPreparation\Repositories\FavoritePromptRepository;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentDefaultPromptRepository;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentLoraRepository;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentLoraTriggerRepository;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentOutfitPromptRepository;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentOptionPromptRepository;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentOptionPromptGroupRepository;
+use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentFavoritePromptRepository;
 use App\Infrastructure\PromptPreparation\Queries\EloquentDefaultPromptQueryService;
 use App\Infrastructure\PromptPreparation\Queries\EloquentClothingLoraOptionQueryService;
 use App\Infrastructure\PromptPreparation\Queries\EloquentLoraPromptOptionQueryService;
 use App\Infrastructure\PromptPreparation\Queries\EloquentOptionPromptQueryService;
+use App\Infrastructure\PromptPreparation\Queries\EloquentFavoritePromptQueryService;
+use App\Infrastructure\PromptPreparation\Storage\LaravelFavoriteImageStorage;
 use Illuminate\Support\ServiceProvider;
 use App\Infrastructure\Shared\LaravelTransactionManager;
 
@@ -44,6 +50,9 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(OptionPromptGroupRepository::class, EloquentOptionPromptGroupRepository::class);
         $this->app->bind(TransactionManager::class, LaravelTransactionManager::class);
         $this->app->bind(OptionPromptQueryService::class, EloquentOptionPromptQueryService::class);
+        $this->app->bind(FavoritePromptRepository::class, EloquentFavoritePromptRepository::class);
+        $this->app->bind(FavoritePromptQueryService::class, EloquentFavoritePromptQueryService::class);
+        $this->app->bind(FavoriteImageStorage::class, LaravelFavoriteImageStorage::class);
     }
 
     /**

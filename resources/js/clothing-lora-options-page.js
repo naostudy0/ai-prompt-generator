@@ -23,6 +23,8 @@ export const initializeClothingLoraOptionsPage = ({
         onLoadedChange(true);
         return {
             getSelections: () => ({ clothingLoras: '', clothingLoraTriggers: '' }),
+            getSelectionSnapshot: () => [],
+            restoreSelection: () => false,
             reset: () => {},
         };
     }
@@ -74,6 +76,10 @@ export const initializeClothingLoraOptionsPage = ({
                             label: lora.name,
                             meta: `強度 ${selected.strength}`,
                             details: trigger === undefined ? [] : [`トリガー：${trigger.name}`],
+                            onRemove: () => {
+                                state.selections.delete(lora.id);
+                                render();
+                            },
                         };
                     }),
             },
@@ -400,6 +406,39 @@ export const initializeClothingLoraOptionsPage = ({
                 clothingLoras: sections.loras,
                 clothingLoraTriggers: sections.triggers,
             };
+        },
+        getSelectionSnapshot: () =>
+            [...state.selections].map(([loraId, selection]) => ({
+                loraId,
+                strength: selection.strength,
+                triggerId: selection.triggerId,
+            })),
+        restoreSelection: (snapshot) => {
+            state.selections.clear();
+            let complete = true;
+            for (const selected of Array.isArray(snapshot) ? snapshot : []) {
+                const lora = state.loras.find((item) => item.id === selected.loraId);
+                if (lora === undefined) {
+                    complete = false;
+                    continue;
+                }
+                const trigger = state.triggers.find(
+                    (item) => item.id === selected.triggerId && item.loraId === lora.id,
+                );
+                if (
+                    selected.triggerId !== null &&
+                    selected.triggerId !== undefined &&
+                    trigger === undefined
+                ) {
+                    complete = false;
+                }
+                state.selections.set(lora.id, {
+                    strength: selected.strength,
+                    triggerId: trigger?.id ?? null,
+                });
+            }
+            render();
+            return complete;
         },
         reset: () => {
             state.selections.clear();

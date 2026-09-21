@@ -33,12 +33,13 @@ docker compose run --rm app composer install
 docker compose run --rm app php artisan key:generate
 docker compose run --rm app touch database/database.sqlite
 docker compose run --rm app php artisan migrate
+docker compose run --rm app php artisan storage:link
 docker compose run --rm app sh -c 'chown -R www-data:www-data storage bootstrap/cache database && chmod -R ug+rwX storage bootstrap/cache database'
 docker compose up -d
 ```
 
 DBとソースはホスト側に保存され、`docker compose down`後も残ります。
-現在はLaravel初期画面までのセットアップです。Node.js 24は`node`サービスで利用できます。AIプロンプト生成機能は未実装です。
+お気に入りへ添付した画像は`storage/app/public/favorite-prompts`へ保存され、`public/storage`のシンボリックリンクから表示されます。Node.js 24は`node`サービスで利用できます。
 
 ## 静的チェック
 
