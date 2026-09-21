@@ -257,10 +257,22 @@
                 <div class="editor-actions favorite-actions">
                     <button class="primary-button" type="button" data-favorite-save disabled>お気に入りへ保存</button>
                     <button class="secondary-button" type="button" data-favorite-open disabled>お気に入りを開く</button>
+                    <button class="secondary-button" type="button" data-character-variant-open disabled>人物LoRAを差し替えてコピー</button>
                 </div>
             </section>
 
             <div class="toast" data-toast role="status" aria-live="polite" hidden></div>
+
+            <dialog class="option-dialog character-variant-dialog" data-character-variant-dialog>
+                <div class="subsection-heading">
+                    <h2>人物LoRAを差し替えてコピー</h2>
+                    <button class="secondary-button" type="button" data-character-variant-close>閉じる</button>
+                </div>
+                <label class="field-label" for="character-variant-search">人物LoRAを検索</label>
+                <input id="character-variant-search" class="text-input" type="search" data-character-variant-search>
+                <p class="editor-status" data-character-variant-status role="status" aria-live="polite"></p>
+                <div class="character-variant-list" data-character-variant-list></div>
+            </dialog>
 
             <dialog class="option-dialog favorite-dialog" data-favorite-form-dialog>
                 <form data-favorite-form enctype="multipart/form-data">

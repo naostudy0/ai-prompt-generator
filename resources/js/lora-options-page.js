@@ -25,6 +25,7 @@ export const initializeLoraOptionsPage = ({
         return {
             getSelections: () => ({ lora: '', trigger: '', outfit: '' }),
             getSelectionSnapshot: () => ({}),
+            getVariantCandidates: () => null,
             restoreSelection: () => false,
             reset: () => {},
         };
@@ -513,6 +514,13 @@ export const initializeLoraOptionsPage = ({
             triggerId: state.selectedTriggerId,
             outfitId: state.selectedOutfitId,
         }),
+        getVariantCandidates: () =>
+            state.loaded
+                ? {
+                      loras: [...state.loras],
+                      triggers: [...state.triggers],
+                  }
+                : null,
         restoreSelection: (snapshot) => {
             const lora = state.loras.find((item) => item.id === snapshot?.loraId) ?? null;
             state.selectedLoraId = lora?.id ?? null;

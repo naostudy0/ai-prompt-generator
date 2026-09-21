@@ -27,6 +27,7 @@ export const initializePromptCategoriesPage = ({
             getSelectionSnapshot: () => [],
             restoreSelection: () => false,
             reset: () => {},
+            reorderGroup: () => {},
         };
     }
 
@@ -618,6 +619,20 @@ export const initializePromptCategoriesPage = ({
 
     void load();
     return {
+        reorderGroup: (id, beforeId) => {
+            if (!loaded || busy || id === beforeId || !groupById(id)) {
+                return;
+            }
+            const without = groups.filter((group) => group.id !== id);
+            const index =
+                beforeId === null
+                    ? without.length
+                    : without.findIndex((group) => group.id === beforeId);
+            if (index < 0 || index === groups.findIndex((group) => group.id === id)) {
+                return;
+            }
+            moveGroupToIndex(id, index);
+        },
         getSections: () => ({ optionGroups: createOptionSections(groups, selectedIds) }),
         getSelectionSnapshot: () => [...selectedIds],
         restoreSelection: (snapshot) => {

@@ -149,6 +149,183 @@ const addCategoryControls = (documentObject) => {
     );
 };
 
+test('生成後の手編集と衣装文面を保持して別人物のpositiveをコピーする', async () => {
+    const documentObject = createDocument();
+    addLoraControls(documentObject);
+    const page = documentObject.querySelector('main');
+    page.insertAdjacentHTML(
+        'beforeend',
+        `<button data-character-variant-open disabled>差し替え</button>
+        <dialog data-character-variant-dialog>
+            <button data-character-variant-close>閉じる</button>
+            <input data-character-variant-search>
+            <p data-character-variant-status></p>
+            <div data-character-variant-list></div>
+        </dialog>`,
+    );
+    const dialog = page.querySelector('[data-character-variant-dialog]');
+    dialog.showModal = () => {
+        dialog.open = true;
+    };
+    dialog.close = () => {
+        dialog.open = false;
+    };
+    const copied = [];
+    const lora = (id, name, fileName) => ({
+        id,
+        name,
+        fileName,
+        recommendedStrength: 0.8,
+        tags: Array.from({ length: 11 }, (_, step) => `<lora:${fileName}:${step / 10}>,`),
+    });
+    const fetcher = async (url) =>
+        successfulResponse(
+            url === '/default-prompts'
+                ? { positive: 'masterpiece,', negative: 'bad anatomy,' }
+                : {
+                      loras: [lora(1, '元人物', 'first'), lora(2, '別人物', 'second')],
+                      triggers: [
+                          { id: 1, loraId: 1, name: '標準', content: 'brown hair,' },
+                          { id: 2, loraId: 2, name: '標準', content: 'blue hair,' },
+                      ],
+                      outfits: [],
+                  },
+        );
+    initializePromptPreparationPage({
+        documentObject,
+        fetcher,
+        clipboard: { writeText: async (value) => copied.push(value) },
+    });
+    await flushAsyncEvents();
+    const loraList = page.querySelector('[data-lora-list]');
+    loraList.value = '1';
+    loraList.dispatchEvent(new documentObject.defaultView.Event('change'));
+    page.querySelector('[data-display]').click();
+    const positive = page.querySelector('[data-output="positive"] [data-output-content]');
+    const negative = page.querySelector('[data-output="negative"] [data-output-content]');
+    positive.value += '\n\n<lora:dress:1>,\n\npark, custom,';
+    positive.dispatchEvent(new documentObject.defaultView.Event('input'));
+    const originalPositive = positive.value;
+    const originalNegative = negative.value;
+    page.querySelector('[data-character-variant-open]').click();
+    page.querySelectorAll('.character-variant-item')[1].click();
+    await flushAsyncEvents();
+
+    assert.equal(copied.length, 1);
+    assert.match(copied[0], /<lora:second:0\.8>,\n\nblue hair,/);
+    assert.match(copied[0], /<lora:dress:1>,\n\npark, custom,/);
+    assert.equal(positive.value, originalPositive);
+    assert.equal(negative.value, originalNegative);
+    assert.equal(loraList.value, '1');
+});
+
+test('お気に入りを復元した直後に保存済み人物LoRAを差し替えてコピーする', async () => {
+    const documentObject = createDocument();
+    addLoraControls(documentObject);
+    const page = documentObject.querySelector('main');
+    page.dataset.favoritePromptsUrl = '/favorite-prompts';
+    page.insertAdjacentHTML(
+        'beforeend',
+        `<button data-character-variant-open disabled>差し替え</button>
+        <dialog data-character-variant-dialog>
+            <button data-character-variant-close>閉じる</button>
+            <input data-character-variant-search>
+            <p data-character-variant-status></p>
+            <div data-character-variant-list></div>
+        </dialog>
+        <button data-favorite-open>お気に入り</button>
+        <dialog data-favorite-form-dialog><form data-favorite-form>
+            <h2 data-favorite-form-title></h2><input data-favorite-name>
+            <input type="file" data-favorite-image>
+            <label data-favorite-remove-field><input type="checkbox" data-favorite-remove-image></label>
+            <div data-favorite-selection-preview></div><p data-favorite-form-status></p>
+            <button type="submit" data-favorite-submit></button>
+            <button type="button" data-favorite-save-copy></button>
+            <button type="button" data-favorite-form-cancel></button>
+        </form></dialog>
+        <dialog data-favorite-list-dialog>
+            <p data-favorite-list-status></p><div data-favorite-list></div>
+            <button data-favorite-list-retry></button><button data-favorite-list-close></button>
+        </dialog>`,
+    );
+    documentObject.defaultView.HTMLDialogElement.prototype.showModal = function () {
+        this.open = true;
+    };
+    documentObject.defaultView.HTMLDialogElement.prototype.close = function () {
+        this.open = false;
+    };
+    const savedPositive =
+        'custom,\n\nmasterpiece,\n\n<lora:first:0.8>,\n\nbrown hair,\n\n<lora:dress:1>,'.replaceAll(
+            '\n',
+            '\r\n',
+        );
+    const favorite = {
+        id: 7,
+        displayName: '保存済み',
+        imageUrl: null,
+        createdAt: '2026-09-19T12:00:00+09:00',
+        selectionSummary: [],
+        positivePrompt: savedPositive,
+        negativePrompt: 'bad anatomy,',
+        selectionSnapshot: {
+            defaults: { positive: true, negative: true },
+            lora: { loraId: 1, triggerId: 1, outfitId: null, strength: 0.8 },
+            clothingLoras: [],
+            optionIds: [],
+        },
+    };
+    const lora = (id, name, fileName) => ({
+        id,
+        name,
+        fileName,
+        recommendedStrength: 0.8,
+        tags: Array.from({ length: 11 }, (_, step) => `<lora:${fileName}:${step / 10}>,`),
+    });
+    const fetcher = async (url) => {
+        if (url === '/default-prompts') {
+            return successfulResponse({ positive: 'masterpiece,', negative: 'bad anatomy,' });
+        }
+        if (url === '/favorite-prompts') {
+            return successfulResponse({ favorites: [favorite] });
+        }
+        if (url === '/favorite-prompts/7') {
+            return successfulResponse(favorite);
+        }
+        return successfulResponse({
+            loras: [lora(1, '元人物', 'first'), lora(2, '別人物', 'second')],
+            triggers: [
+                { id: 1, loraId: 1, name: '標準', content: 'brown hair,' },
+                { id: 2, loraId: 2, name: '標準', content: 'blue hair,' },
+            ],
+            outfits: [],
+        });
+    };
+    const copied = [];
+    initializePromptPreparationPage({
+        documentObject,
+        fetcher,
+        clipboard: { writeText: async (value) => copied.push(value) },
+    });
+    await flushAsyncEvents();
+    page.querySelector('[data-favorite-open]').click();
+    await flushAsyncEvents();
+    page.querySelector('.favorite-card .primary-button').click();
+    await flushAsyncEvents();
+    assert.equal(
+        page.querySelector('[data-output="positive"] [data-output-content]').value,
+        savedPositive.replaceAll('\r\n', '\n'),
+    );
+    page.querySelector('[data-character-variant-open]').click();
+    page.querySelectorAll('.character-variant-item')[1].click();
+    await flushAsyncEvents();
+
+    assert.equal(copied.length, 1);
+    assert.equal(
+        copied[0],
+        'custom,\n\nmasterpiece,\n\n<lora:second:0.8>,\n\nblue hair,\n\n<lora:dress:1>,',
+    );
+});
+
 test('全カテゴリの選択概要を表示して確定順でpositiveへ出力する', async () => {
     const documentObject = createDocument();
     addLoraControls(documentObject);

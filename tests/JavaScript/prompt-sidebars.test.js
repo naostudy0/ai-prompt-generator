@@ -143,3 +143,37 @@ test('同名セクションをキーで区別して対象へ即時移動する',
     assert.deepEqual(secondScrollOptions, { behavior: 'auto', block: 'start' });
     assert.equal(document.activeElement, document.querySelector('[data-group="2"]'));
 });
+
+test('左メニューのオプションブロックをドラッグして保存用の順序を渡す', () => {
+    const dom = new JSDOM(`<!doctype html><main>
+        <nav><div data-section-navigation-list></div></nav>
+        <aside><div data-selection-summary-list></div></aside>
+    </main>`);
+    const { document, Event } = dom.window;
+    const moves = [];
+    const sidebars = initializePromptSidebars({
+        page: document.querySelector('main'),
+        documentObject: document,
+        onReorderOptionGroup: (id, beforeId) => moves.push([id, beforeId]),
+    });
+    sidebars.update('optionGroups', {
+        navigationItems: [
+            { key: 'option-group-1', label: '表情', target: '[data-first]' },
+            { key: 'option-group-2', label: '視線', target: '[data-second]' },
+            { key: 'option-group-3', label: '場所', target: '[data-third]' },
+        ],
+        selectionGroups: [],
+    });
+    const handles = document.querySelectorAll('.section-navigation__drag');
+    const rows = document.querySelectorAll('.section-navigation__row');
+    rows[1].getBoundingClientRect = () => ({ top: 0, height: 40 });
+
+    handles[2].dispatchEvent(new Event('dragstart', { bubbles: true }));
+    rows[1].dispatchEvent(new Event('dragover', { bubbles: true, cancelable: true }));
+    const drop = new Event('drop', { bubbles: true, cancelable: true });
+    Object.defineProperty(drop, 'clientY', { value: 10 });
+    rows[1].dispatchEvent(drop);
+
+    assert.deepEqual(moves, [[3, 2]]);
+    assert.equal(drop.defaultPrevented, true);
+});

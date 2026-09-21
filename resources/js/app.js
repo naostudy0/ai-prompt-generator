@@ -12,6 +12,12 @@ import { createPositivePromptSections } from './positive-prompt-sections.js';
 import { initializePromptSidebars } from './prompt-sidebars.js';
 import { initializeFavoritePromptsPage } from './favorite-prompts-page.js';
 import { normalizePromptForComparison } from './prompt-text.js';
+import { initializeCharacterLoraVariantPage } from './character-lora-variant-page.js';
+import {
+    createCharacterLoraSourceMetadata,
+    locateCharacterLoraSourceMetadata,
+    trackCharacterLoraSourceEdit,
+} from './character-lora-variant.js';
 
 export const initializePromptPreparationPage = ({
     documentObject = document,
@@ -51,16 +57,25 @@ export const initializePromptPreparationPage = ({
         clothingLora: false,
         optionGroups: false,
     };
-    const sidebars = initializePromptSidebars({ page, documentObject });
+    const sidebars = initializePromptSidebars({
+        page,
+        documentObject,
+        onReorderOptionGroup: (id, beforeId) =>
+            promptCategoriesController.reorderGroup(id, beforeId),
+    });
     let promptsLoaded = false;
     let loraOptionsLoaded = false;
     let clothingLoraOptionsLoaded = false;
     let promptCategoriesLoaded = false;
     let editingPrompt = false;
     let toastTimer;
+    let variantSourceMetadata = null;
+    let previousPositiveOutput = '';
+    let characterVariantController = { updateAvailability: () => {} };
     let loraOptionsController = {
         getSelections: () => ({ lora: '', trigger: '', outfit: '' }),
         getSelectionSnapshot: () => ({}),
+        getVariantCandidates: () => null,
         restoreSelection: () => false,
         reset: () => {},
     };
@@ -71,6 +86,7 @@ export const initializePromptPreparationPage = ({
         reset: () => {},
     };
     let promptCategoriesController = {
+        reorderGroup: () => {},
         getSections: () => ({
             expression: '',
             gaze: '',
@@ -375,6 +391,12 @@ export const initializePromptPreparationPage = ({
             outputs.positive,
             createPositivePromptSections({ ...lora, ...clothingLora }, categories),
         );
+        variantSourceMetadata = createCharacterLoraSourceMetadata(
+            createPromptOutputs(savedPrompts, selectedPrompts).positive,
+            lora.lora,
+            lora.trigger,
+        );
+        previousPositiveOutput = outputs.positive;
 
         for (const polarity of ['positive', 'negative']) {
             const outputElement = getOutputElement(polarity);
@@ -395,10 +417,14 @@ export const initializePromptPreparationPage = ({
             }
         }
 
+        characterVariantController.updateAvailability();
+
         outputSection?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
     };
 
     const resetPrompts = () => {
+        variantSourceMetadata = null;
+        previousPositiveOutput = '';
         selectedPrompts.positive = true;
         selectedPrompts.negative = true;
         promptElements.forEach((element) => {
@@ -424,6 +450,7 @@ export const initializePromptPreparationPage = ({
             }
             updateCopyAvailability(element);
         });
+        characterVariantController.updateAvailability();
         page.querySelector('[data-lora-options]')?.scrollIntoView?.({
             behavior: 'smooth',
             block: 'start',
@@ -495,6 +522,16 @@ export const initializePromptPreparationPage = ({
             }
 
             updateCopyAvailability(outputElement);
+            if (outputElement.dataset.output === 'positive' && variantSourceMetadata !== null) {
+                const current = outputElement.querySelector('[data-output-content]')?.value ?? '';
+                variantSourceMetadata = trackCharacterLoraSourceEdit(
+                    variantSourceMetadata,
+                    previousPositiveOutput,
+                    current,
+                );
+                previousPositiveOutput = current;
+            }
+            characterVariantController.updateAvailability();
             resizeOutputContent(outputElement.querySelector('[data-output-content]'));
         });
         outputElement.querySelector('[data-copy]')?.addEventListener('click', () => {
@@ -517,6 +554,7 @@ export const initializePromptPreparationPage = ({
         onLoadedChange: (loaded) => {
             loraOptionsLoaded = loaded;
             updateActionAvailability();
+            characterVariantController.updateAvailability();
         },
     });
     clothingLoraOptionsController = initializeClothingLoraOptionsPage({
@@ -542,6 +580,20 @@ export const initializePromptPreparationPage = ({
             promptCategoriesLoaded = loaded;
             updateActionAvailability();
         },
+    });
+    characterVariantController = initializeCharacterLoraVariantPage({
+        page,
+        documentObject,
+        clipboard,
+        getCandidates: () => loraOptionsController.getVariantCandidates(),
+        getSource: () => {
+            const positive =
+                getOutputElement('positive')?.querySelector('[data-output-content]')?.value;
+            return positive && variantSourceMetadata
+                ? { positive, original: { ...variantSourceMetadata } }
+                : null;
+        },
+        notify: showToast,
     });
     initializeFavoritePromptsPage({
         page,
@@ -586,11 +638,12 @@ export const initializePromptPreparationPage = ({
                     .map((item) => item.label);
             });
             const generated = createPromptOutputs(savedPrompts, selectedPrompts);
+            const restoredLora = loraOptionsController.getSelections();
             generated.positive = createPositivePromptOutput(
                 generated.positive,
                 createPositivePromptSections(
                     {
-                        ...loraOptionsController.getSelections(),
+                        ...restoredLora,
                         ...clothingLoraOptionsController.getSelections(),
                     },
                     promptCategoriesController.getSections(),
@@ -607,8 +660,19 @@ export const initializePromptPreparationPage = ({
                     updateCopyAvailability(outputElement);
                 }
             }
+            previousPositiveOutput =
+                getOutputElement('positive')?.querySelector('[data-output-content]')?.value ?? '';
+            variantSourceMetadata = locateCharacterLoraSourceMetadata(
+                previousPositiveOutput,
+                createCharacterLoraSourceMetadata(
+                    createPromptOutputs(savedPrompts, selectedPrompts).positive,
+                    restoredLora.lora,
+                    restoredLora.trigger,
+                ),
+            );
             outputSection?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
             updateActionAvailability();
+            characterVariantController.updateAvailability();
             return {
                 complete: unavailableLabels.length === 0,
                 unavailableLabels,
