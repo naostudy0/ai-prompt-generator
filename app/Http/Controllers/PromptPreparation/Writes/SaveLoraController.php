@@ -22,6 +22,7 @@ final class SaveLoraController extends Controller
                 name: $request->string('name')->toString(),
                 fileName: $request->string('fileName')->toString(),
                 recommendedStrength: $request->float('recommendedStrength'),
+                modelFamilyId: $request->has('modelFamilyId') ? $request->integer('modelFamilyId') : null,
             ), LoraKind::Character);
         } catch (DuplicateLoraFileName) {
             throw ValidationException::withMessages([

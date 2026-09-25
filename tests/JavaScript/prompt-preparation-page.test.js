@@ -73,6 +73,106 @@ const flushAsyncEvents = async () => {
 
 const pendingResponse = () => new Promise(() => {});
 
+test('人物LoRAを選ぶと系統別のpositiveとnegativeを出力する', async () => {
+    const documentObject = createDocument();
+    const page = documentObject.querySelector('main');
+    page.dataset.modelFamiliesUrl = '/model-families';
+    page.querySelector('[data-default-prompts-section]').insertAdjacentHTML(
+        'afterbegin',
+        `<strong data-active-family-name>Illustrious</strong>
+         <select data-edit-family><option value="1">Illustrious</option></select>`,
+    );
+    addLoraControls(documentObject);
+    const tags = Array.from(
+        { length: 11 },
+        (_, step) => `<lora:anima.safetensors:${step === 10 ? '1' : (step / 10).toFixed(1)}>,`,
+    );
+    const fetcher = async (url) => {
+        if (url === '/default-prompts') {
+            return successfulResponse({ positive: 'ill positive,', negative: 'ill negative,' });
+        }
+        if (url === '/model-families') {
+            return successfulResponse([
+                { id: 1, name: 'Illustrious' },
+                { id: 2, name: 'anima' },
+            ]);
+        }
+        if (url === '/model-families/1/default-prompts') {
+            return successfulResponse({ positive: 'ill positive,', negative: 'ill negative,' });
+        }
+        if (url === '/model-families/2/default-prompts') {
+            return successfulResponse({ positive: 'anima positive,', negative: 'anima negative,' });
+        }
+        if (url === '/lora-prompt-options') {
+            return successfulResponse({
+                loras: [
+                    {
+                        id: 3,
+                        name: 'anima人物',
+                        fileName: 'anima.safetensors',
+                        recommendedStrength: 1,
+                        modelFamilyId: 2,
+                        tags,
+                    },
+                ],
+                triggers: [],
+                outfits: [],
+            });
+        }
+        throw new Error(`Unexpected request: ${url}`);
+    };
+
+    initializePromptPreparationPage({ documentObject, fetcher });
+    await flushAsyncEvents();
+    const loraList = page.querySelector('[data-lora-list]');
+    loraList.value = '3';
+    loraList.dispatchEvent(new documentObject.defaultView.Event('change'));
+    page.querySelector('[data-display]').click();
+
+    assert.equal(page.querySelector('[data-active-family-name]').textContent, 'anima');
+    assert.equal(
+        page.querySelector('[data-output="positive"] [data-output-content]').value,
+        'anima positive,\n\n<lora:anima.safetensors:1>,',
+    );
+    assert.equal(
+        page.querySelector('[data-output="negative"] [data-output-content]').value,
+        'anima negative,',
+    );
+});
+
+test('系統別文面の再取得に失敗したら以前の文面で出力しない', async () => {
+    const documentObject = createDocument();
+    const page = documentObject.querySelector('main');
+    page.dataset.modelFamiliesUrl = '/model-families';
+    let failFamilyPrompt = false;
+    const fetcher = async (url) => {
+        if (url === '/default-prompts') {
+            return successfulResponse({ positive: 'old positive,', negative: 'old negative,' });
+        }
+        if (url === '/model-families') {
+            return successfulResponse([{ id: 1, name: 'Illustrious' }]);
+        }
+        if (url === '/model-families/1/default-prompts') {
+            return failFamilyPrompt
+                ? { ok: false }
+                : successfulResponse({ positive: 'old positive,', negative: 'old negative,' });
+        }
+        throw new Error(`Unexpected request: ${url}`);
+    };
+    initializePromptPreparationPage({ documentObject, fetcher });
+    await flushAsyncEvents();
+    const displayButton = page.querySelector('[data-display]');
+    assert.equal(displayButton.disabled, false);
+    failFamilyPrompt = true;
+    page.querySelector('[data-retry]').click();
+    await flushAsyncEvents();
+
+    assert.equal(displayButton.disabled, true);
+    displayButton.click();
+    assert.equal(page.querySelector('[data-output="positive"] [data-output-content]').value, '');
+    assert.match(page.querySelector('[data-load-status]').textContent, /再読み込み/);
+});
+
 const addLoraControls = (documentObject) => {
     const page = documentObject.querySelector('main');
     page.dataset.loraOptionsUrl = '/lora-prompt-options';

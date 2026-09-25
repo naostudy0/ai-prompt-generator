@@ -8,15 +8,10 @@ final class DefaultPromptRecord extends Model
 {
     protected $table = 'default_prompts';
 
-    protected $primaryKey = 'polarity';
-
-    public $incrementing = false;
-
-    protected $keyType = 'string';
-
     /** @var list<string> */
     protected $fillable = [
         'polarity',
+        'model_family_id',
         'content',
     ];
 }

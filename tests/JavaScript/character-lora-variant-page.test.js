@@ -147,3 +147,107 @@ test('クリップボード失敗時は成功通知せず候補一覧を保持�
     );
     assert.equal(notifications.length, 0);
 });
+
+test('別系統の人物LoRAへ差し替えると両側のデフォルトを候補系統へ変えてコピーする', async () => {
+    const dom = new JSDOM(`<main>
+        <button data-character-variant-open>差し替え</button>
+        <dialog data-character-variant-dialog>
+            <button data-character-variant-close>閉じる</button>
+            <input data-character-variant-search>
+            <p data-character-variant-status></p>
+            <div data-character-variant-list></div>
+        </dialog>
+    </main>`);
+    const page = dom.window.document.querySelector('main');
+    page.querySelector('dialog').showModal = () => {};
+    const copied = [];
+    initializeCharacterLoraVariantPage({
+        page,
+        documentObject: dom.window.document,
+        clipboard: { writeText: async (value) => copied.push(value) },
+        getCandidates: () => ({
+            loras: [
+                {
+                    id: 2,
+                    name: 'anima人物',
+                    fileName: 'anima',
+                    modelFamilyId: 2,
+                    modelFamilyName: 'anima',
+                    recommendedStrength: 1,
+                    tags: Array(11).fill('<lora:anima:1>,'),
+                },
+            ],
+            triggers: [],
+        }),
+        getSource: () => ({
+            positive: 'ill positive,\n\n<lora:ill:1>,\n\nstanding,',
+            negative: 'ill negative,\n\nmanual negative,',
+            original: createCharacterLoraSourceMetadata('ill positive,', '<lora:ill:1>,', ''),
+            family: {
+                modelFamilyId: 1,
+                defaults: { positive: true, negative: true },
+                defaultSections: { positive: 'ill positive,', negative: 'ill negative,' },
+            },
+        }),
+        getFamilyPrompts: () => ({ positive: 'anima positive,', negative: 'anima negative,' }),
+        notify: () => {},
+    });
+    page.querySelector('[data-character-variant-open]').click();
+    page.querySelector('.character-variant-item').click();
+    await setImmediate();
+    page.querySelector('.character-variant-row .small-button').click();
+    await setImmediate();
+
+    assert.equal(copied[0], 'anima positive,\n\n<lora:anima:1>,\n\nstanding,');
+    assert.equal(copied[1], 'anima negative,\n\nmanual negative,');
+});
+
+test('positiveの人物タグが手編集されてもnegativeは個別にコピーできる', async () => {
+    const dom = new JSDOM(`<main>
+        <button data-character-variant-open>差し替え</button>
+        <dialog data-character-variant-dialog>
+            <button data-character-variant-close>閉じる</button>
+            <input data-character-variant-search>
+            <p data-character-variant-status></p>
+            <div data-character-variant-list></div>
+        </dialog>
+    </main>`);
+    const page = dom.window.document.querySelector('main');
+    page.querySelector('dialog').showModal = () => {};
+    const copied = [];
+    initializeCharacterLoraVariantPage({
+        page,
+        documentObject: dom.window.document,
+        clipboard: { writeText: async (value) => copied.push(value) },
+        getCandidates: () => ({
+            loras: [
+                {
+                    id: 2,
+                    name: 'anima人物',
+                    fileName: 'anima',
+                    modelFamilyId: 2,
+                    recommendedStrength: 1,
+                    tags: Array(11).fill('<lora:anima:1>,'),
+                },
+            ],
+            triggers: [],
+        }),
+        getSource: () => ({
+            positive: 'old positive,\n\n<lora:edited:1>,',
+            negative: 'old negative,\n\nmanual,',
+            original: createCharacterLoraSourceMetadata('old positive,', '<lora:original:1>,', ''),
+            family: {
+                modelFamilyId: 1,
+                defaults: { positive: true, negative: true },
+                defaultSections: { positive: 'old positive,', negative: 'old negative,' },
+            },
+        }),
+        getFamilyPrompts: () => ({ positive: 'new positive,', negative: 'new negative,' }),
+        notify: () => {},
+    });
+    page.querySelector('[data-character-variant-open]').click();
+    page.querySelector('.character-variant-row .small-button').click();
+    await setImmediate();
+
+    assert.deepEqual(copied, ['new negative,\n\nmanual,']);
+});

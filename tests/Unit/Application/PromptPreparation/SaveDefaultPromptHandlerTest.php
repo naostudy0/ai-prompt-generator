@@ -7,6 +7,7 @@ use App\Application\PromptPreparation\Writes\SaveDefaultPrompt\SaveDefaultPrompt
 use App\Domain\PromptPreparation\Models\DefaultPrompt\DefaultPrompt;
 use App\Domain\PromptPreparation\Models\DefaultPrompt\PromptPolarity;
 use App\Domain\PromptPreparation\Repositories\DefaultPromptRepository;
+use App\Domain\PromptPreparation\Repositories\ModelFamilyRepository;
 use PHPUnit\Framework\TestCase;
 
 class SaveDefaultPromptHandlerTest extends TestCase
@@ -23,7 +24,7 @@ class SaveDefaultPromptHandlerTest extends TestCase
                 $this->savedDefaultPrompt = $defaultPrompt;
             }
         };
-        $handler = new SaveDefaultPromptHandler($repository);
+        $handler = new SaveDefaultPromptHandler($repository, $this->createMock(ModelFamilyRepository::class));
 
         $result = $handler->handle(new SaveDefaultPromptInput(
             polarity: PromptPolarity::Positive,
@@ -49,7 +50,7 @@ class SaveDefaultPromptHandlerTest extends TestCase
                 $this->savedDefaultPrompt = $defaultPrompt;
             }
         };
-        $handler = new SaveDefaultPromptHandler($repository);
+        $handler = new SaveDefaultPromptHandler($repository, $this->createMock(ModelFamilyRepository::class));
 
         $result = $handler->handle(new SaveDefaultPromptInput(
             polarity: PromptPolarity::Negative,
@@ -75,7 +76,7 @@ class SaveDefaultPromptHandlerTest extends TestCase
                 $this->savedDefaultPrompt = $defaultPrompt;
             }
         };
-        $handler = new SaveDefaultPromptHandler($repository);
+        $handler = new SaveDefaultPromptHandler($repository, $this->createMock(ModelFamilyRepository::class));
 
         $result = $handler->handle(new SaveDefaultPromptInput(
             polarity: PromptPolarity::Positive,

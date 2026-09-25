@@ -6,6 +6,7 @@ use App\Domain\PromptPreparation\Models\DefaultPrompt\PromptPolarity;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Models\DefaultPromptRecord;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class DatabaseSeederTest extends TestCase
@@ -53,6 +54,42 @@ class DatabaseSeederTest extends TestCase
         $this->assertDatabaseHas('default_prompts', [
             'polarity' => PromptPolarity::Negative->value,
             'content' => $emptyNegative,
+        ]);
+    }
+
+    public function test_再実行しても人物LoRAの変更済み系統と他系統の文面を保持する(): void
+    {
+        $familyId = DB::table('model_families')->insertGetId([
+            'name' => 'anima',
+            'normalized_name' => 'anima',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $positive = 'anima quality,';
+        DB::table('default_prompts')->insert([
+            'model_family_id' => $familyId,
+            'polarity' => PromptPolarity::Positive->value,
+            'content' => $positive,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $loraId = DB::table('loras')->insertGetId([
+            'name' => '人物',
+            'file_name' => 'person.safetensors',
+            'recommended_strength_step' => 10,
+            'kind' => 'character',
+            'model_family_id' => $familyId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->seed(DatabaseSeeder::class);
+
+        $this->assertDatabaseHas('loras', ['id' => $loraId, 'model_family_id' => $familyId]);
+        $this->assertDatabaseHas('default_prompts', [
+            'model_family_id' => $familyId,
+            'polarity' => PromptPolarity::Positive->value,
+            'content' => $positive,
         ]);
     }
 }

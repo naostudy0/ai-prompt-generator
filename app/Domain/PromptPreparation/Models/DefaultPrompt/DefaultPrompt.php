@@ -9,6 +9,7 @@ final readonly class DefaultPrompt
     public function __construct(
         public PromptPolarity $polarity,
         public PromptText $text,
+        public int $modelFamilyId = 1,
     ) {
     }
 }

@@ -9,6 +9,7 @@ final readonly class SaveLoraInput
         public string $name,
         public string $fileName,
         public int|float $recommendedStrength,
+        public ?int $modelFamilyId = null,
     ) {
     }
 }

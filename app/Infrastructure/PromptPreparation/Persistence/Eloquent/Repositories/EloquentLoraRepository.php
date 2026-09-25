@@ -28,6 +28,7 @@ final class EloquentLoraRepository implements LoraRepository
                 'file_name' => $lora->fileName->value,
                 'recommended_strength_step' => $lora->recommendedStrength->step,
                 'kind' => $lora->kind->value,
+                'model_family_id' => $lora->modelFamilyId,
             ])->save();
         } catch (UniqueConstraintViolationException $exception) {
             throw new DuplicateLoraFileName(previous: $exception);
@@ -39,6 +40,7 @@ final class EloquentLoraRepository implements LoraRepository
             fileName: new LoraFileName($record->file_name),
             recommendedStrength: LoraStrength::fromStep($record->recommended_strength_step),
             kind: LoraKind::from($record->kind),
+            modelFamilyId: $record->model_family_id,
         );
     }
 

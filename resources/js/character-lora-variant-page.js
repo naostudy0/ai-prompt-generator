@@ -3,6 +3,7 @@ import {
     getCharacterLoraCandidates,
 } from './character-lora-variant.js';
 import { writePromptToClipboard } from './default-prompts.js';
+import { replaceModelFamilyDefault } from './model-family-default-variant.js';
 
 export const initializeCharacterLoraVariantPage = ({
     page,
@@ -10,6 +11,7 @@ export const initializeCharacterLoraVariantPage = ({
     clipboard,
     getCandidates,
     getSource,
+    getFamilyPrompts = () => null,
     notify,
 }) => {
     const view = documentObject.defaultView;
@@ -57,6 +59,8 @@ export const initializeCharacterLoraVariantPage = ({
         }
         setStatus('');
         candidates.forEach(({ lora, trigger }) => {
+            const row = documentObject.createElement('div');
+            row.className = 'character-variant-row';
             const button = documentObject.createElement('button');
             button.type = 'button';
             button.className = 'character-variant-item';
@@ -65,32 +69,62 @@ export const initializeCharacterLoraVariantPage = ({
             const name = documentObject.createElement('strong');
             name.textContent = lora.name;
             const details = documentObject.createElement('span');
-            details.textContent = `${lora.fileName} · 強度 ${lora.recommendedStrength} · ${trigger ? `トリガー ${trigger.name}` : 'トリガーなし'}`;
+            details.textContent = `${lora.fileName} · ${lora.modelFamilyName ?? 'Illustrious'} · 強度 ${lora.recommendedStrength} · ${trigger ? `トリガー ${trigger.name}` : 'トリガーなし'}`;
             button.append(name, details);
-            button.addEventListener('click', async () => {
+            const negativeButton = documentObject.createElement('button');
+            negativeButton.type = 'button';
+            negativeButton.className = 'small-button';
+            negativeButton.textContent = 'negativeをコピー';
+            negativeButton.setAttribute('aria-label', `${candidateName}のnegativeをコピー`);
+            const copy = async (polarity) => {
                 button.disabled = true;
+                negativeButton.disabled = true;
                 try {
-                    const prompt = createCharacterLoraVariant(
-                        snapshot.positive,
-                        snapshot.original,
-                        lora,
-                        trigger,
-                    );
-                    await writePromptToClipboard(clipboard.writeText.bind(clipboard), prompt);
+                    let output =
+                        polarity === 'positive'
+                            ? createCharacterLoraVariant(
+                                  snapshot.positive,
+                                  snapshot.original,
+                                  lora,
+                                  trigger,
+                              )
+                            : (snapshot.negative ?? '');
+                    const sourceFamilyId = snapshot.family?.modelFamilyId ?? 1;
+                    const candidateFamilyId = lora.modelFamilyId ?? 1;
+                    if (sourceFamilyId !== candidateFamilyId) {
+                        const destination = getFamilyPrompts(candidateFamilyId);
+                        const defaults = snapshot.family?.defaultSections;
+                        if (!destination || !defaults) {
+                            throw new Error('系統のデフォルト文面を確認できません。');
+                        }
+                        output = replaceModelFamilyDefault(
+                            output,
+                            defaults[polarity],
+                            destination[polarity],
+                            snapshot.family.defaults[polarity],
+                        );
+                    }
+                    await writePromptToClipboard(clipboard.writeText.bind(clipboard), output);
                     setStatus('');
-                    notify(`${candidateName}のpositiveをコピーしました。`);
+                    notify(`${candidateName}の${polarity}をコピーしました。`);
                 } catch (error) {
                     setStatus(
                         error instanceof Error &&
-                            error.message === '元の人物LoRAタグを特定できません。'
+                            (error.message === '元の人物LoRAタグを特定できません。' ||
+                                error.message === '元の系統のデフォルト文面を特定できません。' ||
+                                error.message === '系統のデフォルト文面を確認できません。')
                             ? error.message
                             : 'コピーできませんでした。元の出力やクリップボードを確認してください。',
                     );
                 } finally {
                     button.disabled = false;
+                    negativeButton.disabled = false;
                 }
-            });
-            list.append(button);
+            };
+            button.addEventListener('click', () => void copy('positive'));
+            negativeButton.addEventListener('click', () => void copy('negative'));
+            row.append(button, negativeButton);
+            list.append(row);
         });
     };
 

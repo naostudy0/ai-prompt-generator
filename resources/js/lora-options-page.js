@@ -26,6 +26,8 @@ export const initializeLoraOptionsPage = ({
             getSelections: () => ({ lora: '', trigger: '', outfit: '' }),
             getSelectionSnapshot: () => ({}),
             getVariantCandidates: () => null,
+            getSelectedModelFamilyId: () => null,
+            setModelFamilies: () => {},
             restoreSelection: () => false,
             reset: () => {},
         };
@@ -48,6 +50,7 @@ export const initializeLoraOptionsPage = ({
         loras: [],
         triggers: [],
         outfits: [],
+        modelFamilies: [{ id: 1, name: 'Illustrious' }],
         selectedLoraId: null,
         selectedTriggerId: null,
         selectedOutfitId: null,
@@ -174,7 +177,8 @@ export const initializeLoraOptionsPage = ({
             loraList,
             searchedLoras,
             state.selectedLoraId,
-            (lora) => `${lora.name} — ${lora.fileName}`,
+            (lora) =>
+                `${lora.name} — ${lora.fileName} (${state.modelFamilies.find((family) => family.id === (lora.modelFamilyId ?? 1))?.name ?? '不明な系統'})`,
         );
         replaceOptions(
             triggerList,
@@ -296,6 +300,16 @@ export const initializeLoraOptionsPage = ({
         page.querySelector('[data-option-name]').value = item?.name ?? '';
         page.querySelector('[data-option-file-name]').value = item?.fileName ?? '';
         page.querySelector('[data-option-strength]').value = String(item?.recommendedStrength ?? 1);
+        const familyField = page.querySelector('[data-lora-family-field]');
+        if (familyField) {
+            familyField.hidden = type !== 'lora';
+        }
+        replaceOptions(
+            page.querySelector('[data-option-family]'),
+            state.modelFamilies,
+            item?.modelFamilyId ?? 1,
+            (family) => family.name,
+        );
         page.querySelector('[data-option-content]').value = item?.content ?? '';
         page.querySelector('[data-option-form-status]').textContent = '';
         page.querySelector('[data-lora-field]').hidden = type !== 'lora';
@@ -332,6 +346,7 @@ export const initializeLoraOptionsPage = ({
                 name,
                 fileName: page.querySelector('[data-option-file-name]').value,
                 recommendedStrength: Number(page.querySelector('[data-option-strength]').value),
+                modelFamilyId: Number(page.querySelector('[data-option-family]')?.value ?? 1),
             };
         } else if (type === 'trigger') {
             values = { loraId: state.selectedLoraId, name, content };
@@ -495,6 +510,11 @@ export const initializeLoraOptionsPage = ({
     void loadOptions();
 
     return {
+        getSelectedModelFamilyId: () => selectedItem('lora')?.modelFamilyId ?? null,
+        setModelFamilies: (families) => {
+            state.modelFamilies = families;
+            render();
+        },
         getSelections: () => {
             const loraSections = createLoraPromptSections({
                 lora: selectedItem('lora'),
@@ -517,7 +537,13 @@ export const initializeLoraOptionsPage = ({
         getVariantCandidates: () =>
             state.loaded
                 ? {
-                      loras: [...state.loras],
+                      loras: state.loras.map((lora) => ({
+                          ...lora,
+                          modelFamilyName:
+                              state.modelFamilies.find(
+                                  (family) => family.id === (lora.modelFamilyId ?? 1),
+                              )?.name ?? 'Illustrious',
+                      })),
                       triggers: [...state.triggers],
                   }
                 : null,

@@ -14,6 +14,7 @@ class ClothingLoraApiTest extends TestCase
     public function test_衣装LoRAとトリガーを登録して衣装用の選択肢だけを取得する(): void
     {
         $this->postJson(route('loras.store'), [
+            'modelFamilyId' => 1,
             'name' => '人物',
             'fileName' => 'character.safetensors',
             'recommendedStrength' => 1,
@@ -47,6 +48,7 @@ class ClothingLoraApiTest extends TestCase
     {
         $fileName = 'same.safetensors';
         $this->postJson(route('loras.store'), [
+            'modelFamilyId' => 1,
             'name' => '人物',
             'fileName' => $fileName,
             'recommendedStrength' => 1,
@@ -62,6 +64,7 @@ class ClothingLoraApiTest extends TestCase
     public function test_衣装LoRAの入口から人物LoRAとそのトリガーは変更できない(): void
     {
         $character = $this->postJson(route('loras.store'), [
+            'modelFamilyId' => 1,
             'name' => '人物',
             'fileName' => 'character.safetensors',
             'recommendedStrength' => 1,
@@ -158,6 +161,7 @@ class ClothingLoraApiTest extends TestCase
             ])->assertUnprocessable()->assertJsonValidationErrors('recommendedStrength');
         }
         $character = $this->postJson(route('loras.store'), [
+            'modelFamilyId' => 1,
             'name' => '人物',
             'fileName' => 'character.safetensors',
             'recommendedStrength' => 1,

@@ -11,8 +11,8 @@ final readonly class GetDefaultPromptsHandler
     ) {
     }
 
-    public function handle(): GetDefaultPromptsResult
+    public function handle(int $modelFamilyId = 1): GetDefaultPromptsResult
     {
-        return $this->queryService->get();
+        return $this->queryService->get($modelFamilyId);
     }
 }

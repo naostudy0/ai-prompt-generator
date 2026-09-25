@@ -20,7 +20,7 @@ class GetDefaultPromptsHandlerTest extends TestCase
             ) {
             }
 
-            public function get(): GetDefaultPromptsResult
+            public function get(int $modelFamilyId = 1): GetDefaultPromptsResult
             {
                 return new GetDefaultPromptsResult(
                     positive: $this->positive,

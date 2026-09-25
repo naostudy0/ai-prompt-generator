@@ -12,6 +12,7 @@ final class PromptPreparationPageController extends Controller
     {
         return view('prompt-preparation', [
             'defaultPromptsUrl' => route('default-prompts.index'),
+            'modelFamiliesUrl' => route('model-families.index'),
             'positiveUpdateUrl' => route('default-prompts.update', [
                 'polarity' => PromptPolarity::Positive->value,
             ]),

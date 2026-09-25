@@ -50,6 +50,9 @@ export const initializePromptPreparationPage = ({
     const outputSection = page.querySelector('[data-output-section]');
     const toast = page.querySelector('[data-toast]');
     const savedPrompts = { positive: '', negative: '' };
+    const familyPrompts = new Map([[1, savedPrompts]]);
+    let modelFamilies = [{ id: 1, name: 'Illustrious' }];
+    let editFamilyId = 1;
     const selectedPrompts = { positive: true, negative: true };
     const hasSelections = {
         default: true,
@@ -64,12 +67,14 @@ export const initializePromptPreparationPage = ({
             promptCategoriesController.reorderGroup(id, beforeId),
     });
     let promptsLoaded = false;
+    let familiesLoaded = !page.dataset.modelFamiliesUrl;
     let loraOptionsLoaded = false;
     let clothingLoraOptionsLoaded = false;
     let promptCategoriesLoaded = false;
     let editingPrompt = false;
     let toastTimer;
     let variantSourceMetadata = null;
+    let variantFamilySource = null;
     let previousPositiveOutput = '';
     let characterVariantController = { updateAvailability: () => {} };
     let loraOptionsController = {
@@ -101,6 +106,96 @@ export const initializePromptPreparationPage = ({
     };
 
     const isPolarity = (value) => value === 'positive' || value === 'negative';
+    const activeFamilyId = () => loraOptionsController.getSelectedModelFamilyId?.() ?? 1;
+    const familyPromptsUrl = (id) => `${page.dataset.modelFamiliesUrl}/${id}/default-prompts`;
+    const familyName = (id) =>
+        modelFamilies.find((family) => family.id === id)?.name ?? '不明な系統';
+
+    const fetchFamilyPrompts = async (id) => {
+        const response = await fetcher(familyPromptsUrl(id), {
+            headers: { Accept: 'application/json' },
+        });
+        if (!response.ok) {
+            throw new Error('系統のデフォルト文面を取得できませんでした。');
+        }
+        const prompts = await response.json();
+        if (typeof prompts.positive !== 'string' || typeof prompts.negative !== 'string') {
+            throw new Error('系統のデフォルト文面が不正です。');
+        }
+        familyPrompts.set(id, prompts);
+        return prompts;
+    };
+
+    const updateFamilyControls = () => {
+        const activeName = page.querySelector('[data-active-family-name]');
+        if (activeName instanceof HTMLElement) {
+            activeName.textContent = familyName(activeFamilyId());
+        }
+        const editSelect = page.querySelector('[data-edit-family]');
+        const manageSelect = page.querySelector('[data-family-list]');
+        for (const select of [editSelect, manageSelect]) {
+            if (!(select instanceof view.HTMLSelectElement)) {
+                continue;
+            }
+            const previous = select === editSelect ? editFamilyId : Number(select.value);
+            select.replaceChildren(
+                ...modelFamilies.map((family) => {
+                    const option = documentObject.createElement('option');
+                    option.value = String(family.id);
+                    option.textContent = family.name;
+                    return option;
+                }),
+            );
+            select.value = String(
+                modelFamilies.some((family) => family.id === previous) ? previous : 1,
+            );
+        }
+        loraOptionsController.setModelFamilies?.(modelFamilies);
+    };
+
+    const loadFamiliesAndDefaults = async () => {
+        if (!page.dataset.modelFamiliesUrl) {
+            return false;
+        }
+        familiesLoaded = false;
+        familyPrompts.clear();
+        updateActionAvailability();
+        try {
+            const response = await fetcher(page.dataset.modelFamiliesUrl, {
+                headers: { Accept: 'application/json' },
+            });
+            if (!response.ok) {
+                throw new Error('系統を取得できませんでした。');
+            }
+            const families = await response.json();
+            if (
+                !Array.isArray(families) ||
+                !families.every(
+                    (family) => Number.isInteger(family.id) && typeof family.name === 'string',
+                )
+            ) {
+                throw new Error('系統一覧が不正です。');
+            }
+            modelFamilies = families;
+            await Promise.all(families.map((family) => fetchFamilyPrompts(family.id)));
+            familiesLoaded = true;
+            updateFamilyControls();
+            updateActionAvailability();
+            characterVariantController.updateAvailability();
+            if (promptsLoaded) {
+                setLoadStatus('');
+            }
+            return true;
+        } catch {
+            familiesLoaded = false;
+            setLoadStatus(
+                '系統とデフォルト文面を読み込めませんでした。再読み込みしてください。',
+                true,
+            );
+            updateActionAvailability();
+            return false;
+        }
+    };
 
     const updateDefaultView = () => {
         const items = ['positive', 'negative']
@@ -166,7 +261,7 @@ export const initializePromptPreparationPage = ({
     };
 
     const updateActionAvailability = () => {
-        const defaultActionsDisabled = editingPrompt || !promptsLoaded;
+        const defaultActionsDisabled = editingPrompt || !promptsLoaded || !familiesLoaded;
         promptElements.forEach((promptElement) => {
             const editButton = promptElement.querySelector('[data-edit]');
             const selectButton = promptElement.querySelector('[data-select]');
@@ -181,11 +276,15 @@ export const initializePromptPreparationPage = ({
         });
 
         const hasLoadedSelection =
-            (promptsLoaded && hasSelections.default) ||
+            (promptsLoaded && familiesLoaded && hasSelections.default) ||
             hasSelections.lora ||
             hasSelections.clothingLora ||
             hasSelections.optionGroups;
-        const displayDisabled = editingPrompt || !hasLoadedSelection;
+        const displayDisabled =
+            editingPrompt ||
+            !familiesLoaded ||
+            !hasLoadedSelection ||
+            !familyPrompts.has(activeFamilyId());
 
         [displayButton, sidebarDisplayButton].forEach((button) => {
             if (button instanceof HTMLButtonElement) {
@@ -202,6 +301,7 @@ export const initializePromptPreparationPage = ({
         const favoritesDisabled =
             editingPrompt ||
             !promptsLoaded ||
+            !familiesLoaded ||
             !loraOptionsLoaded ||
             !clothingLoraOptionsLoaded ||
             !promptCategoriesLoaded;
@@ -215,6 +315,12 @@ export const initializePromptPreparationPage = ({
     const updateSidebarSnapshot = (source, snapshot) => {
         sidebars.update(source, snapshot);
         hasSelections[source] = snapshot.selectionGroups.some((group) => group.items.length > 0);
+        if (source === 'lora') {
+            const activeName = page.querySelector('[data-active-family-name]');
+            if (activeName instanceof HTMLElement) {
+                activeName.textContent = familyName(activeFamilyId());
+            }
+        }
         updateActionAvailability();
     };
 
@@ -302,7 +408,7 @@ export const initializePromptPreparationPage = ({
         editingPrompt = true;
         updateActionAvailability();
         editor.hidden = false;
-        content.value = savedPrompts[polarity];
+        content.value = (familyPrompts.get(editFamilyId) ?? savedPrompts)[polarity];
         content.focus();
     };
 
@@ -325,7 +431,9 @@ export const initializePromptPreparationPage = ({
             savedPrompts.negative = prompts.negative;
             promptsLoaded = true;
             updateActionAvailability();
-            setLoadStatus('');
+            if (familiesLoaded) {
+                setLoadStatus('');
+            }
         } catch {
             setLoadStatus('デフォルト文面を読み込めませんでした。再度お試しください。', true);
         }
@@ -333,7 +441,9 @@ export const initializePromptPreparationPage = ({
 
     const saveDefaultPrompt = async (promptElement) => {
         const polarity = promptElement.dataset.defaultPrompt;
-        const url = promptElement.dataset.updateUrl;
+        const url = page.dataset.modelFamiliesUrl
+            ? `${familyPromptsUrl(editFamilyId)}/${polarity}`
+            : promptElement.dataset.updateUrl;
         const content = promptElement.querySelector('[data-editor-content]');
         const status = promptElement.querySelector('[data-editor-status]');
         const saveButton = promptElement.querySelector('[data-save]');
@@ -365,7 +475,13 @@ export const initializePromptPreparationPage = ({
                 content.value,
             );
 
-            savedPrompts[polarity] = result.content;
+            if (editFamilyId === 1) {
+                savedPrompts[polarity] = result.content;
+            }
+            const editedPrompts = familyPrompts.get(editFamilyId);
+            if (editedPrompts) {
+                editedPrompts[polarity] = result.content;
+            }
             content.value = result.content;
             status.textContent = result.formatSucceeded
                 ? '保存しました。'
@@ -383,7 +499,12 @@ export const initializePromptPreparationPage = ({
     };
 
     const displayPrompts = () => {
-        const outputs = createPromptOutputs(savedPrompts, selectedPrompts);
+        const currentPrompts = familyPrompts.get(activeFamilyId());
+        if (!currentPrompts) {
+            setLoadStatus('選択中の系統の文面を読み込めませんでした。', true);
+            return;
+        }
+        const outputs = createPromptOutputs(currentPrompts, selectedPrompts);
         const lora = loraOptionsController.getSelections();
         const clothingLora = clothingLoraOptionsController.getSelections();
         const categories = promptCategoriesController.getSections();
@@ -392,10 +513,15 @@ export const initializePromptPreparationPage = ({
             createPositivePromptSections({ ...lora, ...clothingLora }, categories),
         );
         variantSourceMetadata = createCharacterLoraSourceMetadata(
-            createPromptOutputs(savedPrompts, selectedPrompts).positive,
+            createPromptOutputs(currentPrompts, selectedPrompts).positive,
             lora.lora,
             lora.trigger,
         );
+        variantFamilySource = {
+            modelFamilyId: activeFamilyId(),
+            defaults: { ...selectedPrompts },
+            defaultSections: createPromptOutputs(currentPrompts, selectedPrompts),
+        };
         previousPositiveOutput = outputs.positive;
 
         for (const polarity of ['positive', 'negative']) {
@@ -424,6 +550,7 @@ export const initializePromptPreparationPage = ({
 
     const resetPrompts = () => {
         variantSourceMetadata = null;
+        variantFamilySource = null;
         previousPositiveOutput = '';
         selectedPrompts.positive = true;
         selectedPrompts.negative = true;
@@ -513,6 +640,100 @@ export const initializePromptPreparationPage = ({
         });
     });
 
+    const editFamilySelect = page.querySelector('[data-edit-family]');
+    editFamilySelect?.addEventListener('change', () => {
+        if (editingPrompt) {
+            editFamilySelect.value = String(editFamilyId);
+            return;
+        }
+        editFamilyId = Number(editFamilySelect.value);
+    });
+    const familyDialog = page.querySelector('[data-family-dialog]');
+    const familyList = page.querySelector('[data-family-list]');
+    const familyNameInput = page.querySelector('[data-family-name]');
+    const familyStatus = page.querySelector('[data-family-status]');
+    page.querySelector('[data-family-manage]')?.addEventListener('click', () => {
+        if (editingPrompt || !familiesLoaded) {
+            return;
+        }
+        updateFamilyControls();
+        familyDialog?.showModal();
+    });
+    familyList?.addEventListener('change', () => {
+        if (familyNameInput) {
+            familyNameInput.value = familyName(Number(familyList.value));
+        }
+    });
+    const saveOrDeleteFamily = async (method) => {
+        const id = Number(familyList?.value);
+        const url =
+            method === 'POST'
+                ? page.dataset.modelFamiliesUrl
+                : `${page.dataset.modelFamiliesUrl}/${id}`;
+        if (!url || !csrfToken || !familyStatus) {
+            return;
+        }
+        familyStatus.textContent = method === 'DELETE' ? '削除しています。' : '保存しています。';
+        try {
+            const response = await fetcher(url, {
+                method,
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+                ...(method === 'DELETE'
+                    ? {}
+                    : { body: JSON.stringify({ name: familyNameInput?.value ?? '' }) }),
+            });
+            if (!response.ok) {
+                throw new Error('系統を保存できませんでした。');
+            }
+            const saved = method === 'DELETE' ? null : await response.json();
+            if (method === 'POST' && saved?.id) {
+                editFamilyId = saved.id;
+            }
+            if (method === 'DELETE') {
+                familyPrompts.delete(id);
+                if (editFamilyId === id) {
+                    editFamilyId = 1;
+                }
+            }
+            if (!(await loadFamiliesAndDefaults())) {
+                throw new Error('系統を再取得できませんでした。');
+            }
+            familyStatus.textContent = method === 'DELETE' ? '削除しました。' : '保存しました。';
+            if (method === 'POST' && editFamilySelect) {
+                editFamilySelect.value = String(saved.id);
+            }
+        } catch {
+            familyStatus.textContent =
+                method === 'DELETE'
+                    ? '使用中または初期の系統は削除できません。'
+                    : '保存できませんでした。名前を確認してください。';
+        }
+    };
+    page.querySelector('[data-family-add]')?.addEventListener(
+        'click',
+        () => void saveOrDeleteFamily('POST'),
+    );
+    page.querySelector('[data-family-rename]')?.addEventListener(
+        'click',
+        () => void saveOrDeleteFamily('PUT'),
+    );
+    page.querySelector('[data-family-delete]')?.addEventListener(
+        'click',
+        () => void saveOrDeleteFamily('DELETE'),
+    );
+    page.querySelector('[data-family-close]')?.addEventListener('click', () =>
+        familyDialog?.close(),
+    );
+    familyDialog?.addEventListener('click', (event) => {
+        if (event.target === familyDialog) {
+            familyDialog.close();
+        }
+    });
+
     outputElements.forEach((outputElement) => {
         outputElement.querySelector('[data-output-content]')?.addEventListener('input', () => {
             const status = outputElement.querySelector('[data-copy-status]');
@@ -539,7 +760,10 @@ export const initializePromptPreparationPage = ({
         });
     });
 
-    retryButton?.addEventListener('click', loadDefaultPrompts);
+    retryButton?.addEventListener('click', () => {
+        void loadDefaultPrompts();
+        void loadFamiliesAndDefaults();
+    });
     displayButton?.addEventListener('click', displayPrompts);
     sidebarDisplayButton?.addEventListener('click', displayPrompts);
     resetButton?.addEventListener('click', resetPrompts);
@@ -557,6 +781,7 @@ export const initializePromptPreparationPage = ({
             characterVariantController.updateAvailability();
         },
     });
+    void loadFamiliesAndDefaults();
     clothingLoraOptionsController = initializeClothingLoraOptionsPage({
         page,
         documentObject,
@@ -589,10 +814,18 @@ export const initializePromptPreparationPage = ({
         getSource: () => {
             const positive =
                 getOutputElement('positive')?.querySelector('[data-output-content]')?.value;
+            const negative =
+                getOutputElement('negative')?.querySelector('[data-output-content]')?.value ?? '';
             return positive && variantSourceMetadata
-                ? { positive, original: { ...variantSourceMetadata } }
+                ? {
+                      positive,
+                      negative,
+                      original: { ...variantSourceMetadata },
+                      family: variantFamilySource,
+                  }
                 : null;
         },
+        getFamilyPrompts: (id) => familyPrompts.get(id) ?? null,
         notify: showToast,
     });
     initializeFavoritePromptsPage({
@@ -608,6 +841,13 @@ export const initializePromptPreparationPage = ({
                 getOutputElement('negative')?.querySelector('[data-output-content]')?.value ?? '',
             selectionSnapshot: {
                 defaults: { ...selectedPrompts },
+                modelFamilyId: variantFamilySource?.modelFamilyId ?? activeFamilyId(),
+                defaultSections:
+                    variantFamilySource?.defaultSections ??
+                    createPromptOutputs(
+                        familyPrompts.get(activeFamilyId()) ?? savedPrompts,
+                        selectedPrompts,
+                    ),
                 lora: loraOptionsController.getSelectionSnapshot(),
                 clothingLoras: clothingLoraOptionsController.getSelectionSnapshot(),
                 optionIds: promptCategoriesController.getSelectionSnapshot(),
@@ -637,7 +877,9 @@ export const initializePromptPreparationPage = ({
                     .filter((item) => !restoredItems.has(JSON.stringify(item)))
                     .map((item) => item.label);
             });
-            const generated = createPromptOutputs(savedPrompts, selectedPrompts);
+            const restoredFamilyId = snapshot.modelFamilyId ?? 1;
+            const restoredPrompts = familyPrompts.get(activeFamilyId()) ?? savedPrompts;
+            const generated = createPromptOutputs(restoredPrompts, selectedPrompts);
             const restoredLora = loraOptionsController.getSelections();
             generated.positive = createPositivePromptOutput(
                 generated.positive,
@@ -665,11 +907,17 @@ export const initializePromptPreparationPage = ({
             variantSourceMetadata = locateCharacterLoraSourceMetadata(
                 previousPositiveOutput,
                 createCharacterLoraSourceMetadata(
-                    createPromptOutputs(savedPrompts, selectedPrompts).positive,
+                    createPromptOutputs(restoredPrompts, selectedPrompts).positive,
                     restoredLora.lora,
                     restoredLora.trigger,
                 ),
             );
+            variantFamilySource = {
+                modelFamilyId: restoredFamilyId,
+                defaults: { ...selectedPrompts },
+                defaultSections:
+                    snapshot.defaultSections ?? createPromptOutputs(savedPrompts, selectedPrompts),
+            };
             outputSection?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
             updateActionAvailability();
             characterVariantController.updateAvailability();
