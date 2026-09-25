@@ -26,6 +26,11 @@ use App\Http\Controllers\PromptPreparation\Queries\ListFavoritePromptsController
 use App\Http\Controllers\PromptPreparation\Queries\GetFavoritePromptController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveFavoritePromptController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteFavoritePromptController;
+use App\Http\Controllers\PromptPreparation\Queries\ListModelFamiliesController;
+use App\Http\Controllers\PromptPreparation\Queries\GetFamilyDefaultPromptsController;
+use App\Http\Controllers\PromptPreparation\Writes\SaveFamilyDefaultPromptController;
+use App\Http\Controllers\PromptPreparation\Writes\SaveModelFamilyController;
+use App\Http\Controllers\PromptPreparation\Writes\DeleteModelFamilyController;
 
 Route::get('/', PromptPreparationPageController::class)->name('prompt-preparation');
 
@@ -34,6 +39,18 @@ Route::get('/default-prompts', GetDefaultPromptsController::class)
 Route::put('/default-prompts/{polarity}', SaveDefaultPromptController::class)
     ->whereIn('polarity', ['positive', 'negative'])
     ->name('default-prompts.update');
+
+Route::get('/model-families', ListModelFamiliesController::class)->name('model-families.index');
+Route::post('/model-families', SaveModelFamilyController::class)->name('model-families.store');
+Route::put('/model-families/{family}', SaveModelFamilyController::class)
+    ->whereNumber('family')->name('model-families.update');
+Route::delete('/model-families/{family}', DeleteModelFamilyController::class)
+    ->whereNumber('family')->name('model-families.destroy');
+Route::get('/model-families/{family}/default-prompts', GetFamilyDefaultPromptsController::class)
+    ->whereNumber('family')->name('model-families.default-prompts.index');
+Route::put('/model-families/{family}/default-prompts/{polarity}', SaveFamilyDefaultPromptController::class)
+    ->whereNumber('family')->whereIn('polarity', ['positive', 'negative'])
+    ->name('model-families.default-prompts.update');
 
 Route::get('/lora-prompt-options', GetLoraPromptOptionsController::class)
     ->name('lora-prompt-options.index');

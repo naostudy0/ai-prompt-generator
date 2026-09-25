@@ -16,6 +16,7 @@
             class="page-layout"
             data-prompt-preparation
             data-default-prompts-url="{{ $defaultPromptsUrl }}"
+            data-model-families-url="{{ $modelFamiliesUrl }}"
             data-lora-options-url="{{ $loraPromptOptionsUrl }}"
             data-clothing-lora-options-url="{{ $clothingLoraOptionsUrl }}"
             data-clothing-loras-url="{{ $clothingLorasUrl }}"
@@ -52,6 +53,14 @@
                 </div>
 
                 <section class="prompt-settings" aria-label="デフォルト" data-default-prompts-section tabindex="-1">
+                    <div class="model-family-controls">
+                        <p>出力に使う系統：<strong data-active-family-name>Illustrious</strong></p>
+                        <label class="field-label" for="default-edit-family">編集する系統</label>
+                        <select id="default-edit-family" class="text-input" data-edit-family>
+                            <option value="1">Illustrious</option>
+                        </select>
+                        <button class="small-button" type="button" data-family-manage>系統を管理</button>
+                    </div>
                     @foreach ([
                         ['polarity' => 'positive', 'label' => 'positive', 'updateUrl' => $positiveUpdateUrl],
                         ['polarity' => 'negative', 'label' => 'negative', 'updateUrl' => $negativeUpdateUrl],
@@ -304,6 +313,21 @@
                 <div class="favorite-grid" data-favorite-list></div>
             </dialog>
 
+            <dialog class="option-dialog" data-family-dialog>
+                <h2>系統を管理</h2>
+                <label class="field-label" for="family-manage-list">登録済みの系統</label>
+                <select id="family-manage-list" class="text-input" data-family-list></select>
+                <label class="field-label" for="family-manage-name">系統名</label>
+                <input id="family-manage-name" class="text-input" data-family-name>
+                <p class="editor-status" data-family-status role="status" aria-live="polite"></p>
+                <div class="editor-actions">
+                    <button class="primary-button" type="button" data-family-add>追加</button>
+                    <button class="secondary-button" type="button" data-family-rename>名前を変更</button>
+                    <button class="danger-button" type="button" data-family-delete>削除</button>
+                    <button class="secondary-button" type="button" data-family-close>閉じる</button>
+                </div>
+            </dialog>
+
             <dialog class="option-dialog" data-option-dialog>
                 <form data-option-form>
                     <input type="hidden" data-option-id>
@@ -311,6 +335,10 @@
                     <div data-lora-field hidden>
                         <label class="field-label" for="option-file-name">ファイル名</label>
                         <input id="option-file-name" class="text-input" data-option-file-name>
+                    </div>
+                    <div data-lora-family-field hidden>
+                        <label class="field-label" for="option-family">系統</label>
+                        <select id="option-family" class="text-input" data-option-family></select>
                     </div>
                     <label class="field-label" for="option-name">登録名</label>
                     <input id="option-name" class="text-input" data-option-name>

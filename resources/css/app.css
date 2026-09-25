@@ -804,6 +804,28 @@ button:focus-visible {
     margin-top: 0.75rem;
 }
 
+.character-variant-row {
+    display: grid;
+    gap: 0.35rem;
+    padding-bottom: 0.45rem;
+    border-bottom: 1px solid #435066;
+}
+
+.character-variant-row > .small-button {
+    justify-self: end;
+}
+
+.model-family-controls {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #405044;
+    border-radius: 0.75rem;
+}
+
+.model-family-controls p {
+    margin: 0 0 0.5rem;
+}
+
 .character-variant-item {
     display: grid;
     gap: 0.25rem;

@@ -20,7 +20,7 @@ final class DatabaseSeeder extends Seeder
             $text = PromptText::fromInput($content);
 
             DefaultPromptRecord::query()->firstOrCreate(
-                ['polarity' => $polarity],
+                ['model_family_id' => 1, 'polarity' => $polarity],
                 ['content' => $text->value],
             );
         }

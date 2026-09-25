@@ -24,6 +24,7 @@ class LoraPromptOptionApiTest extends TestCase
         $outfitContent = 'school uniform, blue jacket,';
 
         $loraResponse = $this->postJson(route('loras.store'), [
+            'modelFamilyId' => 1,
             'name' => $loraName,
             'fileName' => $fileName,
             'recommendedStrength' => $strength,
@@ -48,6 +49,7 @@ class LoraPromptOptionApiTest extends TestCase
             ->assertExactJson([
                 'loras' => [[
                     'id' => $loraId,
+                    'modelFamilyId' => 1,
                     'name' => $loraName,
                     'fileName' => $fileName,
                     'recommendedStrength' => $strength,
@@ -76,6 +78,7 @@ class LoraPromptOptionApiTest extends TestCase
         $updatedStrength = 0.9;
 
         $response = $this->putJson(route('loras.update', ['lora' => $loraId]), [
+            'modelFamilyId' => 1,
             'name' => $updatedName,
             'fileName' => $updatedFileName,
             'recommendedStrength' => $updatedStrength,
@@ -102,11 +105,13 @@ class LoraPromptOptionApiTest extends TestCase
         $this->createLora($sameName, $existingFileName, 1);
 
         $duplicateFileResponse = $this->postJson(route('loras.store'), [
+            'modelFamilyId' => 1,
             'name' => '別名',
             'fileName' => $existingFileName,
             'recommendedStrength' => 1,
         ]);
         $sameNameResponse = $this->postJson(route('loras.store'), [
+            'modelFamilyId' => 1,
             'name' => $sameName,
             'fileName' => 'another.safetensors',
             'recommendedStrength' => 1,
@@ -121,6 +126,7 @@ class LoraPromptOptionApiTest extends TestCase
     {
         foreach ([-0.1, 0.15, 1.1] as $invalidStrength) {
             $response = $this->postJson(route('loras.store'), [
+                'modelFamilyId' => 1,
                 'name' => 'キャラクター',
                 'fileName' => "character-{$invalidStrength}",
                 'recommendedStrength' => $invalidStrength,
@@ -247,6 +253,7 @@ class LoraPromptOptionApiTest extends TestCase
     {
         foreach (['invalid:name', '<invalid>', 'invalid,name'] as $fileName) {
             $this->postJson(route('loras.store'), [
+                'modelFamilyId' => 1,
                 'name' => 'キャラクター',
                 'fileName' => $fileName,
                 'recommendedStrength' => 1,
@@ -263,6 +270,7 @@ class LoraPromptOptionApiTest extends TestCase
             ['name' => 'キャラクター', 'fileName' => " \t ", 'invalidField' => 'fileName'],
         ] as $input) {
             $this->postJson(route('loras.store'), [
+                'modelFamilyId' => 1,
                 'name' => $input['name'],
                 'fileName' => $input['fileName'],
                 'recommendedStrength' => 1,
@@ -314,6 +322,7 @@ class LoraPromptOptionApiTest extends TestCase
     private function createLora(string $name, string $fileName, int|float $strength): int
     {
         $response = $this->postJson(route('loras.store'), [
+            'modelFamilyId' => 1,
             'name' => $name,
             'fileName' => $fileName,
             'recommendedStrength' => $strength,

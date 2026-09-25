@@ -19,6 +19,7 @@ final class SaveLoraRequest extends FormRequest
                 Rule::unique('loras', 'file_name')->ignore($this->route('lora')),
             ],
             'recommendedStrength' => ['required', 'numeric', 'min:0', 'max:1', 'multiple_of:0.1'],
+            'modelFamilyId' => ['required', 'integer', Rule::exists('model_families', 'id')],
         ];
     }
 }

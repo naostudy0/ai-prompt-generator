@@ -6,5 +6,5 @@ use App\Application\PromptPreparation\Queries\GetDefaultPrompts\GetDefaultPrompt
 
 interface DefaultPromptQueryService
 {
-    public function get(): GetDefaultPromptsResult;
+    public function get(int $modelFamilyId = 1): GetDefaultPromptsResult;
 }

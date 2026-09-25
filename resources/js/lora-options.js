@@ -5,6 +5,7 @@ const isLora = (value) =>
     Number.isInteger(value.id) &&
     typeof value.name === 'string' &&
     typeof value.fileName === 'string' &&
+    (value.modelFamilyId === undefined || Number.isInteger(value.modelFamilyId)) &&
     Number.isFinite(value.recommendedStrength) &&
     value.recommendedStrength >= 0 &&
     value.recommendedStrength <= 1 &&

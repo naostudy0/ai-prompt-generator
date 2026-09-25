@@ -31,6 +31,10 @@ use App\Infrastructure\PromptPreparation\Queries\EloquentFavoritePromptQueryServ
 use App\Infrastructure\PromptPreparation\Storage\LaravelFavoriteImageStorage;
 use Illuminate\Support\ServiceProvider;
 use App\Infrastructure\Shared\LaravelTransactionManager;
+use App\Application\PromptPreparation\Ports\ModelFamilyQueryService;
+use App\Domain\PromptPreparation\Repositories\ModelFamilyRepository;
+use App\Infrastructure\PromptPreparation\Queries\EloquentModelFamilyQueryService;
+use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentModelFamilyRepository;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -40,6 +44,8 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(DefaultPromptRepository::class, EloquentDefaultPromptRepository::class);
+        $this->app->bind(ModelFamilyRepository::class, EloquentModelFamilyRepository::class);
+        $this->app->bind(ModelFamilyQueryService::class, EloquentModelFamilyQueryService::class);
         $this->app->bind(DefaultPromptQueryService::class, EloquentDefaultPromptQueryService::class);
         $this->app->bind(ClothingLoraOptionQueryService::class, EloquentClothingLoraOptionQueryService::class);
         $this->app->bind(LoraRepository::class, EloquentLoraRepository::class);

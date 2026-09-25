@@ -9,6 +9,7 @@ final readonly class SaveDefaultPromptInput
     public function __construct(
         public PromptPolarity $polarity,
         public string $content,
+        public int $modelFamilyId = 1,
     ) {
     }
 }
