@@ -35,6 +35,10 @@ use App\Application\PromptPreparation\Ports\ModelFamilyQueryService;
 use App\Domain\PromptPreparation\Repositories\ModelFamilyRepository;
 use App\Infrastructure\PromptPreparation\Queries\EloquentModelFamilyQueryService;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentModelFamilyRepository;
+use App\Application\PromptPreparation\Ports\ComfyUiWorkflowStore;
+use App\Application\PromptPreparation\Ports\ImageGenerationQueue;
+use App\Infrastructure\PromptPreparation\External\ComfyUi\ComfyUiImageGenerationQueue;
+use App\Infrastructure\PromptPreparation\Storage\LaravelComfyUiWorkflowStore;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -59,6 +63,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(FavoritePromptRepository::class, EloquentFavoritePromptRepository::class);
         $this->app->bind(FavoritePromptQueryService::class, EloquentFavoritePromptQueryService::class);
         $this->app->bind(FavoriteImageStorage::class, LaravelFavoriteImageStorage::class);
+        $this->app->bind(ComfyUiWorkflowStore::class, LaravelComfyUiWorkflowStore::class);
+        $this->app->bind(ImageGenerationQueue::class, ComfyUiImageGenerationQueue::class);
     }
 
     /**

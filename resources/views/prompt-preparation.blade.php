@@ -27,6 +27,8 @@
             data-prompt-options-url="{{ $promptOptionsUrl }}"
             data-prompt-option-groups-url="{{ $promptOptionGroupsUrl }}"
             data-favorite-prompts-url="{{ $favoritePromptsUrl }}"
+            data-comfy-ui-prompts-url="{{ $comfyUiPromptsUrl }}"
+            data-comfy-ui-prompt-batch-url="{{ $comfyUiPromptBatchUrl }}"
         >
             <nav class="prompt-sidebar section-navigation" aria-labelledby="section-navigation-heading">
                 <h2 id="section-navigation-heading">セクション</h2>
@@ -264,10 +266,12 @@
                     @endforeach
                 </div>
                 <div class="editor-actions favorite-actions">
+                    <button class="primary-button" type="button" data-comfyui-send>ComfyUIへ送信</button>
                     <button class="primary-button" type="button" data-favorite-save disabled>お気に入りへ保存</button>
                     <button class="secondary-button" type="button" data-favorite-open disabled>お気に入りを開く</button>
                     <button class="secondary-button" type="button" data-character-variant-open disabled>人物LoRAを差し替えてコピー</button>
                 </div>
+                <p class="editor-status" data-comfyui-send-status role="status" aria-live="polite"></p>
             </section>
 
             <div class="toast" data-toast role="status" aria-live="polite" hidden></div>
@@ -279,8 +283,14 @@
                 </div>
                 <label class="field-label" for="character-variant-search">人物LoRAを検索</label>
                 <input id="character-variant-search" class="text-input" type="search" data-character-variant-search>
+                <div class="editor-actions">
+                    <button class="secondary-button" type="button" data-character-variant-select-all>全候補を選択</button>
+                    <button class="secondary-button" type="button" data-character-variant-clear-all>全候補を解除</button>
+                    <span data-character-variant-count>0件選択</span>
+                </div>
                 <p class="editor-status" data-character-variant-status role="status" aria-live="polite"></p>
                 <div class="character-variant-list" data-character-variant-list></div>
+                <button class="primary-button" type="button" data-character-variant-send disabled>選択した候補をComfyUIへ送信</button>
             </dialog>
 
             <dialog class="option-dialog favorite-dialog" data-favorite-form-dialog>
@@ -320,6 +330,32 @@
                 <label class="field-label" for="family-manage-name">系統名</label>
                 <input id="family-manage-name" class="text-input" data-family-name>
                 <p class="editor-status" data-family-status role="status" aria-live="polite"></p>
+                <fieldset class="workflow-settings">
+                    <legend>ComfyUIワークフロー</legend>
+                    <p class="editor-help">
+                        1. 上の「登録済みの系統」を選ぶ<br>
+                        2. その系統用のAPI形式JSONを選ぶ<br>
+                        3. JSONに合わせてpositive・negative・seedのノードIDと入力名を入力する<br>
+                        4. 「ワークフローを保存」を押し、「設定済み」と表示されることを確認する
+                    </p>
+                    <p class="editor-help">
+                        ノードIDと入力名はワークフローごとに異なります。ComfyUIから出力したAPI形式JSONの内容を確認して指定してください。
+                    </p>
+                    <label class="field-label" for="comfyui-workflow-file">API形式JSON（5 MiBまで）</label>
+                    <input id="comfyui-workflow-file" class="text-input" type="file" accept="application/json,.json" data-comfyui-workflow-file>
+                    @foreach (['positive', 'negative', 'seed'] as $role)
+                        <div class="workflow-mapping-row">
+                            <strong>{{ $role }}</strong>
+                            <label>ノードID <input class="text-input" data-comfyui-{{ $role }}-node></label>
+                            <label>入力名 <input class="text-input" data-comfyui-{{ $role }}-input></label>
+                        </div>
+                    @endforeach
+                    <p class="editor-status" data-comfyui-workflow-status role="status" aria-live="polite"></p>
+                    <div class="editor-actions">
+                        <button class="secondary-button" type="button" data-comfyui-workflow-save>ワークフローを保存</button>
+                        <button class="danger-button" type="button" data-comfyui-workflow-delete disabled>ワークフローを削除</button>
+                    </div>
+                </fieldset>
                 <div class="editor-actions">
                     <button class="primary-button" type="button" data-family-add>追加</button>
                     <button class="secondary-button" type="button" data-family-rename>名前を変更</button>
