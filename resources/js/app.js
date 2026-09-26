@@ -18,6 +18,7 @@ import {
     locateCharacterLoraSourceMetadata,
     trackCharacterLoraSourceEdit,
 } from './character-lora-variant.js';
+import { initializeComfyUiPage, initializeComfyUiWorkflowPage } from './comfyui-page.js';
 
 export const initializePromptPreparationPage = ({
     documentObject = document,
@@ -652,12 +653,19 @@ export const initializePromptPreparationPage = ({
     const familyList = page.querySelector('[data-family-list]');
     const familyNameInput = page.querySelector('[data-family-name]');
     const familyStatus = page.querySelector('[data-family-status]');
+    const comfyUiWorkflowController = initializeComfyUiWorkflowPage({
+        page,
+        documentObject,
+        fetcher,
+        csrfToken,
+    });
     page.querySelector('[data-family-manage]')?.addEventListener('click', () => {
         if (editingPrompt || !familiesLoaded) {
             return;
         }
         updateFamilyControls();
         familyDialog?.showModal();
+        void comfyUiWorkflowController.refresh();
     });
     familyList?.addEventListener('change', () => {
         if (familyNameInput) {
@@ -826,6 +834,16 @@ export const initializePromptPreparationPage = ({
                 : null;
         },
         getFamilyPrompts: (id) => familyPrompts.get(id) ?? null,
+        notify: showToast,
+        fetcher,
+        csrfToken,
+    });
+    initializeComfyUiPage({
+        page,
+        documentObject,
+        fetcher,
+        csrfToken,
+        getModelFamilyId: () => variantFamilySource?.modelFamilyId ?? activeFamilyId(),
         notify: showToast,
     });
     initializeFavoritePromptsPage({

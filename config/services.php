@@ -2,6 +2,12 @@
 
 return [
 
+    'comfyui' => [
+        'base_url' => env('COMFYUI_BASE_URL', 'http://host.docker.internal:8188'),
+        'connect_timeout' => (int) env('COMFYUI_CONNECT_TIMEOUT', 3),
+        'timeout' => (int) env('COMFYUI_TIMEOUT', 10),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services

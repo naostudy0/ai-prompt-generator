@@ -31,6 +31,11 @@ use App\Http\Controllers\PromptPreparation\Queries\GetFamilyDefaultPromptsContro
 use App\Http\Controllers\PromptPreparation\Writes\SaveFamilyDefaultPromptController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveModelFamilyController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteModelFamilyController;
+use App\Http\Controllers\PromptPreparation\Queries\GetComfyUiWorkflowController;
+use App\Http\Controllers\PromptPreparation\Writes\DeleteComfyUiWorkflowController;
+use App\Http\Controllers\PromptPreparation\Writes\QueueComfyUiPromptBatchController;
+use App\Http\Controllers\PromptPreparation\Writes\QueueComfyUiPromptController;
+use App\Http\Controllers\PromptPreparation\Writes\SaveComfyUiWorkflowController;
 
 Route::get('/', PromptPreparationPageController::class)->name('prompt-preparation');
 
@@ -51,6 +56,16 @@ Route::get('/model-families/{family}/default-prompts', GetFamilyDefaultPromptsCo
 Route::put('/model-families/{family}/default-prompts/{polarity}', SaveFamilyDefaultPromptController::class)
     ->whereNumber('family')->whereIn('polarity', ['positive', 'negative'])
     ->name('model-families.default-prompts.update');
+Route::get('/model-families/{family}/comfyui-workflow', GetComfyUiWorkflowController::class)
+    ->whereNumber('family')->name('model-families.comfyui-workflow.show');
+Route::put('/model-families/{family}/comfyui-workflow', SaveComfyUiWorkflowController::class)
+    ->whereNumber('family')->name('model-families.comfyui-workflow.update');
+Route::delete('/model-families/{family}/comfyui-workflow', DeleteComfyUiWorkflowController::class)
+    ->whereNumber('family')->name('model-families.comfyui-workflow.destroy');
+
+Route::post('/comfyui/prompts', QueueComfyUiPromptController::class)->name('comfyui-prompts.store');
+Route::post('/comfyui/prompts/batch', QueueComfyUiPromptBatchController::class)
+    ->name('comfyui-prompts.batch');
 
 Route::get('/lora-prompt-options', GetLoraPromptOptionsController::class)
     ->name('lora-prompt-options.index');

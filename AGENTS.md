@@ -34,6 +34,21 @@ docker compose exec app php artisan test
 文書のみの作業ではコンテナ起動やLaravel Boostの導入を前提にしない。
 Laravel Boostなどの開発支援ツールを導入する場合もコンテナ内で実行し、本書の開発方針へのリンクとDocker利用ルールを維持する。
 
+## フロントエンドのビルド
+
+`resources/js/`、`resources/css/`、またはBlade上のクラス・フロントエンドUIを変更した場合は、完了前にDockerの`node`サービスでViteビルドを実行する。
+
+```sh
+# node_modulesが未準備の場合だけ実行
+docker compose run --rm -T node npm ci
+
+# 配信用アセットをpublic/buildへ出力
+docker compose run --rm -T node npm run build
+```
+
+本アプリは`public/build/manifest.json`が存在すると、そこに記録されたビルド済みJavaScript・CSSを配信する。ソースだけを変更してビルドしない場合、Bladeの新しいボタンは表示されても古いJavaScriptが読み込まれ、クリックしても反応しないことがある。
+ビルド後はブラウザーをハードリロードし、変更した操作が実際の配信画面で動くことを確認する。ビルドを実行できない場合は、未実行理由と、配信画面が古い可能性を完了報告に明記する。
+
 ## 開発後の必須チェック
 
 コード・設定・依存を変更したら`sh scripts/check.sh`を必ず実行し、成功を確認してから完了とする。
@@ -41,3 +56,4 @@ Laravel Boostなどの開発支援ツールを導入する場合もコンテナ�
 失敗は修正して再検査する。検査を通すためにルールの無効化や解析レベルの引き下げを行わない。
 振る舞いを変えた場合は関連テストも実行する。未実行の検査は理由を明記し、成功扱いにしない。
 文書だけの変更はリンクと整合性の確認でよい。Node.js・npmもDockerの`node`サービス内で実行する。
+フロントエンドを変更した場合、`sh scripts/check.sh`は静的検査であり配信用アセットを生成しないため、上記の`npm run build`も別途必須とする。

@@ -3,6 +3,21 @@
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
+.workflow-settings {
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid #4f5e52;
+    border-radius: 0.5rem;
+}
+
+.workflow-mapping-row {
+    display: grid;
+    grid-template-columns: 6rem 1fr 1fr;
+    gap: 0.75rem;
+    align-items: end;
+    margin-top: 0.75rem;
+}
+
 :root {
     color: #e8e8e3;
     background: #111512;
@@ -811,8 +826,39 @@ button:focus-visible {
     border-bottom: 1px solid #435066;
 }
 
-.character-variant-row > .small-button {
-    justify-self: end;
+.character-variant-row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.character-variant-send-selection {
+    display: inline-flex;
+    gap: 0.4rem;
+    align-items: center;
+    min-height: 2.25rem;
+    padding: 0.35rem 0.55rem;
+    border: 1px solid #617183;
+    border-radius: 0.45rem;
+    color: #e3e9f0;
+    background: #202938;
+    cursor: pointer;
+}
+
+.character-variant-send-selection input {
+    width: 1rem;
+    height: 1rem;
+    margin: 0;
+}
+
+.character-variant-result {
+    min-height: 1.25rem;
+    margin: 0;
+    color: #b9c8d8;
+    font-size: 0.85rem;
+    text-align: right;
 }
 
 .model-family-controls {

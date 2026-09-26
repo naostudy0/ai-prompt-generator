@@ -78,6 +78,9 @@ test('候補を続けてコピーしても元の出力と選択は変わらな�
     const buttons = documentObject.querySelectorAll('.character-variant-item');
     assert.equal(buttons.length, 3);
     assert.match(buttons[1].getAttribute('aria-label'), /短髪/);
+    const firstSelection = documentObject.querySelector('.character-variant-send-selection');
+    assert.equal(firstSelection.textContent, '一括送信');
+    assert.equal(firstSelection.querySelector('input').checked, true);
     buttons[0].click();
     await setImmediate();
     buttons[1].click();
@@ -250,4 +253,146 @@ test('positiveの人物タグが手編集されてもnegativeは個別にコピ�
     await setImmediate();
 
     assert.deepEqual(copied, ['new negative,\n\nmanual,']);
+});
+
+test('一括送信のチェック状態を変えずに候補を一件だけComfyUIへ送信する', async () => {
+    const dom = new JSDOM(`<main data-comfy-ui-prompts-url="/comfyui/prompts">
+        <button data-character-variant-open>差し替え</button>
+        <dialog data-character-variant-dialog>
+            <button data-character-variant-close>閉じる</button>
+            <input data-character-variant-search>
+            <p data-character-variant-status></p>
+            <div data-character-variant-list></div>
+        </dialog>
+    </main>`);
+    const page = dom.window.document.querySelector('main');
+    page.querySelector('dialog').showModal = () => {};
+    const requests = [];
+    const notifications = [];
+    initializeCharacterLoraVariantPage({
+        page,
+        documentObject: dom.window.document,
+        clipboard: { writeText: async () => {} },
+        getCandidates: () => ({
+            loras: [
+                {
+                    id: 2,
+                    name: 'テスト人物',
+                    fileName: 'test-character',
+                    modelFamilyId: 3,
+                    recommendedStrength: 0.8,
+                    tags: Array(11).fill('<lora:test-character:0.8>,'),
+                },
+            ],
+            triggers: [{ id: 5, loraId: 2, name: '標準', content: 'red hair,' }],
+        }),
+        getSource: () => ({
+            positive: 'quality,\n\n<lora:original:1>,\n\nblue hair,',
+            negative: 'low quality,',
+            original: createCharacterLoraSourceMetadata(
+                'quality,',
+                '<lora:original:1>,',
+                'blue hair,',
+            ),
+            family: { modelFamilyId: 3 },
+        }),
+        fetcher: async (url, options) => {
+            requests.push({ url, options });
+            return { ok: true, json: async () => ({ promptId: 'prompt-one' }) };
+        },
+        csrfToken: 'csrf',
+        notify: (message) => notifications.push(message),
+    });
+    page.querySelector('[data-character-variant-open]').click();
+    const checkbox = page.querySelector('.character-variant-send-selection input');
+    checkbox.click();
+    page.querySelector('[aria-label="テスト人物・標準をComfyUIへ送信"]').click();
+    await setImmediate();
+
+    assert.equal(requests.length, 1);
+    assert.equal(requests[0].url, '/comfyui/prompts');
+    assert.deepEqual(JSON.parse(requests[0].options.body), {
+        modelFamilyId: 3,
+        positive: 'quality,\n\n<lora:test-character:0.8>,\n\nred hair,',
+        negative: 'low quality,',
+    });
+    assert.equal(checkbox.checked, false);
+    assert.match(page.querySelector('[data-character-variant-status]').textContent, /prompt-one/);
+    assert.equal(notifications.length, 1);
+});
+
+test('一括送信の成功IDと失敗理由を候補ごとに表示する', async () => {
+    const dom = new JSDOM(`<main data-comfy-ui-prompt-batch-url="/comfyui/prompts/batch">
+        <button data-character-variant-open>差し替え</button>
+        <dialog data-character-variant-dialog>
+            <button data-character-variant-close>閉じる</button>
+            <input data-character-variant-search>
+            <span data-character-variant-count></span>
+            <p data-character-variant-status></p>
+            <div data-character-variant-list></div>
+            <button data-character-variant-send>一括送信</button>
+        </dialog>
+    </main>`);
+    const page = dom.window.document.querySelector('main');
+    page.querySelector('dialog').showModal = () => {};
+    dom.window.confirm = () => true;
+    initializeCharacterLoraVariantPage({
+        page,
+        documentObject: dom.window.document,
+        clipboard: { writeText: async () => {} },
+        getCandidates: () => ({
+            loras: [
+                {
+                    id: 1,
+                    name: '成功人物',
+                    fileName: 'accepted',
+                    recommendedStrength: 1,
+                    tags: Array(11).fill('<lora:accepted:1>,'),
+                },
+                {
+                    id: 2,
+                    name: '失敗人物',
+                    fileName: 'failed',
+                    recommendedStrength: 1,
+                    tags: Array(11).fill('<lora:failed:1>,'),
+                },
+            ],
+            triggers: [],
+        }),
+        getSource: () => ({
+            positive: '<lora:original:1>,',
+            negative: '',
+            original: createCharacterLoraSourceMetadata('', '<lora:original:1>,', ''),
+        }),
+        fetcher: async () => ({
+            ok: true,
+            json: async () => ({
+                results: [
+                    {
+                        candidateKey: 'lora:1:trigger:none',
+                        status: 'accepted',
+                        promptId: 'prompt-accepted',
+                    },
+                    {
+                        candidateKey: 'lora:2:trigger:none',
+                        status: 'failed',
+                        message: 'ワークフローが未設定です。',
+                    },
+                ],
+            }),
+        }),
+        csrfToken: 'csrf',
+        notify: () => {},
+    });
+    page.querySelector('[data-character-variant-open]').click();
+    page.querySelector('[data-character-variant-send]').click();
+    await setImmediate();
+
+    const results = [...page.querySelectorAll('.character-variant-result')].map(
+        (element) => element.textContent,
+    );
+    assert.deepEqual(results, [
+        '送信済み（ID: prompt-accepted）',
+        '失敗：ワークフローが未設定です。',
+    ]);
 });

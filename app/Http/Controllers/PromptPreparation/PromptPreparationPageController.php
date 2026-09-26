@@ -29,6 +29,8 @@ final class PromptPreparationPageController extends Controller
             'promptOptionsUrl' => route('prompt-options.index'),
             'promptOptionGroupsUrl' => route('prompt-option-groups.store'),
             'favoritePromptsUrl' => route('favorite-prompts.index'),
+            'comfyUiPromptsUrl' => route('comfyui-prompts.store'),
+            'comfyUiPromptBatchUrl' => route('comfyui-prompts.batch'),
         ]);
     }
 }
