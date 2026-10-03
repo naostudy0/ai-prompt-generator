@@ -3,8 +3,8 @@
 namespace Tests\Feature\Infrastructure\PromptPreparation;
 
 use App\Domain\PromptPreparation\Models\DefaultPrompt\DefaultPrompt;
-use App\Domain\PromptPreparation\Models\PromptText;
 use App\Domain\PromptPreparation\Models\DefaultPrompt\PromptPolarity;
+use App\Domain\PromptPreparation\Models\PromptText;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentDefaultPromptRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;

@@ -35,6 +35,29 @@ final class LaravelComfyUiWorkflowStore implements ComfyUiWorkflowStore
                         'seed_input_name' => $mappings['seed']['inputName'],
                     ],
                 );
+                DB::table('comfy_ui_workflow_mappings')->where('model_family_id', $modelFamilyId)->delete();
+                $rows = [];
+                $allMappings = [
+                    'positive' => [$mappings['positive']],
+                    'negative' => [$mappings['negative']],
+                    'seed' => [$mappings['seed']],
+                    'checkpoint' => $mappings['checkpoint'],
+                    'sampler' => $mappings['sampler'],
+                    'scheduler' => $mappings['scheduler'],
+                    'outputFilenamePrefix' => $mappings['outputFilenamePrefix'],
+                ];
+                foreach ($allMappings as $role => $normalized) {
+                    foreach ($normalized as $position => $mapping) {
+                        $rows[] = [
+                            'model_family_id' => $modelFamilyId,
+                            'role' => $role,
+                            'node_id' => $mapping['nodeId'],
+                            'input_name' => $mapping['inputName'],
+                            'position' => $position,
+                        ];
+                    }
+                }
+                DB::table('comfy_ui_workflow_mappings')->insert($rows);
             });
         } catch (\Throwable $exception) {
             Storage::disk('local')->delete($newPath);
@@ -93,13 +116,29 @@ final class LaravelComfyUiWorkflowStore implements ComfyUiWorkflowStore
         Storage::disk('local')->delete($path);
     }
 
-    /** @return array{positive: array{nodeId: string, inputName: string}, negative: array{nodeId: string, inputName: string}, seed: array{nodeId: string, inputName: string}} */
+    /** @return array{positive: array{nodeId: string, inputName: string}, negative: array{nodeId: string, inputName: string}, seed: array{nodeId: string, inputName: string}, checkpoint: list<array{nodeId: string, inputName: string}>, sampler: list<array{nodeId: string, inputName: string}>, scheduler: list<array{nodeId: string, inputName: string}>, outputFilenamePrefix: list<array{nodeId: string, inputName: string}>} */
     private function mappings(ComfyUiWorkflowRecord $record): array
     {
+        $grouped = DB::table('comfy_ui_workflow_mappings')
+            ->where('model_family_id', $record->getKey())->orderBy('position')->get()->groupBy('role');
+        /** @var array<string, list<array{nodeId: string, inputName: string}>> $lists */
+        $lists = [];
+        foreach (['positive', 'negative', 'seed', 'checkpoint', 'sampler', 'scheduler', 'outputFilenamePrefix'] as $role) {
+            $values = ($grouped->get($role) ?? collect())->map(fn (object $row): array => [
+                'nodeId' => (string) data_get($row, 'node_id'),
+                'inputName' => (string) data_get($row, 'input_name'),
+            ])->values()->all();
+            $lists[$role] = array_values($values);
+        }
+
         return [
-            'positive' => ['nodeId' => (string) $record->getAttribute('positive_node_id'), 'inputName' => (string) $record->getAttribute('positive_input_name')],
-            'negative' => ['nodeId' => (string) $record->getAttribute('negative_node_id'), 'inputName' => (string) $record->getAttribute('negative_input_name')],
-            'seed' => ['nodeId' => (string) $record->getAttribute('seed_node_id'), 'inputName' => (string) $record->getAttribute('seed_input_name')],
+            'positive' => $lists['positive'][0] ?? ['nodeId' => '', 'inputName' => ''],
+            'negative' => $lists['negative'][0] ?? ['nodeId' => '', 'inputName' => ''],
+            'seed' => $lists['seed'][0] ?? ['nodeId' => '', 'inputName' => ''],
+            'checkpoint' => $lists['checkpoint'],
+            'sampler' => $lists['sampler'],
+            'scheduler' => $lists['scheduler'],
+            'outputFilenamePrefix' => $lists['outputFilenamePrefix'],
         ];
     }
 }

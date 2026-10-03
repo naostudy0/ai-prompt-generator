@@ -2,13 +2,13 @@
 
 namespace App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories;
 
-use App\Domain\PromptPreparation\Models\Lora\LoraTrigger;
 use App\Domain\PromptPreparation\Exceptions\LoraKindMismatch;
 use App\Domain\PromptPreparation\Models\Lora\LoraKind;
+use App\Domain\PromptPreparation\Models\Lora\LoraTrigger;
 use App\Domain\PromptPreparation\Models\PromptText;
 use App\Domain\PromptPreparation\Repositories\LoraTriggerRepository;
-use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Models\LoraTriggerRecord;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Models\LoraRecord;
+use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Models\LoraTriggerRecord;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 final class EloquentLoraTriggerRepository implements LoraTriggerRepository

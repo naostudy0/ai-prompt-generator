@@ -2,8 +2,8 @@
 
 namespace App\Domain\PromptPreparation\Repositories;
 
-use App\Domain\PromptPreparation\Models\Lora\LoraTrigger;
 use App\Domain\PromptPreparation\Models\Lora\LoraKind;
+use App\Domain\PromptPreparation\Models\Lora\LoraTrigger;
 
 interface LoraTriggerRepository
 {

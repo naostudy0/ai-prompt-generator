@@ -2,8 +2,8 @@
 
 namespace App\Application\PromptPreparation\Writes\SaveLoraTrigger;
 
-use App\Domain\PromptPreparation\Models\Lora\LoraTrigger;
 use App\Domain\PromptPreparation\Models\Lora\LoraKind;
+use App\Domain\PromptPreparation\Models\Lora\LoraTrigger;
 use App\Domain\PromptPreparation\Models\PromptText;
 use App\Domain\PromptPreparation\Repositories\LoraTriggerRepository;
 use LogicException;

@@ -3,11 +3,13 @@
 namespace Tests\Feature\Http\PromptPreparation;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\CreatesGenerationSettings;
 use Tests\TestCase;
 
 class ModelFamilyApiTest extends TestCase
 {
     use RefreshDatabase;
+    use CreatesGenerationSettings;
 
     public function test_系統ごとにpositiveとnegativeを独立して登録する(): void
     {
@@ -40,6 +42,7 @@ class ModelFamilyApiTest extends TestCase
             'fileName' => 'person.safetensors',
             'recommendedStrength' => 1,
             'modelFamilyId' => $anima,
+            ...$this->generationSettings((int) $anima),
         ])->assertCreated()->json('id');
 
         $this->getJson(route('lora-prompt-options.index'))
@@ -54,6 +57,7 @@ class ModelFamilyApiTest extends TestCase
             'fileName' => 'person.safetensors',
             'recommendedStrength' => 1,
             'modelFamilyId' => 1,
+            ...$this->generationSettings(),
         ])->assertOk();
         $this->getJson(route('lora-prompt-options.index'))
             ->assertJsonPath('loras.0.modelFamilyId', 1);

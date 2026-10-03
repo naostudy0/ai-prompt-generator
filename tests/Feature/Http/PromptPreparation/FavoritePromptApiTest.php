@@ -4,8 +4,8 @@ namespace Tests\Feature\Http\PromptPreparation;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 final class FavoritePromptApiTest extends TestCase

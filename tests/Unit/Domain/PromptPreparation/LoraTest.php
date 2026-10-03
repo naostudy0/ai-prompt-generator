@@ -21,12 +21,33 @@ class LoraTest extends TestCase
             recommendedStrength: LoraStrength::fromNumber(1),
         );
     }
+
+    public function test_保存先に使用できない登録名の人物LoRAは作成できない(): void
+    {
+        foreach (['invalid/name', 'invalid\\name', 'invalid:name', 'invalid*name', '.', '..', '末尾.'] as $name) {
+            try {
+                new Lora(
+                    id: null,
+                    name: $name,
+                    fileName: new LoraFileName('character.safetensors'),
+                    recommendedStrength: LoraStrength::fromNumber(1),
+                    checkpointOptionId: 1,
+                    samplerOptionId: 2,
+                    schedulerOptionId: 3,
+                );
+                $this->fail("{$name}を人物LoRAの登録名として作成できてしまいました。");
+            } catch (InvalidArgumentException) {
+                $this->addToAssertionCount(1);
+            }
+        }
+    }
+
     public function test_ファイル名と強度からLoRAタグを作る(): void
     {
         $fileName = 'character-v1.safetensors';
         $strength = 0.8;
         $expected = '<lora:character-v1.safetensors:0.8>,';
-        $lora = new Lora(null, 'キャラクター', new LoraFileName($fileName), LoraStrength::fromNumber(1));
+        $lora = new Lora(null, 'キャラクター', new LoraFileName($fileName), LoraStrength::fromNumber(1), checkpointOptionId: 1, samplerOptionId: 2, schedulerOptionId: 3);
 
         $actual = $lora->tag(LoraStrength::fromNumber($strength))->value();
 
@@ -37,7 +58,7 @@ class LoraTest extends TestCase
     {
         $fileName = 'character';
         $expected = '<lora:character:1>,';
-        $lora = new Lora(null, 'キャラクター', new LoraFileName($fileName), LoraStrength::fromNumber(1));
+        $lora = new Lora(null, 'キャラクター', new LoraFileName($fileName), LoraStrength::fromNumber(1), checkpointOptionId: 1, samplerOptionId: 2, schedulerOptionId: 3);
 
         $actual = $lora->tag(LoraStrength::fromNumber(1))->value();
 

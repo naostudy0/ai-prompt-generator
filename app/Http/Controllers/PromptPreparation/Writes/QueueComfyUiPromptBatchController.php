@@ -11,7 +11,7 @@ final class QueueComfyUiPromptBatchController extends Controller
 {
     public function __invoke(QueueComfyUiPromptBatchRequest $request, QueueComfyUiPromptBatchHandler $handler): JsonResponse
     {
-        /** @var list<array{candidateKey: string, modelFamilyId: int, positive: string, negative: string}> $items */
+        /** @var list<array{candidateKey: string, modelFamilyId: int, loraId: int, positive: string, negative: string}> $items */
         $items = array_map(static fn (array $item): array => [
             ...$item,
             'positive' => (string) ($item['positive'] ?? ''),

@@ -2,13 +2,13 @@
 
 namespace App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories;
 
-use App\Domain\PromptPreparation\Models\Lora\Lora;
 use App\Domain\PromptPreparation\Exceptions\LoraKindMismatch;
+use App\Domain\PromptPreparation\Models\Lora\Lora;
 use App\Domain\PromptPreparation\Models\Lora\LoraFileName;
 use App\Domain\PromptPreparation\Models\Lora\LoraKind;
 use App\Domain\PromptPreparation\Models\Lora\LoraStrength;
-use App\Domain\PromptPreparation\Repositories\LoraRepository;
 use App\Domain\PromptPreparation\Repositories\DuplicateLoraFileName;
+use App\Domain\PromptPreparation\Repositories\LoraRepository;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Models\LoraRecord;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -29,6 +29,9 @@ final class EloquentLoraRepository implements LoraRepository
                 'recommended_strength_step' => $lora->recommendedStrength->step,
                 'kind' => $lora->kind->value,
                 'model_family_id' => $lora->modelFamilyId,
+                'checkpoint_option_id' => $lora->checkpointOptionId,
+                'sampler_option_id' => $lora->samplerOptionId,
+                'scheduler_option_id' => $lora->schedulerOptionId,
             ])->save();
         } catch (UniqueConstraintViolationException $exception) {
             throw new DuplicateLoraFileName(previous: $exception);
@@ -41,6 +44,9 @@ final class EloquentLoraRepository implements LoraRepository
             recommendedStrength: LoraStrength::fromStep($record->recommended_strength_step),
             kind: LoraKind::from($record->kind),
             modelFamilyId: $record->model_family_id,
+            checkpointOptionId: $record->checkpoint_option_id,
+            samplerOptionId: $record->sampler_option_id,
+            schedulerOptionId: $record->scheduler_option_id,
         );
     }
 

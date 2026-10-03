@@ -6,6 +6,9 @@ const isLora = (value) =>
     typeof value.name === 'string' &&
     typeof value.fileName === 'string' &&
     (value.modelFamilyId === undefined || Number.isInteger(value.modelFamilyId)) &&
+    (value.checkpointOptionId === undefined || Number.isInteger(value.checkpointOptionId)) &&
+    (value.samplerOptionId === undefined || Number.isInteger(value.samplerOptionId)) &&
+    (value.schedulerOptionId === undefined || Number.isInteger(value.schedulerOptionId)) &&
     Number.isFinite(value.recommendedStrength) &&
     value.recommendedStrength >= 0 &&
     value.recommendedStrength <= 1 &&

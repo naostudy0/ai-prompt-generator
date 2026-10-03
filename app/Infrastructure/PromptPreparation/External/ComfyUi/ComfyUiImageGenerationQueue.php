@@ -20,7 +20,7 @@ final readonly class ComfyUiImageGenerationQueue implements ImageGenerationQueue
     {
     }
 
-    public function queue(int $modelFamilyId, string $positive, string $negative, ?int $seed = null): array
+    public function queue(int $modelFamilyId, string $positive, string $negative, ?int $seed = null, ?array $generationSettings = null): array
     {
         $stored = $this->workflows->findWorkflow($modelFamilyId);
         if ($stored === null) {
@@ -30,6 +30,22 @@ final readonly class ComfyUiImageGenerationQueue implements ImageGenerationQueue
         $this->replace($workflow, $stored['mappings']['positive'], $positive, 'positive');
         $this->replace($workflow, $stored['mappings']['negative'], $negative, 'negative');
         $this->replace($workflow, $stored['mappings']['seed'], $seed ?? random_int(0, self::MAX_SEED), 'seed');
+        if ($generationSettings !== null) {
+            foreach (['checkpoint', 'sampler', 'scheduler'] as $requiredRole) {
+                if ($stored['mappings'][$requiredRole] === []) {
+                    throw new InvalidComfyUiWorkflow("{$requiredRole}の入力位置が設定されていません。");
+                }
+            }
+            foreach (['checkpoint', 'sampler', 'scheduler'] as $role) {
+                foreach ($stored['mappings'][$role] as $mapping) {
+                    $this->replace($workflow, $mapping, $generationSettings[$role], $role);
+                }
+            }
+            foreach ($stored['mappings']['outputFilenamePrefix'] as $mapping) {
+                $name = $generationSettings['name'];
+                $this->replace($workflow, $mapping, "tmp/{$name}/{$name}", 'outputFilenamePrefix');
+            }
+        }
 
         $baseUrl = rtrim((string) config('services.comfyui.base_url'), '/');
         try {

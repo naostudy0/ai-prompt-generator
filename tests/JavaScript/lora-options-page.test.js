@@ -52,6 +52,12 @@ const createDocument = () => {
                 <form data-option-form>
                     <h2 data-option-dialog-title></h2>
                     <input data-option-id><input data-option-name><input data-option-file-name>
+                    <div data-lora-family-field><select data-option-family><option value="1">Illustrious</option></select></div>
+                    <div data-lora-generation-settings>
+                        <select data-option-generation-setting="checkpoint" required></select>
+                        <select data-option-generation-setting="sampler" required></select>
+                        <select data-option-generation-setting="scheduler" required></select>
+                    </div>
                     <select data-option-strength><option value="1">1</option></select>
                     <textarea data-option-content></textarea><select data-option-lora></select>
                     <div data-lora-field></div><div data-strength-field></div>
@@ -216,4 +222,61 @@ test('LoRAを切り替えても他のLoRAに属する服装の選択を維持す
         outfitId: 22,
     });
     assert.equal(controller.getSelections().outfit, 'blue dress,');
+});
+
+test('トリガー追加時は非表示のLoRA生成設定を入力検証の対象外にする', async () => {
+    const documentObject = createDocument();
+    const catalog = {
+        loras: [createLora(1, 'Alpha', 'alpha.safetensors', 1)],
+        triggers: [],
+        outfits: [],
+    };
+    const requests = [];
+    const fetcher = async (url, options = {}) => {
+        if (options.method === 'POST') {
+            requests.push({ url, body: JSON.parse(options.body) });
+
+            return {
+                ok: true,
+                json: async () => ({ id: 11, ...JSON.parse(options.body) }),
+            };
+        }
+
+        return { ok: true, json: async () => catalog };
+    };
+    initializeLoraOptionsPage({
+        page: documentObject.querySelector('main'),
+        documentObject,
+        fetcher,
+        csrfToken: 'csrf',
+        onLoadedChange: () => {},
+        notify: () => {},
+    });
+    await flushAsyncEvents();
+
+    const loraList = documentObject.querySelector('[data-lora-list]');
+    loraList.value = '1';
+    loraList.dispatchEvent(new documentObject.defaultView.Event('change'));
+    documentObject.querySelector('[data-option-add="trigger"]').click();
+
+    const generationSettingSelects = [
+        ...documentObject.querySelectorAll('[data-option-generation-setting]'),
+    ];
+    assert.equal(documentObject.querySelector('[data-lora-generation-settings]').hidden, true);
+    assert.equal(
+        generationSettingSelects.every((select) => select.disabled),
+        true,
+    );
+
+    documentObject.querySelector('[data-option-name]').value = '標準';
+    documentObject.querySelector('[data-option-content]').value = 'alpha,';
+    documentObject.querySelector('[data-option-form]').requestSubmit();
+    await flushAsyncEvents();
+
+    assert.deepEqual(requests, [
+        {
+            url: '/lora-triggers',
+            body: { loraId: 1, name: '標準', content: 'alpha,' },
+        },
+    ]);
 });

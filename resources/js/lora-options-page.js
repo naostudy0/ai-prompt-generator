@@ -27,6 +27,7 @@ export const initializeLoraOptionsPage = ({
             getSelectionSnapshot: () => ({}),
             getVariantCandidates: () => null,
             getSelectedModelFamilyId: () => null,
+            getSelectedLoraId: () => null,
             setModelFamilies: () => {},
             restoreSelection: () => false,
             reset: () => {},
@@ -51,6 +52,7 @@ export const initializeLoraOptionsPage = ({
         triggers: [],
         outfits: [],
         modelFamilies: [{ id: 1, name: 'Illustrious' }],
+        generationSettingOptions: [],
         selectedLoraId: null,
         selectedTriggerId: null,
         selectedOutfitId: null,
@@ -144,6 +146,21 @@ export const initializeLoraOptionsPage = ({
 
         if (button instanceof HTMLButtonElement) {
             button.disabled = disabled;
+        }
+    };
+
+    const renderGenerationSettingFields = (lora = null) => {
+        const familyId = Number(page.querySelector('[data-option-family]')?.value ?? 0);
+        for (const kind of ['checkpoint', 'sampler', 'scheduler']) {
+            const selectedId = lora?.[`${kind}OptionId`] ?? null;
+            replaceOptions(
+                page.querySelector(`[data-option-generation-setting="${kind}"]`),
+                state.generationSettingOptions.filter(
+                    (option) => option.modelFamilyId === familyId && option.kind === kind,
+                ),
+                selectedId,
+                (option) => option.value,
+            );
         }
     };
 
@@ -310,6 +327,14 @@ export const initializeLoraOptionsPage = ({
             item?.modelFamilyId ?? 1,
             (family) => family.name,
         );
+        const generationSettings = page.querySelector('[data-lora-generation-settings]');
+        if (generationSettings) {
+            generationSettings.hidden = type !== 'lora';
+        }
+        page.querySelectorAll('[data-option-generation-setting]').forEach((select) => {
+            select.disabled = type !== 'lora';
+        });
+        renderGenerationSettingFields(item);
         page.querySelector('[data-option-content]').value = item?.content ?? '';
         page.querySelector('[data-option-form-status]').textContent = '';
         page.querySelector('[data-lora-field]').hidden = type !== 'lora';
@@ -347,6 +372,15 @@ export const initializeLoraOptionsPage = ({
                 fileName: page.querySelector('[data-option-file-name]').value,
                 recommendedStrength: Number(page.querySelector('[data-option-strength]').value),
                 modelFamilyId: Number(page.querySelector('[data-option-family]')?.value ?? 1),
+                checkpointOptionId: Number(
+                    page.querySelector('[data-option-generation-setting="checkpoint"]')?.value,
+                ),
+                samplerOptionId: Number(
+                    page.querySelector('[data-option-generation-setting="sampler"]')?.value,
+                ),
+                schedulerOptionId: Number(
+                    page.querySelector('[data-option-generation-setting="scheduler"]')?.value,
+                ),
             };
         } else if (type === 'trigger') {
             values = { loraId: state.selectedLoraId, name, content };
@@ -490,6 +524,9 @@ export const initializeLoraOptionsPage = ({
         event.preventDefault();
         void saveOption();
     });
+    page.querySelector('[data-option-family]')?.addEventListener('change', () =>
+        renderGenerationSettingFields(),
+    );
     deleteForm?.addEventListener('submit', (event) => {
         event.preventDefault();
         void deleteOption();
@@ -511,9 +548,29 @@ export const initializeLoraOptionsPage = ({
 
     return {
         getSelectedModelFamilyId: () => selectedItem('lora')?.modelFamilyId ?? null,
+        getSelectedLoraId: () => selectedItem('lora')?.id ?? null,
         setModelFamilies: (families) => {
             state.modelFamilies = families;
             render();
+            void Promise.all(
+                families.map(async (family) => {
+                    const response = await fetcher(
+                        `${page.dataset.modelFamiliesUrl}/${family.id}/generation-setting-options`,
+                        { headers: { Accept: 'application/json' } },
+                    );
+                    if (!response.ok) {
+                        throw new Error();
+                    }
+                    return (await response.json()).options;
+                }),
+            )
+                .then((groups) => {
+                    state.generationSettingOptions = groups.flat();
+                })
+                .catch(() => {
+                    state.generationSettingOptions = [];
+                    loadStatus.textContent = '生成設定を読み込めませんでした。';
+                });
         },
         getSelections: () => {
             const loraSections = createLoraPromptSections({

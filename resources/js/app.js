@@ -18,7 +18,11 @@ import {
     locateCharacterLoraSourceMetadata,
     trackCharacterLoraSourceEdit,
 } from './character-lora-variant.js';
-import { initializeComfyUiPage, initializeComfyUiWorkflowPage } from './comfyui-page.js';
+import {
+    initializeComfyUiPage,
+    initializeComfyUiWorkflowPage,
+    initializeGenerationSettingOptionsPage,
+} from './comfyui-page.js';
 
 export const initializePromptPreparationPage = ({
     documentObject = document,
@@ -520,6 +524,7 @@ export const initializePromptPreparationPage = ({
         );
         variantFamilySource = {
             modelFamilyId: activeFamilyId(),
+            loraId: loraOptionsController.getSelectedLoraId?.() ?? null,
             defaults: { ...selectedPrompts },
             defaultSections: createPromptOutputs(currentPrompts, selectedPrompts),
         };
@@ -659,6 +664,13 @@ export const initializePromptPreparationPage = ({
         fetcher,
         csrfToken,
     });
+    const generationSettingController = initializeGenerationSettingOptionsPage({
+        page,
+        documentObject,
+        fetcher,
+        csrfToken,
+        onChanged: () => loraOptionsController.setModelFamilies?.(modelFamilies),
+    });
     page.querySelector('[data-family-manage]')?.addEventListener('click', () => {
         if (editingPrompt || !familiesLoaded) {
             return;
@@ -666,6 +678,7 @@ export const initializePromptPreparationPage = ({
         updateFamilyControls();
         familyDialog?.showModal();
         void comfyUiWorkflowController.refresh();
+        void generationSettingController.refresh();
     });
     familyList?.addEventListener('change', () => {
         if (familyNameInput) {
@@ -844,6 +857,7 @@ export const initializePromptPreparationPage = ({
         fetcher,
         csrfToken,
         getModelFamilyId: () => variantFamilySource?.modelFamilyId ?? activeFamilyId(),
+        getLoraId: () => variantFamilySource?.loraId ?? null,
         notify: showToast,
     });
     initializeFavoritePromptsPage({
@@ -932,6 +946,7 @@ export const initializePromptPreparationPage = ({
             );
             variantFamilySource = {
                 modelFamilyId: restoredFamilyId,
+                loraId: snapshot.lora?.loraId ?? null,
                 defaults: { ...selectedPrompts },
                 defaultSections:
                     snapshot.defaultSections ?? createPromptOutputs(savedPrompts, selectedPrompts),

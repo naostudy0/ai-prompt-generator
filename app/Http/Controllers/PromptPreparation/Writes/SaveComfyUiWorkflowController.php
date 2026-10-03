@@ -25,6 +25,10 @@ final class SaveComfyUiWorkflowController extends Controller
             'positive' => ['nodeId' => $request->string('positiveNodeId')->toString(), 'inputName' => $request->string('positiveInputName')->toString()],
             'negative' => ['nodeId' => $request->string('negativeNodeId')->toString(), 'inputName' => $request->string('negativeInputName')->toString()],
             'seed' => ['nodeId' => $request->string('seedNodeId')->toString(), 'inputName' => $request->string('seedInputName')->toString()],
+            'checkpoint' => $request->validated('checkpointMappings'),
+            'sampler' => $request->validated('samplerMappings'),
+            'scheduler' => $request->validated('schedulerMappings'),
+            'outputFilenamePrefix' => $request->validated('outputFilenamePrefixMappings', []),
         ];
         try {
             $handler->handle($family, $file->getClientOriginalName(), $content, $mappings);

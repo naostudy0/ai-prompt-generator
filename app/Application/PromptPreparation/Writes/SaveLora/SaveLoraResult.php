@@ -10,6 +10,9 @@ final readonly class SaveLoraResult
         public string $fileName,
         public int|float $recommendedStrength,
         public ?int $modelFamilyId = null,
+        public ?int $checkpointOptionId = null,
+        public ?int $samplerOptionId = null,
+        public ?int $schedulerOptionId = null,
     ) {
     }
 }

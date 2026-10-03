@@ -11,7 +11,7 @@ final readonly class GetComfyUiWorkflowHandler
     {
     }
 
-    /** @return array{configured: bool, fileName?: string, updatedAt?: string, mappings?: array{positive: array{nodeId: string, inputName: string}, negative: array{nodeId: string, inputName: string}, seed: array{nodeId: string, inputName: string}}} */
+    /** @return array{configured: bool, fileName?: string, updatedAt?: string, mappings?: array{positive: array{nodeId: string, inputName: string}, negative: array{nodeId: string, inputName: string}, seed: array{nodeId: string, inputName: string}, checkpoint: list<array{nodeId: string, inputName: string}>, sampler: list<array{nodeId: string, inputName: string}>, scheduler: list<array{nodeId: string, inputName: string}>, outputFilenamePrefix: list<array{nodeId: string, inputName: string}>}} */
     public function handle(int $modelFamilyId): array
     {
         $this->families->ensureExists($modelFamilyId);

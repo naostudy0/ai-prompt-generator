@@ -10,11 +10,17 @@ use Illuminate\Database\Eloquent\Model;
  * @property 'character'|'clothing' $kind
  * @property int $recommended_strength_step
  * @property int|null $model_family_id
+ * @property int|null $checkpoint_option_id
+ * @property int|null $sampler_option_id
+ * @property int|null $scheduler_option_id
  */
 class LoraRecord extends Model
 {
     protected $table = 'loras';
 
     /** @var list<string> */
-    protected $fillable = ['name', 'file_name', 'recommended_strength_step', 'kind', 'model_family_id'];
+    protected $fillable = [
+        'name', 'file_name', 'recommended_strength_step', 'kind', 'model_family_id',
+        'checkpoint_option_id', 'sampler_option_id', 'scheduler_option_id',
+    ];
 }

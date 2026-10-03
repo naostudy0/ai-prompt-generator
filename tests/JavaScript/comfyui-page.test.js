@@ -7,7 +7,30 @@ import { JSDOM } from 'jsdom';
 import {
     initializeComfyUiPage,
     initializeComfyUiWorkflowPage,
+    responseErrorMessage,
 } from '../../resources/js/comfyui-page.js';
+
+test('保存APIの項目別エラーを汎用メッセージより優先する', () => {
+    assert.equal(
+        responseErrorMessage(
+            {
+                message: 'The given data was invalid.',
+                errors: {
+                    'checkpointMappings.0.nodeId': ['checkpointのノードIDを入力してください。'],
+                },
+            },
+            '保存できませんでした。',
+        ),
+        'checkpointのノードIDを入力してください。',
+    );
+});
+
+test('項目別エラーがなければAPIのメッセージを表示する', () => {
+    assert.equal(
+        responseErrorMessage({ message: 'CSRF token mismatch.' }, '保存できませんでした。'),
+        'CSRF token mismatch.',
+    );
+});
 
 test('空のpositiveとnegativeを確認なしで現在の系統へ送信する', async () => {
     const dom = new JSDOM(`<main data-comfy-ui-prompts-url="/comfyui/prompts">
@@ -35,6 +58,7 @@ test('空のpositiveとnegativeを確認なしで現在の系統へ送信する'
     assert.equal(requests.length, 1);
     assert.deepEqual(JSON.parse(requests[0].options.body), {
         modelFamilyId: 2,
+        loraId: null,
         positive: '',
         negative: '',
     });
@@ -76,6 +100,10 @@ test('ワークフロー選択時に開発用JSON固有の入力位置を設定�
         <input data-comfyui-positive-node><input data-comfyui-positive-input>
         <input data-comfyui-negative-node><input data-comfyui-negative-input>
         <input data-comfyui-seed-node><input data-comfyui-seed-input>
+        <div data-comfyui-mapping-list="checkpoint"><div data-comfyui-mapping-rows></div></div>
+        <div data-comfyui-mapping-list="sampler"><div data-comfyui-mapping-rows></div></div>
+        <div data-comfyui-mapping-list="scheduler"><div data-comfyui-mapping-rows></div></div>
+        <div data-comfyui-mapping-list="outputFilenamePrefix"><div data-comfyui-mapping-rows></div></div>
         <p data-comfyui-workflow-status></p>
         <button data-comfyui-workflow-save></button>
         <button data-comfyui-workflow-delete></button>
@@ -107,6 +135,7 @@ test('ワークフロー選択時に開発用JSON固有の入力位置を設定�
     assert.equal(page.querySelector('[data-comfyui-positive-node]').value, '');
     assert.equal(page.querySelector('[data-comfyui-negative-node]').value, '');
     assert.equal(page.querySelector('[data-comfyui-seed-node]').value, '');
+    assert.equal(page.querySelectorAll('[data-comfyui-mapping-row]').length, 3);
     assert.match(
         page.querySelector('[data-comfyui-workflow-status]').textContent,
         /入力位置を指定/,

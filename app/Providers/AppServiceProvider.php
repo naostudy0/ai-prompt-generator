@@ -2,43 +2,47 @@
 
 namespace App\Providers;
 
-use App\Application\Shared\TransactionManager;
-use App\Application\PromptPreparation\Ports\DefaultPromptQueryService;
 use App\Application\PromptPreparation\Ports\ClothingLoraOptionQueryService;
-use App\Application\PromptPreparation\Ports\LoraPromptOptionQueryService;
-use App\Application\PromptPreparation\Ports\OptionPromptQueryService;
+use App\Application\PromptPreparation\Ports\ComfyUiWorkflowStore;
+use App\Application\PromptPreparation\Ports\DefaultPromptQueryService;
 use App\Application\PromptPreparation\Ports\FavoriteImageStorage;
 use App\Application\PromptPreparation\Ports\FavoritePromptQueryService;
+use App\Application\PromptPreparation\Ports\ImageGenerationQueue;
+use App\Application\PromptPreparation\Ports\LoraGenerationSettingsProvider;
+use App\Application\PromptPreparation\Ports\LoraPromptOptionQueryService;
+use App\Application\PromptPreparation\Ports\ModelFamilyQueryService;
+use App\Application\PromptPreparation\Ports\OptionPromptQueryService;
+use App\Application\Shared\TransactionManager;
 use App\Domain\PromptPreparation\Repositories\DefaultPromptRepository;
+use App\Domain\PromptPreparation\Repositories\FavoritePromptRepository;
+use App\Domain\PromptPreparation\Repositories\GenerationSettingOptionRepository;
 use App\Domain\PromptPreparation\Repositories\LoraRepository;
 use App\Domain\PromptPreparation\Repositories\LoraTriggerRepository;
-use App\Domain\PromptPreparation\Repositories\OutfitPromptRepository;
-use App\Domain\PromptPreparation\Repositories\OptionPromptRepository;
+use App\Domain\PromptPreparation\Repositories\ModelFamilyRepository;
 use App\Domain\PromptPreparation\Repositories\OptionPromptGroupRepository;
-use App\Domain\PromptPreparation\Repositories\FavoritePromptRepository;
+use App\Domain\PromptPreparation\Repositories\OptionPromptRepository;
+use App\Domain\PromptPreparation\Repositories\OutfitPromptRepository;
+use App\Infrastructure\PromptPreparation\External\ComfyUi\ComfyUiImageGenerationQueue;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentDefaultPromptRepository;
+use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentFavoritePromptRepository;
+use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentGenerationSettingOptionRepository;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentLoraRepository;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentLoraTriggerRepository;
-use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentOutfitPromptRepository;
-use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentOptionPromptRepository;
-use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentOptionPromptGroupRepository;
-use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentFavoritePromptRepository;
-use App\Infrastructure\PromptPreparation\Queries\EloquentDefaultPromptQueryService;
-use App\Infrastructure\PromptPreparation\Queries\EloquentClothingLoraOptionQueryService;
-use App\Infrastructure\PromptPreparation\Queries\EloquentLoraPromptOptionQueryService;
-use App\Infrastructure\PromptPreparation\Queries\EloquentOptionPromptQueryService;
-use App\Infrastructure\PromptPreparation\Queries\EloquentFavoritePromptQueryService;
-use App\Infrastructure\PromptPreparation\Storage\LaravelFavoriteImageStorage;
-use Illuminate\Support\ServiceProvider;
-use App\Infrastructure\Shared\LaravelTransactionManager;
-use App\Application\PromptPreparation\Ports\ModelFamilyQueryService;
-use App\Domain\PromptPreparation\Repositories\ModelFamilyRepository;
-use App\Infrastructure\PromptPreparation\Queries\EloquentModelFamilyQueryService;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentModelFamilyRepository;
-use App\Application\PromptPreparation\Ports\ComfyUiWorkflowStore;
-use App\Application\PromptPreparation\Ports\ImageGenerationQueue;
-use App\Infrastructure\PromptPreparation\External\ComfyUi\ComfyUiImageGenerationQueue;
+use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentOptionPromptGroupRepository;
+use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentOptionPromptRepository;
+use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentOutfitPromptRepository;
+use App\Infrastructure\PromptPreparation\Queries\EloquentClothingLoraOptionQueryService;
+use App\Infrastructure\PromptPreparation\Queries\EloquentDefaultPromptQueryService;
+use App\Infrastructure\PromptPreparation\Queries\EloquentFavoritePromptQueryService;
+use App\Infrastructure\PromptPreparation\Queries\EloquentLoraGenerationSettingsProvider;
+use App\Infrastructure\PromptPreparation\Queries\EloquentLoraPromptOptionQueryService;
+use App\Infrastructure\PromptPreparation\Queries\EloquentModelFamilyQueryService;
+use App\Infrastructure\PromptPreparation\Queries\EloquentOptionPromptQueryService;
 use App\Infrastructure\PromptPreparation\Storage\LaravelComfyUiWorkflowStore;
+use App\Infrastructure\PromptPreparation\Storage\LaravelFavoriteImageStorage;
+use App\Infrastructure\Shared\LaravelTransactionManager;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -65,6 +69,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(FavoriteImageStorage::class, LaravelFavoriteImageStorage::class);
         $this->app->bind(ComfyUiWorkflowStore::class, LaravelComfyUiWorkflowStore::class);
         $this->app->bind(ImageGenerationQueue::class, ComfyUiImageGenerationQueue::class);
+        $this->app->bind(LoraGenerationSettingsProvider::class, EloquentLoraGenerationSettingsProvider::class);
+        $this->app->bind(GenerationSettingOptionRepository::class, EloquentGenerationSettingOptionRepository::class);
     }
 
     /**
