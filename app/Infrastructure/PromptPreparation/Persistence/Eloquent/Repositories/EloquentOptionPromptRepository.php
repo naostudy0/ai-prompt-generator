@@ -5,8 +5,8 @@ namespace App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories
 use App\Domain\PromptPreparation\Models\OptionPrompt;
 use App\Domain\PromptPreparation\Models\PromptText;
 use App\Domain\PromptPreparation\Repositories\OptionPromptRepository;
-use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Models\OptionPromptRecord;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Models\OptionPromptGroupRecord;
+use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Models\OptionPromptRecord;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 final class EloquentOptionPromptRepository implements OptionPromptRepository

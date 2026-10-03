@@ -205,6 +205,7 @@ export const initializeCharacterLoraVariantPage = ({
                         },
                         body: JSON.stringify({
                             modelFamilyId: lora.modelFamilyId ?? 1,
+                            loraId: lora.id,
                             positive: createOutput('positive', lora, trigger),
                             negative: createOutput('negative', lora, trigger),
                         }),
@@ -283,6 +284,7 @@ export const initializeCharacterLoraVariantPage = ({
                     items.push({
                         candidateKey: key,
                         modelFamilyId: lora.modelFamilyId ?? 1,
+                        loraId: lora.id,
                         positive: createOutput('positive', lora, trigger),
                         negative: createOutput('negative', lora, trigger),
                     });

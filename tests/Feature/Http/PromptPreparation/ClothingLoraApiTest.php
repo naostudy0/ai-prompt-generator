@@ -2,19 +2,22 @@
 
 namespace Tests\Feature\Http\PromptPreparation;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Database\QueryException;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Concerns\CreatesGenerationSettings;
 use Tests\TestCase;
 
 class ClothingLoraApiTest extends TestCase
 {
     use RefreshDatabase;
+    use CreatesGenerationSettings;
 
     public function test_衣装LoRAとトリガーを登録して衣装用の選択肢だけを取得する(): void
     {
         $this->postJson(route('loras.store'), [
             'modelFamilyId' => 1,
+            ...$this->generationSettings(),
             'name' => '人物',
             'fileName' => 'character.safetensors',
             'recommendedStrength' => 1,
@@ -49,6 +52,7 @@ class ClothingLoraApiTest extends TestCase
         $fileName = 'same.safetensors';
         $this->postJson(route('loras.store'), [
             'modelFamilyId' => 1,
+            ...$this->generationSettings(),
             'name' => '人物',
             'fileName' => $fileName,
             'recommendedStrength' => 1,
@@ -65,6 +69,7 @@ class ClothingLoraApiTest extends TestCase
     {
         $character = $this->postJson(route('loras.store'), [
             'modelFamilyId' => 1,
+            ...$this->generationSettings(),
             'name' => '人物',
             'fileName' => 'character.safetensors',
             'recommendedStrength' => 1,
@@ -162,6 +167,7 @@ class ClothingLoraApiTest extends TestCase
         }
         $character = $this->postJson(route('loras.store'), [
             'modelFamilyId' => 1,
+            ...$this->generationSettings(),
             'name' => '人物',
             'fileName' => 'character.safetensors',
             'recommendedStrength' => 1,

@@ -29,6 +29,7 @@
             data-favorite-prompts-url="{{ $favoritePromptsUrl }}"
             data-comfy-ui-prompts-url="{{ $comfyUiPromptsUrl }}"
             data-comfy-ui-prompt-batch-url="{{ $comfyUiPromptBatchUrl }}"
+            data-generation-setting-options-url="{{ $generationSettingOptionsUrl }}"
         >
             <nav class="prompt-sidebar section-navigation" aria-labelledby="section-navigation-heading">
                 <h2 id="section-navigation-heading">セクション</h2>
@@ -331,12 +332,33 @@
                 <input id="family-manage-name" class="text-input" data-family-name>
                 <p class="editor-status" data-family-status role="status" aria-live="polite"></p>
                 <fieldset class="workflow-settings">
+                    <legend>人物LoRAの生成設定</legend>
+                    <p class="editor-help">人物LoRAを登録する前に、この系統で使用する設定値を登録します。</p>
+                    <label class="field-label" for="generation-setting-list">登録済み設定</label>
+                    <select id="generation-setting-list" class="text-input" size="5" data-generation-setting-list></select>
+                    <label class="field-label" for="generation-setting-kind">種類</label>
+                    <select id="generation-setting-kind" class="text-input" data-generation-setting-kind>
+                        <option value="checkpoint">Checkpoint</option>
+                        <option value="sampler">サンプラー</option>
+                        <option value="scheduler">スケジューラ</option>
+                    </select>
+                    <label class="field-label" for="generation-setting-value">ComfyUIへ渡す値</label>
+                    <input id="generation-setting-value" class="text-input" data-generation-setting-value>
+                    <p class="editor-status" data-generation-setting-status role="status" aria-live="polite"></p>
+                    <div class="editor-actions">
+                        <button class="secondary-button" type="button" data-generation-setting-add>新規登録</button>
+                        <button class="secondary-button" type="button" data-generation-setting-update disabled>更新</button>
+                        <button class="danger-button" type="button" data-generation-setting-delete disabled>削除</button>
+                    </div>
+                </fieldset>
+                <fieldset class="workflow-settings">
                     <legend>ComfyUIワークフロー</legend>
                     <p class="editor-help">
                         1. 上の「登録済みの系統」を選ぶ<br>
                         2. その系統用のAPI形式JSONを選ぶ<br>
-                        3. JSONに合わせてpositive・negative・seedのノードIDと入力名を入力する<br>
-                        4. 「ワークフローを保存」を押し、「設定済み」と表示されることを確認する
+                        3. JSONに合わせて各項目のノードIDと入力名を入力する<br>
+                        4. checkpoint・sampler・schedulerは各一行以上設定する<br>
+                        5. 「ワークフローを保存」を押し、「設定済み」と表示されることを確認する
                     </p>
                     <p class="editor-help">
                         ノードIDと入力名はワークフローごとに異なります。ComfyUIから出力したAPI形式JSONの内容を確認して指定してください。
@@ -348,6 +370,20 @@
                             <strong>{{ $role }}</strong>
                             <label>ノードID <input class="text-input" data-comfyui-{{ $role }}-node></label>
                             <label>入力名 <input class="text-input" data-comfyui-{{ $role }}-input></label>
+                        </div>
+                    @endforeach
+                    @foreach ([
+                        ['role' => 'checkpoint', 'label' => 'checkpoint', 'optional' => false],
+                        ['role' => 'sampler', 'label' => 'sampler', 'optional' => false],
+                        ['role' => 'scheduler', 'label' => 'scheduler', 'optional' => false],
+                        ['role' => 'outputFilenamePrefix', 'label' => '保存先プレフィックス（任意）', 'optional' => true],
+                    ] as $mapping)
+                        <div class="workflow-mapping-list" data-comfyui-mapping-list="{{ $mapping['role'] }}" data-optional="{{ $mapping['optional'] ? 'true' : 'false' }}">
+                            <div class="subsection-heading subsection-heading--compact">
+                                <strong>{{ $mapping['label'] }}</strong>
+                                <button class="small-button" type="button" data-comfyui-mapping-add="{{ $mapping['role'] }}">入力先を追加</button>
+                            </div>
+                            <div data-comfyui-mapping-rows></div>
                         </div>
                     @endforeach
                     <p class="editor-status" data-comfyui-workflow-status role="status" aria-live="polite"></p>
@@ -375,6 +411,17 @@
                     <div data-lora-family-field hidden>
                         <label class="field-label" for="option-family">系統</label>
                         <select id="option-family" class="text-input" data-option-family></select>
+                    </div>
+                    <div data-lora-generation-settings hidden>
+                        <p class="editor-help">系統に登録済みの生成設定を選択してください。</p>
+                        @foreach ([
+                            ['kind' => 'checkpoint', 'label' => 'Checkpoint'],
+                            ['kind' => 'sampler', 'label' => 'サンプラー'],
+                            ['kind' => 'scheduler', 'label' => 'スケジューラ'],
+                        ] as $setting)
+                            <label class="field-label" for="option-{{ $setting['kind'] }}">{{ $setting['label'] }}</label>
+                            <select id="option-{{ $setting['kind'] }}" class="text-input" data-option-generation-setting="{{ $setting['kind'] }}" required></select>
+                        @endforeach
                     </div>
                     <label class="field-label" for="option-name">登録名</label>
                     <input id="option-name" class="text-input" data-option-name>

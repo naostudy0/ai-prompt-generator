@@ -19,6 +19,7 @@ final class QueueComfyUiPromptRequest extends FormRequest
     {
         return [
             'modelFamilyId' => ['required', 'integer', 'exists:model_families,id'],
+            'loraId' => ['nullable', 'integer', 'exists:loras,id'],
             'positive' => ['present', 'nullable', 'string', 'max:1000000'],
             'negative' => ['present', 'nullable', 'string', 'max:1000000'],
         ];

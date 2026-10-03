@@ -29,6 +29,7 @@ final class QueueComfyUiPromptBatchRequest extends FormRequest
             'items' => ['required', 'array', 'min:1', 'max:100'],
             'items.*.candidateKey' => ['required', 'string', 'max:255', 'distinct'],
             'items.*.modelFamilyId' => ['required', 'integer', 'exists:model_families,id'],
+            'items.*.loraId' => ['required', 'integer', 'exists:loras,id'],
             'items.*.positive' => ['present', 'nullable', 'string', 'max:1000000'],
             'items.*.negative' => ['present', 'nullable', 'string', 'max:1000000'],
         ];

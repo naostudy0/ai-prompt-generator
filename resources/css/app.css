@@ -10,12 +10,42 @@
     border-radius: 0.5rem;
 }
 
+[data-family-dialog] {
+    width: min(calc(100% - 2rem), 42rem);
+}
+
 .workflow-mapping-row {
     display: grid;
     grid-template-columns: 6rem 1fr 1fr;
     gap: 0.75rem;
     align-items: end;
     margin-top: 0.75rem;
+}
+
+.workflow-mapping-list {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #454b5d;
+}
+
+.workflow-mapping-list .subsection-heading {
+    margin-bottom: 0;
+}
+
+.workflow-mapping-entry {
+    display: grid;
+    grid-template-columns: minmax(7rem, 0.7fr) minmax(10rem, 1fr) auto;
+    gap: 0.75rem;
+    align-items: end;
+    margin-top: 0.75rem;
+}
+
+.workflow-mapping-entry label {
+    min-width: 0;
+}
+
+.workflow-mapping-entry .small-button {
+    white-space: nowrap;
 }
 
 :root {
@@ -1181,5 +1211,22 @@ button:focus-visible {
 
     .setting-actions {
         justify-content: flex-start;
+    }
+
+    .workflow-mapping-row {
+        grid-template-columns: 5rem minmax(0, 1fr);
+    }
+
+    .workflow-mapping-row > label:last-child {
+        grid-column: 2;
+    }
+
+    .workflow-mapping-entry {
+        grid-template-columns: minmax(6rem, 0.7fr) minmax(0, 1fr);
+    }
+
+    .workflow-mapping-entry .small-button {
+        grid-column: 1 / -1;
+        justify-self: end;
     }
 }

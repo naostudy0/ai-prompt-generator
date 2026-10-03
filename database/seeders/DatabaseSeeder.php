@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Domain\PromptPreparation\Models\PromptText;
 use App\Domain\PromptPreparation\Models\DefaultPrompt\PromptPolarity;
+use App\Domain\PromptPreparation\Models\PromptText;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Models\DefaultPromptRecord;
 use Illuminate\Database\Seeder;
 

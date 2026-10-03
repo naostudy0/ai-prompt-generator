@@ -2,19 +2,24 @@
 
 namespace App\Application\PromptPreparation\Writes\SaveLora;
 
+use App\Domain\PromptPreparation\Models\GenerationSettingKind;
 use App\Domain\PromptPreparation\Models\Lora\Lora;
 use App\Domain\PromptPreparation\Models\Lora\LoraFileName;
 use App\Domain\PromptPreparation\Models\Lora\LoraKind;
 use App\Domain\PromptPreparation\Models\Lora\LoraStrength;
+use App\Domain\PromptPreparation\Repositories\GenerationSettingOptionRepository;
 use App\Domain\PromptPreparation\Repositories\LoraRepository;
 use App\Domain\PromptPreparation\Repositories\ModelFamilyRepository;
-use LogicException;
 use InvalidArgumentException;
+use LogicException;
 
 final readonly class SaveLoraHandler
 {
-    public function __construct(private LoraRepository $repository, private ModelFamilyRepository $families)
-    {
+    public function __construct(
+        private LoraRepository $repository,
+        private ModelFamilyRepository $families,
+        private GenerationSettingOptionRepository $generationSettings,
+    ) {
     }
 
     public function handle(SaveLoraInput $input, LoraKind $kind): SaveLoraResult
@@ -24,6 +29,9 @@ final readonly class SaveLoraHandler
                 throw new InvalidArgumentException('Character LoRA model family is required.');
             }
             $this->families->ensureExists($input->modelFamilyId);
+            $this->generationSettings->ensureMatches((int) $input->checkpointOptionId, $input->modelFamilyId, GenerationSettingKind::Checkpoint);
+            $this->generationSettings->ensureMatches((int) $input->samplerOptionId, $input->modelFamilyId, GenerationSettingKind::Sampler);
+            $this->generationSettings->ensureMatches((int) $input->schedulerOptionId, $input->modelFamilyId, GenerationSettingKind::Scheduler);
         }
         $saved = $this->repository->save(new Lora(
             id: $input->id,
@@ -32,6 +40,9 @@ final readonly class SaveLoraHandler
             recommendedStrength: LoraStrength::fromNumber($input->recommendedStrength),
             kind: $kind,
             modelFamilyId: $kind === LoraKind::Character ? $input->modelFamilyId : null,
+            checkpointOptionId: $kind === LoraKind::Character ? $input->checkpointOptionId : null,
+            samplerOptionId: $kind === LoraKind::Character ? $input->samplerOptionId : null,
+            schedulerOptionId: $kind === LoraKind::Character ? $input->schedulerOptionId : null,
         ));
 
         if ($saved->id === null) {
@@ -44,6 +55,9 @@ final readonly class SaveLoraHandler
             fileName: $saved->fileName->value,
             recommendedStrength: $saved->recommendedStrength->value(),
             modelFamilyId: $saved->modelFamilyId,
+            checkpointOptionId: $saved->checkpointOptionId,
+            samplerOptionId: $saved->samplerOptionId,
+            schedulerOptionId: $saved->schedulerOptionId,
         );
     }
 }

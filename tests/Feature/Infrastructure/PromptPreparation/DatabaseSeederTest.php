@@ -7,10 +7,12 @@ use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Models\DefaultProm
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Concerns\CreatesGenerationSettings;
 use Tests\TestCase;
 
 class DatabaseSeederTest extends TestCase
 {
+    use CreatesGenerationSettings;
     use RefreshDatabase;
 
     public function test_positiveとnegativeの初期文面を登録する(): void
@@ -73,12 +75,16 @@ class DatabaseSeederTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $settings = $this->generationSettings($familyId);
         $loraId = DB::table('loras')->insertGetId([
             'name' => '人物',
             'file_name' => 'person.safetensors',
             'recommended_strength_step' => 10,
             'kind' => 'character',
             'model_family_id' => $familyId,
+            'checkpoint_option_id' => $settings['checkpointOptionId'],
+            'sampler_option_id' => $settings['samplerOptionId'],
+            'scheduler_option_id' => $settings['schedulerOptionId'],
             'created_at' => now(),
             'updated_at' => now(),
         ]);

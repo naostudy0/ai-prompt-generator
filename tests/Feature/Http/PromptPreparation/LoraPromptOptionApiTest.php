@@ -2,14 +2,16 @@
 
 namespace Tests\Feature\Http\PromptPreparation;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Database\QueryException;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Concerns\CreatesGenerationSettings;
 use Tests\TestCase;
 
 class LoraPromptOptionApiTest extends TestCase
 {
     use RefreshDatabase;
+    use CreatesGenerationSettings;
 
     public function test_LoRAとトリガーと服装を登録して選択肢として取得する(): void
     {
@@ -25,6 +27,7 @@ class LoraPromptOptionApiTest extends TestCase
 
         $loraResponse = $this->postJson(route('loras.store'), [
             'modelFamilyId' => 1,
+            ...$this->generationSettings(),
             'name' => $loraName,
             'fileName' => $fileName,
             'recommendedStrength' => $strength,
@@ -50,6 +53,7 @@ class LoraPromptOptionApiTest extends TestCase
                 'loras' => [[
                     'id' => $loraId,
                     'modelFamilyId' => 1,
+                    ...$this->generationSettings(),
                     'name' => $loraName,
                     'fileName' => $fileName,
                     'recommendedStrength' => $strength,
@@ -79,6 +83,7 @@ class LoraPromptOptionApiTest extends TestCase
 
         $response = $this->putJson(route('loras.update', ['lora' => $loraId]), [
             'modelFamilyId' => 1,
+            ...$this->generationSettings(),
             'name' => $updatedName,
             'fileName' => $updatedFileName,
             'recommendedStrength' => $updatedStrength,
@@ -106,12 +111,14 @@ class LoraPromptOptionApiTest extends TestCase
 
         $duplicateFileResponse = $this->postJson(route('loras.store'), [
             'modelFamilyId' => 1,
+            ...$this->generationSettings(),
             'name' => '別名',
             'fileName' => $existingFileName,
             'recommendedStrength' => 1,
         ]);
         $sameNameResponse = $this->postJson(route('loras.store'), [
             'modelFamilyId' => 1,
+            ...$this->generationSettings(),
             'name' => $sameName,
             'fileName' => 'another.safetensors',
             'recommendedStrength' => 1,
@@ -127,6 +134,7 @@ class LoraPromptOptionApiTest extends TestCase
         foreach ([-0.1, 0.15, 1.1] as $invalidStrength) {
             $response = $this->postJson(route('loras.store'), [
                 'modelFamilyId' => 1,
+                ...$this->generationSettings(),
                 'name' => 'キャラクター',
                 'fileName' => "character-{$invalidStrength}",
                 'recommendedStrength' => $invalidStrength,
@@ -254,10 +262,26 @@ class LoraPromptOptionApiTest extends TestCase
         foreach (['invalid:name', '<invalid>', 'invalid,name'] as $fileName) {
             $this->postJson(route('loras.store'), [
                 'modelFamilyId' => 1,
+                ...$this->generationSettings(),
                 'name' => 'キャラクター',
                 'fileName' => $fileName,
                 'recommendedStrength' => 1,
             ])->assertUnprocessable()->assertJsonValidationErrors('fileName');
+        }
+
+        $this->assertDatabaseCount('loras', 0);
+    }
+
+    public function test_保存先に使用できない登録名の人物LoRAは登録できない(): void
+    {
+        foreach (['invalid/name', 'invalid\\name', 'invalid:name', 'invalid*name', '.', '..', '末尾.'] as $index => $name) {
+            $this->postJson(route('loras.store'), [
+                'modelFamilyId' => 1,
+                ...$this->generationSettings(),
+                'name' => $name,
+                'fileName' => "character-{$index}",
+                'recommendedStrength' => 1,
+            ])->assertUnprocessable()->assertJsonValidationErrors('name');
         }
 
         $this->assertDatabaseCount('loras', 0);
@@ -271,6 +295,7 @@ class LoraPromptOptionApiTest extends TestCase
         ] as $input) {
             $this->postJson(route('loras.store'), [
                 'modelFamilyId' => 1,
+                ...$this->generationSettings(),
                 'name' => $input['name'],
                 'fileName' => $input['fileName'],
                 'recommendedStrength' => 1,
@@ -323,6 +348,7 @@ class LoraPromptOptionApiTest extends TestCase
     {
         $response = $this->postJson(route('loras.store'), [
             'modelFamilyId' => 1,
+            ...$this->generationSettings(),
             'name' => $name,
             'fileName' => $fileName,
             'recommendedStrength' => $strength,

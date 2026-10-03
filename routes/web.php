@@ -1,41 +1,44 @@
 <?php
 
 use App\Http\Controllers\PromptPreparation\PromptPreparationPageController;
-use App\Http\Controllers\PromptPreparation\Queries\GetDefaultPromptsController;
 use App\Http\Controllers\PromptPreparation\Queries\GetClothingLoraOptionsController;
+use App\Http\Controllers\PromptPreparation\Queries\GetComfyUiWorkflowController;
+use App\Http\Controllers\PromptPreparation\Queries\GetDefaultPromptsController;
+use App\Http\Controllers\PromptPreparation\Queries\GetFamilyDefaultPromptsController;
+use App\Http\Controllers\PromptPreparation\Queries\GetFavoritePromptController;
 use App\Http\Controllers\PromptPreparation\Queries\GetLoraPromptOptionsController;
 use App\Http\Controllers\PromptPreparation\Queries\GetPromptOptionsController;
-use App\Http\Controllers\PromptPreparation\Writes\DeleteLoraController;
+use App\Http\Controllers\PromptPreparation\Queries\ListFavoritePromptsController;
+use App\Http\Controllers\PromptPreparation\Queries\ListGenerationSettingOptionsController;
+use App\Http\Controllers\PromptPreparation\Queries\ListModelFamiliesController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteClothingLoraController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteClothingLoraTriggerController;
+use App\Http\Controllers\PromptPreparation\Writes\DeleteComfyUiWorkflowController;
+use App\Http\Controllers\PromptPreparation\Writes\DeleteFavoritePromptController;
+use App\Http\Controllers\PromptPreparation\Writes\DeleteGenerationSettingOptionController;
+use App\Http\Controllers\PromptPreparation\Writes\DeleteLoraController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteLoraTriggerController;
-use App\Http\Controllers\PromptPreparation\Writes\DeleteOutfitPromptController;
-use App\Http\Controllers\PromptPreparation\Writes\SaveDefaultPromptController;
-use App\Http\Controllers\PromptPreparation\Writes\SaveClothingLoraController;
-use App\Http\Controllers\PromptPreparation\Writes\SaveClothingLoraTriggerController;
-use App\Http\Controllers\PromptPreparation\Writes\SaveLoraController;
-use App\Http\Controllers\PromptPreparation\Writes\SaveLoraTriggerController;
-use App\Http\Controllers\PromptPreparation\Writes\SaveOutfitPromptController;
-use App\Http\Controllers\PromptPreparation\Writes\SaveOptionPromptController;
+use App\Http\Controllers\PromptPreparation\Writes\DeleteModelFamilyController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteOptionPromptController;
+use App\Http\Controllers\PromptPreparation\Writes\DeleteOutfitPromptController;
 use App\Http\Controllers\PromptPreparation\Writes\MoveOptionPromptController;
 use App\Http\Controllers\PromptPreparation\Writes\MoveOptionPromptGroupController;
-use App\Http\Controllers\PromptPreparation\Writes\SaveOptionPromptGroupController;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\PromptPreparation\Queries\ListFavoritePromptsController;
-use App\Http\Controllers\PromptPreparation\Queries\GetFavoritePromptController;
-use App\Http\Controllers\PromptPreparation\Writes\SaveFavoritePromptController;
-use App\Http\Controllers\PromptPreparation\Writes\DeleteFavoritePromptController;
-use App\Http\Controllers\PromptPreparation\Queries\ListModelFamiliesController;
-use App\Http\Controllers\PromptPreparation\Queries\GetFamilyDefaultPromptsController;
-use App\Http\Controllers\PromptPreparation\Writes\SaveFamilyDefaultPromptController;
-use App\Http\Controllers\PromptPreparation\Writes\SaveModelFamilyController;
-use App\Http\Controllers\PromptPreparation\Writes\DeleteModelFamilyController;
-use App\Http\Controllers\PromptPreparation\Queries\GetComfyUiWorkflowController;
-use App\Http\Controllers\PromptPreparation\Writes\DeleteComfyUiWorkflowController;
 use App\Http\Controllers\PromptPreparation\Writes\QueueComfyUiPromptBatchController;
 use App\Http\Controllers\PromptPreparation\Writes\QueueComfyUiPromptController;
+use App\Http\Controllers\PromptPreparation\Writes\SaveClothingLoraController;
+use App\Http\Controllers\PromptPreparation\Writes\SaveClothingLoraTriggerController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveComfyUiWorkflowController;
+use App\Http\Controllers\PromptPreparation\Writes\SaveDefaultPromptController;
+use App\Http\Controllers\PromptPreparation\Writes\SaveFamilyDefaultPromptController;
+use App\Http\Controllers\PromptPreparation\Writes\SaveFavoritePromptController;
+use App\Http\Controllers\PromptPreparation\Writes\SaveGenerationSettingOptionController;
+use App\Http\Controllers\PromptPreparation\Writes\SaveLoraController;
+use App\Http\Controllers\PromptPreparation\Writes\SaveLoraTriggerController;
+use App\Http\Controllers\PromptPreparation\Writes\SaveModelFamilyController;
+use App\Http\Controllers\PromptPreparation\Writes\SaveOptionPromptController;
+use App\Http\Controllers\PromptPreparation\Writes\SaveOptionPromptGroupController;
+use App\Http\Controllers\PromptPreparation\Writes\SaveOutfitPromptController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', PromptPreparationPageController::class)->name('prompt-preparation');
 
@@ -62,6 +65,14 @@ Route::put('/model-families/{family}/comfyui-workflow', SaveComfyUiWorkflowContr
     ->whereNumber('family')->name('model-families.comfyui-workflow.update');
 Route::delete('/model-families/{family}/comfyui-workflow', DeleteComfyUiWorkflowController::class)
     ->whereNumber('family')->name('model-families.comfyui-workflow.destroy');
+Route::get('/model-families/{family}/generation-setting-options', ListGenerationSettingOptionsController::class)
+    ->whereNumber('family')->name('model-families.generation-setting-options.index');
+Route::post('/model-families/{family}/generation-setting-options', SaveGenerationSettingOptionController::class)
+    ->whereNumber('family')->name('model-families.generation-setting-options.store');
+Route::put('/generation-setting-options/{option}', SaveGenerationSettingOptionController::class)
+    ->whereNumber('option')->name('generation-setting-options.update');
+Route::delete('/generation-setting-options/{option}', DeleteGenerationSettingOptionController::class)
+    ->whereNumber('option')->name('generation-setting-options.destroy');
 
 Route::post('/comfyui/prompts', QueueComfyUiPromptController::class)->name('comfyui-prompts.store');
 Route::post('/comfyui/prompts/batch', QueueComfyUiPromptBatchController::class)

@@ -17,7 +17,7 @@ final class EloquentLoraPromptOptionQueryService implements LoraPromptOptionQuer
             ->where('kind', 'character')
             ->orderBy('name')
             ->orderBy('id')
-            ->get(['id', 'name', 'file_name', 'recommended_strength_step', 'model_family_id'])
+            ->get(['id', 'name', 'file_name', 'recommended_strength_step', 'model_family_id', 'checkpoint_option_id', 'sampler_option_id', 'scheduler_option_id'])
             ->map(function (object $row): array {
                 $fileName = new LoraFileName((string) $row->file_name);
 
@@ -27,6 +27,9 @@ final class EloquentLoraPromptOptionQueryService implements LoraPromptOptionQuer
                     'fileName' => $fileName->value,
                     'recommendedStrength' => LoraStrength::fromStep((int) $row->recommended_strength_step)->value(),
                     'modelFamilyId' => (int) $row->model_family_id,
+                    'checkpointOptionId' => (int) $row->checkpoint_option_id,
+                    'samplerOptionId' => (int) $row->sampler_option_id,
+                    'schedulerOptionId' => (int) $row->scheduler_option_id,
                     'tags' => array_map(
                         fn (int $step): string => (new LoraTag(
                             $fileName,
