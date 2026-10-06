@@ -7,6 +7,7 @@ export const initializePromptSidebars = ({
     page,
     documentObject,
     onReorderOptionGroup = () => {},
+    onChangeOptionGroupCategory = () => {},
 }) => {
     const view = documentObject.defaultView;
     const navigation = page.querySelector('[data-section-navigation-list]');
@@ -27,6 +28,16 @@ export const initializePromptSidebars = ({
         if (!(target instanceof view.HTMLElement)) {
             return;
         }
+        if (target instanceof view.HTMLDetailsElement) {
+            target.open = true;
+        }
+        let ancestor = target.parentElement;
+        while (ancestor instanceof view.HTMLElement) {
+            if (ancestor instanceof view.HTMLDetailsElement) {
+                ancestor.open = true;
+            }
+            ancestor = ancestor.parentElement;
+        }
         target.scrollIntoView?.({ behavior: 'auto', block: 'start' });
         target.focus({ preventScroll: true });
     };
@@ -36,7 +47,8 @@ export const initializePromptSidebars = ({
         const navigationItems = orderedSnapshots(snapshots).flatMap(
             (snapshot) => snapshot.navigationItems,
         );
-        navigationItems.forEach((item) => {
+        const optionGroupId = (key) => Number(key.slice('option-group-'.length));
+        const appendItem = (item, parent) => {
             const row = documentObject.createElement('div');
             row.className = 'section-navigation__row';
             const button = documentObject.createElement('button');
@@ -75,11 +87,20 @@ export const initializePromptSidebars = ({
                 row.addEventListener('dragleave', () => row.classList.remove('is-drop-target'));
                 row.addEventListener('drop', (event) => {
                     event.preventDefault();
+                    event.stopPropagation();
                     row.classList.remove('is-drop-target');
                     if (draggedKey === null || draggedKey === item.key) {
                         return;
                     }
-                    const sourceId = Number(draggedKey.slice('option-group-'.length));
+                    const sourceId = optionGroupId(draggedKey);
+                    const source = navigationItems.find(
+                        (candidate) => candidate.key === draggedKey,
+                    );
+                    if (source?.categoryKey !== item.categoryKey) {
+                        onChangeOptionGroupCategory(sourceId, item.categoryId ?? null);
+                        draggedKey = null;
+                        return;
+                    }
                     const after =
                         event.clientY >
                         row.getBoundingClientRect().top + row.getBoundingClientRect().height / 2;
@@ -93,15 +114,68 @@ export const initializePromptSidebars = ({
                             optionItems.findIndex((candidate) => candidate.key === item.key) + 1
                         ];
                     const beforeKey = after ? nextItem?.key : item.key;
-                    onReorderOptionGroup(
-                        sourceId,
-                        beforeKey ? Number(beforeKey.slice('option-group-'.length)) : null,
-                    );
+                    onReorderOptionGroup(sourceId, beforeKey ? optionGroupId(beforeKey) : null);
                     draggedKey = null;
                 });
                 row.prepend(handle);
             }
-            navigation.append(row);
+            parent.append(row);
+        };
+
+        navigationItems
+            .filter((item) => item.categoryKey === undefined)
+            .forEach((item) => appendItem(item, navigation));
+        const categorizedItems = navigationItems.filter((item) => item.categoryKey !== undefined);
+        const categoryKeys = [...new Set(categorizedItems.map((item) => item.categoryKey))];
+        categoryKeys.forEach((categoryKey) => {
+            const items = categorizedItems.filter((item) => item.categoryKey === categoryKey);
+            const details = documentObject.createElement('details');
+            details.className = 'section-navigation__category';
+            details.open = true;
+            const heading = documentObject.createElement('summary');
+            const marker = documentObject.createElement('span');
+            marker.className = 'category-disclosure-marker';
+            marker.setAttribute('aria-hidden', 'true');
+            const updateMarker = () => {
+                marker.textContent = details.open ? '▼' : '▶';
+            };
+            const label = documentObject.createElement('span');
+            label.className = 'category-disclosure-label';
+            label.textContent = items[0]?.categoryLabel ?? '未分類';
+            heading.append(marker, label);
+            updateMarker();
+            details.addEventListener('toggle', updateMarker);
+            const children = documentObject.createElement('div');
+            children.className = 'section-navigation__category-items';
+            details.addEventListener('dragover', (event) => {
+                if (draggedKey !== null) {
+                    event.preventDefault();
+                    details.classList.add('is-drop-target');
+                }
+            });
+            details.addEventListener('dragleave', (event) => {
+                if (!details.contains(event.relatedTarget)) {
+                    details.classList.remove('is-drop-target');
+                }
+            });
+            details.addEventListener('drop', (event) => {
+                event.preventDefault();
+                details.classList.remove('is-drop-target');
+                if (draggedKey === null) {
+                    return;
+                }
+                const source = navigationItems.find((candidate) => candidate.key === draggedKey);
+                if (source?.categoryKey !== categoryKey) {
+                    onChangeOptionGroupCategory(
+                        optionGroupId(draggedKey),
+                        items[0]?.categoryId ?? null,
+                    );
+                }
+                draggedKey = null;
+            });
+            items.forEach((item) => appendItem(item, children));
+            details.append(heading, children);
+            navigation.append(details);
         });
     };
 

@@ -28,6 +28,9 @@ export const requestPromptOptions = async (fetcher, url) => {
                 Number.isInteger(group.id) &&
                 Number.isInteger(group.position) &&
                 group.position > 0 &&
+                (group.categoryId === undefined ||
+                    group.categoryId === null ||
+                    Number.isInteger(group.categoryId)) &&
                 typeof group.name === 'string' &&
                 group.name.trim() !== '' &&
                 ['single', 'multiple'].includes(group.selectionMode) &&
@@ -88,6 +91,45 @@ export const deleteOption = async (fetcher, url, csrfToken, id) => {
     });
     assertResponse(response);
 };
+
+export const requestOptionCategories = async (fetcher, url) => {
+    const response = await fetcher(url, { headers: { Accept: 'application/json' } });
+    assertResponse(response);
+    const result = await response.json();
+    if (
+        !isObject(result) ||
+        !Array.isArray(result.categories) ||
+        !result.categories.every(
+            (category) =>
+                isObject(category) &&
+                Number.isInteger(category.id) &&
+                Number.isInteger(category.position) &&
+                typeof category.name === 'string' &&
+                category.name.trim() !== '',
+        )
+    ) {
+        throw new Error('The option category response is invalid.');
+    }
+    return result.categories;
+};
+
+export const saveOptionCategory = (fetcher, url, csrfToken, id, name) =>
+    requestJson(
+        fetcher,
+        id === null ? url : `${url}/${id}`,
+        csrfToken,
+        id === null ? 'POST' : 'PUT',
+        { name },
+    );
+
+export const deleteOptionCategory = (fetcher, url, csrfToken, id) =>
+    requestJson(fetcher, `${url}/${id}`, csrfToken, 'DELETE', {});
+
+export const moveOptionCategory = (fetcher, url, csrfToken, id, beforeCategoryId) =>
+    requestJson(fetcher, `${url}/${id}/position`, csrfToken, 'PATCH', { beforeCategoryId });
+
+export const changeOptionGroupCategory = (fetcher, url, csrfToken, id, categoryId) =>
+    requestJson(fetcher, `${url}/${id}/category`, csrfToken, 'PATCH', { categoryId });
 
 export const filterOptionsKeepingSelection = (options, searchText, selectedIds) => {
     const search = searchText.trim().toLocaleLowerCase();

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\PromptPreparation\PromptOptionManagementPageController;
 use App\Http\Controllers\PromptPreparation\PromptPreparationPageController;
 use App\Http\Controllers\PromptPreparation\Queries\GetClothingLoraOptionsController;
 use App\Http\Controllers\PromptPreparation\Queries\GetComfyUiWorkflowController;
@@ -11,6 +12,8 @@ use App\Http\Controllers\PromptPreparation\Queries\GetPromptOptionsController;
 use App\Http\Controllers\PromptPreparation\Queries\ListFavoritePromptsController;
 use App\Http\Controllers\PromptPreparation\Queries\ListGenerationSettingOptionsController;
 use App\Http\Controllers\PromptPreparation\Queries\ListModelFamiliesController;
+use App\Http\Controllers\PromptPreparation\Queries\ListOptionCategoriesController;
+use App\Http\Controllers\PromptPreparation\Writes\ChangeOptionPromptGroupCategoryController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteClothingLoraController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteClothingLoraTriggerController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteComfyUiWorkflowController;
@@ -19,8 +22,10 @@ use App\Http\Controllers\PromptPreparation\Writes\DeleteGenerationSettingOptionC
 use App\Http\Controllers\PromptPreparation\Writes\DeleteLoraController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteLoraTriggerController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteModelFamilyController;
+use App\Http\Controllers\PromptPreparation\Writes\DeleteOptionCategoryController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteOptionPromptController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteOutfitPromptController;
+use App\Http\Controllers\PromptPreparation\Writes\MoveOptionCategoryController;
 use App\Http\Controllers\PromptPreparation\Writes\MoveOptionPromptController;
 use App\Http\Controllers\PromptPreparation\Writes\MoveOptionPromptGroupController;
 use App\Http\Controllers\PromptPreparation\Writes\QueueComfyUiPromptBatchController;
@@ -35,12 +40,15 @@ use App\Http\Controllers\PromptPreparation\Writes\SaveGenerationSettingOptionCon
 use App\Http\Controllers\PromptPreparation\Writes\SaveLoraController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveLoraTriggerController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveModelFamilyController;
+use App\Http\Controllers\PromptPreparation\Writes\SaveOptionCategoryController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveOptionPromptController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveOptionPromptGroupController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveOutfitPromptController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', PromptPreparationPageController::class)->name('prompt-preparation');
+Route::get('/prompt-options/manage', PromptOptionManagementPageController::class)
+    ->name('prompt-options.manage');
 
 Route::get('/default-prompts', GetDefaultPromptsController::class)
     ->name('default-prompts.index');
@@ -118,11 +126,21 @@ Route::delete('/outfits/{outfit}', DeleteOutfitPromptController::class)
 
 
 Route::get('/prompt-options', GetPromptOptionsController::class)->name('prompt-options.index');
+Route::get('/prompt-option-categories', ListOptionCategoriesController::class)->name('prompt-option-categories.index');
+Route::post('/prompt-option-categories', SaveOptionCategoryController::class)->name('prompt-option-categories.store');
+Route::put('/prompt-option-categories/{category}', SaveOptionCategoryController::class)
+    ->whereNumber('category')->name('prompt-option-categories.update');
+Route::patch('/prompt-option-categories/{category}/position', MoveOptionCategoryController::class)
+    ->whereNumber('category')->name('prompt-option-categories.move');
+Route::delete('/prompt-option-categories/{category}', DeleteOptionCategoryController::class)
+    ->whereNumber('category')->name('prompt-option-categories.destroy');
 Route::post('/prompt-option-groups', SaveOptionPromptGroupController::class)->name('prompt-option-groups.store');
 Route::put('/prompt-option-groups/{group}', SaveOptionPromptGroupController::class)
     ->whereNumber('group')->name('prompt-option-groups.update');
 Route::patch('/prompt-option-groups/{group}/position', MoveOptionPromptGroupController::class)
     ->whereNumber('group')->name('prompt-option-groups.move');
+Route::patch('/prompt-option-groups/{group}/category', ChangeOptionPromptGroupCategoryController::class)
+    ->whereNumber('group')->name('prompt-option-groups.change-category');
 Route::post('/prompt-options', SaveOptionPromptController::class)->name('prompt-options.store');
 Route::put('/prompt-options/{option}', SaveOptionPromptController::class)
     ->whereNumber('option')->name('prompt-options.update');

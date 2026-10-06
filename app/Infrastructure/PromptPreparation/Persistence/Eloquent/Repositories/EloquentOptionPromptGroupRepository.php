@@ -14,6 +14,11 @@ final class EloquentOptionPromptGroupRepository implements OptionPromptGroupRepo
         return $this->toDomain(OptionPromptGroupRecord::query()->findOrFail($id));
     }
 
+    public function getForUpdate(int $id): OptionPromptGroup
+    {
+        return $this->toDomain(OptionPromptGroupRecord::query()->lockForUpdate()->findOrFail($id));
+    }
+
     public function nextPosition(): int
     {
         return ((int) OptionPromptGroupRecord::query()->lockForUpdate()->max('position')) + 1;
@@ -28,9 +33,16 @@ final class EloquentOptionPromptGroupRepository implements OptionPromptGroupRepo
             'name' => $group->name,
             'selection_mode' => $group->selectionMode->value,
             'position' => $group->position,
+            'option_category_id' => $group->categoryId,
         ])->save();
 
         return $this->toDomain($record);
+    }
+
+    public function clearCategoryAssignments(int $categoryId): void
+    {
+        OptionPromptGroupRecord::query()->where('option_category_id', $categoryId)
+            ->update(['option_category_id' => null]);
     }
 
     public function moveBefore(int $id, ?int $beforeId): void
@@ -69,6 +81,7 @@ final class EloquentOptionPromptGroupRepository implements OptionPromptGroupRepo
             name: $record->name,
             selectionMode: OptionSelectionMode::from($record->selection_mode),
             position: $record->position,
+            categoryId: $record->option_category_id === null ? null : (int) $record->option_category_id,
         );
     }
 }

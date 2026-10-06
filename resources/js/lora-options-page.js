@@ -38,6 +38,10 @@ export const initializeLoraOptionsPage = ({
     const loadStatus = root.querySelector('[data-option-load-status]');
     const retryButton = root.querySelector('[data-option-retry]');
     const searchInput = root.querySelector('[data-lora-search]');
+    const familyFilter = root.querySelector('[data-lora-family-filter]');
+    const pagePrevious = root.querySelector('[data-lora-page-previous]');
+    const pageNext = root.querySelector('[data-lora-page-next]');
+    const pageStatus = root.querySelector('[data-lora-page-status]');
     const loraList = root.querySelector('[data-lora-list]');
     const triggerList = root.querySelector('[data-trigger-list]');
     const outfitList = root.querySelector('[data-outfit-list]');
@@ -60,6 +64,7 @@ export const initializeLoraOptionsPage = ({
         editingType: null,
         deletingType: null,
         deletingId: null,
+        loraPage: 1,
     };
 
     const endpoints = {
@@ -168,7 +173,26 @@ export const initializeLoraOptionsPage = ({
         const searchedLoras = filterLoras(
             state.loras,
             searchInput instanceof HTMLInputElement ? searchInput.value : '',
+        ).filter(
+            (lora) =>
+                !(familyFilter instanceof HTMLSelectElement) ||
+                familyFilter.value === '' ||
+                (lora.modelFamilyId ?? 1) === Number(familyFilter.value),
         );
+        const pageSize = 30;
+        const pageCount = Math.max(1, Math.ceil(searchedLoras.length / pageSize));
+        state.loraPage = Math.min(state.loraPage, pageCount);
+        const pagedLoras = searchedLoras.slice(
+            (state.loraPage - 1) * pageSize,
+            state.loraPage * pageSize,
+        );
+        const selectedOutsidePage = state.loras.find(
+            (lora) =>
+                lora.id === state.selectedLoraId && !pagedLoras.some((item) => item.id === lora.id),
+        );
+        if (selectedOutsidePage) {
+            pagedLoras.unshift(selectedOutsidePage);
+        }
         const selectedLora = selectedItem('lora');
         const triggers = state.triggers.filter(
             (trigger) => trigger.loraId === state.selectedLoraId,
@@ -192,7 +216,7 @@ export const initializeLoraOptionsPage = ({
 
         replaceOptions(
             loraList,
-            searchedLoras,
+            pagedLoras,
             state.selectedLoraId,
             (lora) =>
                 `${lora.name} — ${lora.fileName} (${state.modelFamilies.find((family) => family.id === (lora.modelFamilyId ?? 1))?.name ?? '不明な系統'})`,
@@ -214,6 +238,18 @@ export const initializeLoraOptionsPage = ({
 
         if (searchInput instanceof HTMLInputElement) {
             searchInput.disabled = !state.loaded;
+        }
+        if (familyFilter instanceof HTMLSelectElement) {
+            familyFilter.disabled = !state.loaded;
+        }
+        if (pageStatus instanceof view.HTMLElement) {
+            pageStatus.textContent = `${searchedLoras.length}件・${state.loraPage}/${pageCount}ページ`;
+        }
+        if (pagePrevious instanceof HTMLButtonElement) {
+            pagePrevious.disabled = !state.loaded || state.loraPage <= 1;
+        }
+        if (pageNext instanceof HTMLButtonElement) {
+            pageNext.disabled = !state.loaded || state.loraPage >= pageCount;
         }
 
         if (loraList instanceof HTMLSelectElement) {
@@ -458,16 +494,19 @@ export const initializeLoraOptionsPage = ({
     };
 
     searchInput?.addEventListener('input', () => {
-        if (
-            state.selectedLoraId !== null &&
-            !filterLoras(state.loras, searchInput.value).some(
-                (lora) => lora.id === state.selectedLoraId,
-            )
-        ) {
-            state.selectedLoraId = null;
-            state.selectedTriggerId = null;
-            strengthSelect.value = '1';
-        }
+        state.loraPage = 1;
+        render();
+    });
+    familyFilter?.addEventListener('change', () => {
+        state.loraPage = 1;
+        render();
+    });
+    pagePrevious?.addEventListener('click', () => {
+        state.loraPage = Math.max(1, state.loraPage - 1);
+        render();
+    });
+    pageNext?.addEventListener('click', () => {
+        state.loraPage += 1;
         render();
     });
     outfitSearchInput?.addEventListener('input', render);
@@ -551,6 +590,22 @@ export const initializeLoraOptionsPage = ({
         getSelectedLoraId: () => selectedItem('lora')?.id ?? null,
         setModelFamilies: (families) => {
             state.modelFamilies = families;
+            if (familyFilter instanceof HTMLSelectElement) {
+                const current = familyFilter.value;
+                familyFilter.replaceChildren(
+                    Object.assign(documentObject.createElement('option'), {
+                        value: '',
+                        textContent: 'すべての系統',
+                    }),
+                    ...families.map((family) =>
+                        Object.assign(documentObject.createElement('option'), {
+                            value: String(family.id),
+                            textContent: family.name,
+                        }),
+                    ),
+                );
+                familyFilter.value = current;
+            }
             render();
             void Promise.all(
                 families.map(async (family) => {
@@ -638,6 +693,10 @@ export const initializeLoraOptionsPage = ({
             if (searchInput instanceof HTMLInputElement) {
                 searchInput.value = '';
             }
+            if (familyFilter instanceof HTMLSelectElement) {
+                familyFilter.value = '';
+            }
+            state.loraPage = 1;
             if (outfitSearchInput instanceof HTMLInputElement) {
                 outfitSearchInput.value = '';
             }

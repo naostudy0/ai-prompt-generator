@@ -7,7 +7,8 @@ import {
 import { initializeLoraOptionsPage } from './lora-options-page.js';
 import { initializeClothingLoraOptionsPage } from './clothing-lora-options-page.js';
 import { createPositivePromptOutput } from './lora-options.js';
-import { initializePromptCategoriesPage } from './prompt-categories-page.js';
+import { initializePromptOptionsPage } from './prompt-options-page.js';
+import { initializePromptOptionManagementPage } from './prompt-option-management-page.js';
 import { createPositivePromptSections } from './positive-prompt-sections.js';
 import { initializePromptSidebars } from './prompt-sidebars.js';
 import { initializeFavoritePromptsPage } from './favorite-prompts-page.js';
@@ -70,6 +71,8 @@ export const initializePromptPreparationPage = ({
         documentObject,
         onReorderOptionGroup: (id, beforeId) =>
             promptCategoriesController.reorderGroup(id, beforeId),
+        onChangeOptionGroupCategory: (id, categoryId) =>
+            promptCategoriesController.changeGroupCategory(id, categoryId),
     });
     let promptsLoaded = false;
     let familiesLoaded = !page.dataset.modelFamiliesUrl;
@@ -97,6 +100,7 @@ export const initializePromptPreparationPage = ({
     };
     let promptCategoriesController = {
         reorderGroup: () => {},
+        changeGroupCategory: () => {},
         getSections: () => ({
             expression: '',
             gaze: '',
@@ -815,7 +819,7 @@ export const initializePromptPreparationPage = ({
         notify: showToast,
         onSidebarSnapshotChange: (snapshot) => updateSidebarSnapshot('clothingLora', snapshot),
     });
-    promptCategoriesController = initializePromptCategoriesPage({
+    promptCategoriesController = initializePromptOptionsPage({
         page,
         documentObject,
         fetcher,
@@ -970,4 +974,5 @@ export const initializePromptPreparationPage = ({
 
 if (typeof document !== 'undefined') {
     initializePromptPreparationPage();
+    initializePromptOptionManagementPage();
 }

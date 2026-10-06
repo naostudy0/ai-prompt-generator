@@ -13,6 +13,7 @@ final readonly class OptionPromptGroup
         string $name,
         public OptionSelectionMode $selectionMode,
         public int $position,
+        public ?int $categoryId = null,
     ) {
         $this->name = trim($name);
         if ($this->name === '') {
@@ -21,5 +22,10 @@ final readonly class OptionPromptGroup
         if ($position < 1) {
             throw new InvalidArgumentException('Option prompt group position must be positive.');
         }
+    }
+
+    public function changeCategory(?int $categoryId): self
+    {
+        return new self($this->id, $this->name, $this->selectionMode, $this->position, $categoryId);
     }
 }

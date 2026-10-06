@@ -26,6 +26,7 @@
             data-outfits-url="{{ $outfitsUrl }}"
             data-prompt-options-url="{{ $promptOptionsUrl }}"
             data-prompt-option-groups-url="{{ $promptOptionGroupsUrl }}"
+            data-prompt-option-categories-url="{{ $promptOptionCategoriesUrl }}"
             data-favorite-prompts-url="{{ $favoritePromptsUrl }}"
             data-comfy-ui-prompts-url="{{ $comfyUiPromptsUrl }}"
             data-comfy-ui-prompt-batch-url="{{ $comfyUiPromptBatchUrl }}"
@@ -140,9 +141,18 @@
 
                     <label class="field-label" for="lora-search">LoRAを検索</label>
                     <input id="lora-search" class="text-input" type="search" data-lora-search disabled>
+                    <label class="field-label" for="lora-family-filter">系統で絞り込む</label>
+                    <select id="lora-family-filter" class="text-input" data-lora-family-filter disabled>
+                        <option value="">すべての系統</option>
+                    </select>
                     <div class="option-list-scroll" tabindex="0" aria-label="LoRA選択肢を横にスクロール">
                         <select class="option-list" size="5" aria-label="LoRAを選択" data-lora-list disabled></select>
                     </div>
+                    <nav class="list-pagination" aria-label="人物LoRAのページ切り替え">
+                        <button class="small-button" type="button" data-lora-page-previous disabled>前へ</button>
+                        <span data-lora-page-status>0件</span>
+                        <button class="small-button" type="button" data-lora-page-next disabled>次へ</button>
+                    </nav>
                     <div class="list-actions">
                         <button class="small-button" type="button" aria-label="LoRAの選択を解除" data-option-clear="lora" disabled>選択解除</button>
                         <button class="small-button" type="button" aria-label="LoRAを編集" data-option-edit="lora" disabled>編集</button>
@@ -213,6 +223,7 @@
                             <p class="category-label">positive</p>
                             <h3 id="prompt-categories-heading">描写</h3>
                         </div>
+                        <a class="small-button" href="{{ $promptOptionManagementUrl }}">オプションを管理</a>
                     </div>
                     <div class="option-load-state">
                         <p data-category-load-status role="status" aria-live="polite"></p>
@@ -220,9 +231,7 @@
                     </div>
 
                     <div data-option-groups></div>
-                    <div class="list-actions">
-                        <button class="small-button" type="button" data-option-group-add disabled>ブロックを追加</button>
-                    </div>
+                    <button class="small-button" type="button" data-option-group-add hidden disabled>ブロックを追加</button>
                 </section>
 
                 <div class="editor-actions">
@@ -284,6 +293,10 @@
                 </div>
                 <label class="field-label" for="character-variant-search">人物LoRAを検索</label>
                 <input id="character-variant-search" class="text-input" type="search" data-character-variant-search>
+                <label class="field-label" for="character-variant-family">系統で絞り込む</label>
+                <select id="character-variant-family" class="text-input" data-character-variant-family>
+                    <option value="">すべての系統</option>
+                </select>
                 <div class="editor-actions">
                     <button class="secondary-button" type="button" data-character-variant-select-all>全候補を選択</button>
                     <button class="secondary-button" type="button" data-character-variant-clear-all>全候補を解除</button>
@@ -291,6 +304,11 @@
                 </div>
                 <p class="editor-status" data-character-variant-status role="status" aria-live="polite"></p>
                 <div class="character-variant-list" data-character-variant-list></div>
+                <nav class="list-pagination" aria-label="差し替え候補のページ切り替え">
+                    <button class="small-button" type="button" data-character-variant-previous disabled>前へ</button>
+                    <span data-character-variant-page-status>0件</span>
+                    <button class="small-button" type="button" data-character-variant-next disabled>次へ</button>
+                </nav>
                 <button class="primary-button" type="button" data-character-variant-send disabled>選択した候補をComfyUIへ送信</button>
             </dialog>
 

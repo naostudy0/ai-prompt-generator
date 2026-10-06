@@ -16,13 +16,20 @@ final readonly class SaveOptionPromptGroupHandler
     ) {
     }
 
-    /** @return array{id: int, name: string, selectionMode: string, position: int, options: array{}} */
+    /** @return array{id: int, categoryId: ?int, name: string, selectionMode: string, position: int, options: array{}} */
     public function handle(?int $id, string $name, OptionSelectionMode $selectionMode): array
     {
         $group = $this->transactions->run(function () use ($id, $name, $selectionMode): OptionPromptGroup {
-            $position = $id === null ? $this->repository->nextPosition() : $this->repository->get($id)->position;
+            $current = $id === null ? null : $this->repository->getForUpdate($id);
+            $position = $current === null ? $this->repository->nextPosition() : $current->position;
 
-            return $this->repository->save(new OptionPromptGroup($id, $name, $selectionMode, $position));
+            return $this->repository->save(new OptionPromptGroup(
+                $id,
+                $name,
+                $selectionMode,
+                $position,
+                $current?->categoryId,
+            ));
         });
         if ($group->id === null) {
             throw new LogicException('The saved option prompt group must have an ID.');
@@ -30,6 +37,7 @@ final readonly class SaveOptionPromptGroupHandler
 
         return [
             'id' => $group->id,
+            'categoryId' => $group->categoryId,
             'name' => $group->name,
             'selectionMode' => $group->selectionMode->value,
             'position' => $group->position,

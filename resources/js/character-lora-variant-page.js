@@ -25,6 +25,10 @@ export const initializeCharacterLoraVariantPage = ({
     const closeButton = page.querySelector('[data-character-variant-close]');
     const search = page.querySelector('[data-character-variant-search]');
     const list = page.querySelector('[data-character-variant-list]');
+    const familyFilter = page.querySelector('[data-character-variant-family]');
+    const previous = page.querySelector('[data-character-variant-previous]');
+    const next = page.querySelector('[data-character-variant-next]');
+    const pageStatus = page.querySelector('[data-character-variant-page-status]');
     const status = page.querySelector('[data-character-variant-status]');
     const count = page.querySelector('[data-character-variant-count]');
     const sendButton = page.querySelector('[data-character-variant-send]');
@@ -33,6 +37,7 @@ export const initializeCharacterLoraVariantPage = ({
     }
 
     let snapshot = null;
+    let currentPage = 1;
     let unchecked = new Set();
     const candidateResults = new Map();
     try {
@@ -109,7 +114,24 @@ export const initializeCharacterLoraVariantPage = ({
             return;
         }
         list.replaceChildren();
-        const candidates = getCharacterLoraCandidates(snapshot.options, search?.value ?? '');
+        const matching = getCharacterLoraCandidates(snapshot.options, search?.value ?? '').filter(
+            ({ lora }) =>
+                !familyFilter?.value || (lora.modelFamilyId ?? 1) === Number(familyFilter.value),
+        );
+        const loraIds = [...new Set(matching.map(({ lora }) => lora.id))];
+        const pageCount = Math.max(1, Math.ceil(loraIds.length / 30));
+        currentPage = Math.min(currentPage, pageCount);
+        const pageIds = new Set(loraIds.slice((currentPage - 1) * 30, currentPage * 30));
+        const candidates = matching.filter(({ lora }) => pageIds.has(lora.id));
+        if (pageStatus instanceof view.HTMLElement) {
+            pageStatus.textContent = `${loraIds.length}人物・${currentPage}/${pageCount}ページ`;
+        }
+        if (previous instanceof view.HTMLButtonElement) {
+            previous.disabled = currentPage <= 1;
+        }
+        if (next instanceof view.HTMLButtonElement) {
+            next.disabled = currentPage >= pageCount;
+        }
         setStatus(candidates.length === 0 ? '該当する人物LoRAがありません。' : '');
         candidates.forEach(({ lora, trigger }) => {
             const row = documentObject.createElement('div');
@@ -250,12 +272,49 @@ export const initializeCharacterLoraVariantPage = ({
         if (search instanceof view.HTMLInputElement) {
             search.value = '';
         }
+        currentPage = 1;
+        if (familyFilter instanceof view.HTMLSelectElement) {
+            familyFilter.replaceChildren(
+                Object.assign(documentObject.createElement('option'), {
+                    value: '',
+                    textContent: 'すべての系統',
+                }),
+                ...[
+                    ...new Map(
+                        options.loras.map((lora) => [
+                            lora.modelFamilyId ?? 1,
+                            lora.modelFamilyName ?? 'Illustrious',
+                        ]),
+                    ).entries(),
+                ].map(([id, name]) =>
+                    Object.assign(documentObject.createElement('option'), {
+                        value: String(id),
+                        textContent: name,
+                    }),
+                ),
+            );
+        }
         render();
         dialog.showModal();
         search?.focus();
     });
     closeButton?.addEventListener('click', () => dialog.close());
-    search?.addEventListener('input', render);
+    search?.addEventListener('input', () => {
+        currentPage = 1;
+        render();
+    });
+    familyFilter?.addEventListener('change', () => {
+        currentPage = 1;
+        render();
+    });
+    previous?.addEventListener('click', () => {
+        currentPage = Math.max(1, currentPage - 1);
+        render();
+    });
+    next?.addEventListener('click', () => {
+        currentPage += 1;
+        render();
+    });
     page.querySelector('[data-character-variant-select-all]')?.addEventListener('click', () => {
         unchecked.clear();
         persist();

@@ -94,6 +94,92 @@ class PromptOptionApiTest extends TestCase
         ])->assertUnprocessable()->assertJsonValidationErrors(['name', 'selectionMode']);
     }
 
+    public function test_カテゴリを管理してブロックの所属を変更する(): void
+    {
+        $created = $this->postJson(route('prompt-option-categories.store'), ['name' => '人物表現'])
+            ->assertCreated()->json();
+        $second = $this->postJson(route('prompt-option-categories.store'), ['name' => '場面'])
+            ->assertCreated()->json();
+
+        $this->patchJson(route('prompt-option-categories.move', ['category' => $second['id']]), [
+            'beforeCategoryId' => $created['id'],
+        ])->assertNoContent();
+        $this->patchJson(route('prompt-option-groups.change-category', ['group' => 1]), [
+            'categoryId' => $created['id'],
+        ])->assertOk()->assertJson(['id' => 1, 'categoryId' => $created['id']]);
+
+        $this->getJson(route('prompt-option-categories.index'))->assertOk()
+            ->assertJsonPath('categories.0.name', '場面')
+            ->assertJsonPath('categories.1.name', '人物表現');
+        $this->getJson(route('prompt-options.index'))->assertJsonPath('groups.0.categoryId', $created['id']);
+
+        $this->deleteJson(route('prompt-option-categories.destroy', ['category' => $created['id']]))
+            ->assertNoContent();
+        $this->assertDatabaseHas('option_prompt_groups', ['id' => 1, 'option_category_id' => null]);
+        $this->assertDatabaseMissing('option_categories', ['id' => $created['id']]);
+    }
+
+    public function test_存在しないカテゴリへブロックを移動できない(): void
+    {
+        $this->patchJson(route('prompt-option-groups.change-category', ['group' => 1]), [
+            'categoryId' => 999,
+        ])->assertNotFound();
+    }
+
+    public function test_カテゴリ名は空白と256文字を保存できない(): void
+    {
+        $this->postJson(route('prompt-option-categories.store'), ['name' => ' '])
+            ->assertUnprocessable()->assertJsonValidationErrors(['name']);
+        $this->postJson(route('prompt-option-categories.store'), ['name' => str_repeat('あ', 256)])
+            ->assertUnprocessable()->assertJsonValidationErrors(['name']);
+    }
+
+    public function test_カテゴリ名を変更しても表示順を維持する(): void
+    {
+        $category = $this->postJson(route('prompt-option-categories.store'), ['name' => '変更前'])
+            ->assertCreated()->json();
+
+        $this->putJson(route('prompt-option-categories.update', ['category' => $category['id']]), [
+            'name' => '変更後',
+        ])->assertOk()->assertJson([
+            'id' => $category['id'], 'name' => '変更後', 'position' => $category['position'],
+        ]);
+    }
+
+    public function test_ブロックを未分類へ戻しても出力順を変更しない(): void
+    {
+        $categoryId = (int) $this->postJson(
+            route('prompt-option-categories.store'),
+            ['name' => '人物表現'],
+        )->assertCreated()->json('id');
+        $this->patchJson(route('prompt-option-groups.change-category', ['group' => 1]), [
+            'categoryId' => $categoryId,
+        ])->assertOk();
+
+        $this->patchJson(route('prompt-option-groups.change-category', ['group' => 1]), [
+            'categoryId' => null,
+        ])->assertOk()->assertJson(['id' => 1, 'categoryId' => null]);
+        $this->assertDatabaseHas('option_prompt_groups', [
+            'id' => 1, 'option_category_id' => null, 'position' => 1,
+        ]);
+    }
+
+    public function test_存在しないカテゴリまたは移動先で並べ替えできない(): void
+    {
+        $categoryId = (int) $this->postJson(
+            route('prompt-option-categories.store'),
+            ['name' => '人物表現'],
+        )->assertCreated()->json('id');
+
+        $this->patchJson(route('prompt-option-categories.move', ['category' => 999]), [
+            'beforeCategoryId' => $categoryId,
+        ])->assertNotFound();
+        $this->patchJson(route('prompt-option-categories.move', ['category' => $categoryId]), [
+            'beforeCategoryId' => 999,
+        ])->assertNotFound();
+        $this->assertDatabaseHas('option_categories', ['id' => $categoryId, 'position' => 1]);
+    }
+
     private function create(string $name, string $content, int $groupId): int
     {
         return (int) $this->postJson(route('prompt-options.store'), [

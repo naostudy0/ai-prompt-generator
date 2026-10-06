@@ -177,3 +177,93 @@ test('左メニューのオプションブロックをドラッグして保存�
     assert.deepEqual(moves, [[3, 2]]);
     assert.equal(drop.defaultPrevented, true);
 });
+
+test('左メニューの未分類ブロックを別カテゴリへ移動する', () => {
+    const dom = new JSDOM(`<!doctype html><main>
+        <nav><div data-section-navigation-list></div></nav>
+        <aside><div data-selection-summary-list></div></aside>
+    </main>`);
+    const { document, Event } = dom.window;
+    const categoryChanges = [];
+    const reorders = [];
+    const sidebars = initializePromptSidebars({
+        page: document.querySelector('main'),
+        documentObject: document,
+        onReorderOptionGroup: (id, beforeId) => reorders.push([id, beforeId]),
+        onChangeOptionGroupCategory: (id, categoryId) => categoryChanges.push([id, categoryId]),
+    });
+    sidebars.update('optionGroups', {
+        navigationItems: [
+            {
+                key: 'option-group-1',
+                label: '表情',
+                target: '[data-first]',
+                categoryKey: 'option-category-uncategorized',
+                categoryLabel: '未分類',
+                categoryId: null,
+            },
+            {
+                key: 'option-group-2',
+                label: '視線',
+                target: '[data-second]',
+                categoryKey: 'option-category-10',
+                categoryLabel: '人物表現',
+                categoryId: 10,
+            },
+        ],
+        selectionGroups: [],
+    });
+    const handles = document.querySelectorAll('.section-navigation__drag');
+    const rows = document.querySelectorAll('.section-navigation__row');
+
+    handles[0].dispatchEvent(new Event('dragstart', { bubbles: true }));
+    const drop = new Event('drop', { bubbles: true, cancelable: true });
+    rows[1].dispatchEvent(drop);
+
+    assert.deepEqual(categoryChanges, [[1, 10]]);
+    assert.deepEqual(reorders, []);
+    assert.equal(drop.defaultPrevented, true);
+});
+
+test('オプションカテゴリを折りたたみ配下のセクションへ移動する', () => {
+    const dom = new JSDOM(`<!doctype html><main>
+        <nav><div data-section-navigation-list></div></nav>
+        <details data-category><details data-pose tabindex="-1"></details></details>
+        <aside><div data-selection-summary-list></div></aside>
+    </main>`);
+    const { document } = dom.window;
+    const target = document.querySelector('[data-pose]');
+    let scrolled = false;
+    target.scrollIntoView = () => {
+        scrolled = true;
+    };
+    const sidebars = initializePromptSidebars({
+        page: document.querySelector('main'),
+        documentObject: document,
+    });
+    sidebars.update('optionGroups', {
+        navigationItems: [
+            {
+                key: 'option-group-1',
+                label: 'ポーズ・手',
+                target: '[data-pose]',
+                categoryKey: 'option-category-1',
+                categoryLabel: 'ポーズ',
+            },
+        ],
+        selectionGroups: [],
+    });
+
+    const category = document.querySelector('.section-navigation__category');
+    assert.equal(category.querySelector('summary').textContent, '▼ポーズ');
+    assert.equal(category.querySelector('.category-disclosure-marker').textContent, '▼');
+    assert.equal(category.querySelector('.section-navigation__link').textContent, 'ポーズ・手');
+    category.open = false;
+    category.dispatchEvent(new document.defaultView.Event('toggle'));
+    assert.equal(category.querySelector('.category-disclosure-marker').textContent, '▶');
+    category.querySelector('.section-navigation__link').click();
+
+    assert.equal(document.querySelector('[data-category]').open, true);
+    assert.equal(target.open, true);
+    assert.equal(scrolled, true);
+});
