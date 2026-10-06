@@ -30,6 +30,8 @@ const createDocument = () => {
                 <p data-option-load-status></p>
                 <button data-option-retry hidden></button>
                 <input data-lora-search disabled>
+                <select data-lora-family-filter disabled><option value="">all</option><option value="1">Illustrious</option><option value="2">Anima</option></select>
+                <button data-lora-page-previous disabled>previous</button><span data-lora-page-status></span><button data-lora-page-next disabled>next</button>
                 <select data-lora-list disabled></select>
                 <select data-lora-strength disabled>
                     <option value="0.8">0.8</option><option value="0.9">0.9</option><option value="1">1</option>
@@ -91,6 +93,74 @@ const flushAsyncEvents = async () => {
     await setImmediate();
     await setImmediate();
 };
+
+test('31人物をページ分割し検索と系統変更後も現在の選択を保持する', async () => {
+    const documentObject = createDocument();
+    const loras = Array.from({ length: 31 }, (_, index) => ({
+        ...createLora(
+            index + 1,
+            `Character ${String(index + 1).padStart(2, '0')}`,
+            `character-${index + 1}`,
+            1,
+        ),
+        modelFamilyId: index === 30 ? 2 : 1,
+    }));
+    initializeLoraOptionsPage({
+        page: documentObject.querySelector('main'),
+        documentObject,
+        fetcher: async () => ({
+            ok: true,
+            json: async () => ({ loras, triggers: [], outfits: [] }),
+        }),
+        csrfToken: 'csrf',
+        onLoadedChange: () => {},
+        notify: () => {},
+    });
+    await flushAsyncEvents();
+
+    const list = documentObject.querySelector('[data-lora-list]');
+    assert.equal(list.options.length, 30);
+    assert.equal(
+        documentObject.querySelector('[data-lora-page-status]').textContent,
+        '31件・1/2ページ',
+    );
+    documentObject.querySelector('[data-lora-page-next]').click();
+    assert.deepEqual(
+        [...list.options].map((option) => option.value),
+        ['31'],
+    );
+    list.value = '31';
+    list.dispatchEvent(new documentObject.defaultView.Event('change'));
+
+    documentObject.querySelector('[data-lora-page-previous]').click();
+    assert.equal(list.options[0].value, '31');
+    assert.equal(list.value, '31');
+    const search = documentObject.querySelector('[data-lora-search]');
+    search.value = 'Character 01';
+    search.dispatchEvent(new documentObject.defaultView.Event('input'));
+    assert.equal(
+        documentObject.querySelector('[data-lora-page-status]').textContent,
+        '1件・1/1ページ',
+    );
+    assert.deepEqual(
+        [...list.options].map((option) => option.value),
+        ['31', '1'],
+    );
+
+    search.value = '';
+    search.dispatchEvent(new documentObject.defaultView.Event('input'));
+    const family = documentObject.querySelector('[data-lora-family-filter]');
+    family.value = '2';
+    family.dispatchEvent(new documentObject.defaultView.Event('change'));
+    assert.equal(
+        documentObject.querySelector('[data-lora-page-status]').textContent,
+        '1件・1/1ページ',
+    );
+    assert.deepEqual(
+        [...list.options].map((option) => option.value),
+        ['31'],
+    );
+});
 
 test('LoRA選択時に先頭トリガーを選択し紐づく服装を上位表示する', async () => {
     const documentObject = createDocument();

@@ -294,6 +294,296 @@ h1 {
     margin-top: 1rem;
 }
 
+.option-category-section {
+    display: grid;
+    gap: 0.65rem;
+    margin-top: 1rem;
+}
+
+.option-category-section + .option-category-section {
+    margin-top: 1.5rem;
+    border-top: 2px solid #747b91;
+    padding-top: 1.5rem;
+}
+
+.option-category-section > summary {
+    display: flex;
+    cursor: pointer;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin: 0;
+    color: #a7b0aa;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+}
+
+.option-category-section > summary,
+.section-navigation__category > summary,
+.option-group--selection > summary {
+    list-style: none;
+}
+
+.option-category-section > summary::-webkit-details-marker,
+.section-navigation__category > summary::-webkit-details-marker,
+.option-group--selection > summary::-webkit-details-marker {
+    display: none;
+}
+
+.category-disclosure-marker {
+    display: inline-block;
+    flex: 0 0 1em;
+    color: #d1f4a6;
+    font-size: 0.75em;
+    line-height: 1;
+    text-align: center;
+}
+
+.option-category-section > summary > .category-disclosure-label {
+    margin-right: auto;
+}
+
+.section-navigation__category {
+    margin-top: 0.35rem;
+    border-radius: 0.55rem;
+}
+
+.section-navigation__category.is-drop-target {
+    outline: 2px solid #d1f4a6;
+    outline-offset: 2px;
+}
+
+.section-navigation__category > summary {
+    display: flex;
+    cursor: pointer;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.35rem;
+    color: #d9e8dc;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.section-navigation__category-items {
+    margin-left: 0.75rem;
+    border-left: 1px solid #3f5144;
+    padding-left: 0.4rem;
+}
+
+.option-group--selection > summary {
+    display: flex;
+    cursor: pointer;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    color: #e0e3ee;
+    font-size: 0.88rem;
+    font-weight: 700;
+}
+
+.section-disclosure-marker {
+    display: inline-block;
+    flex: 0 0 1em;
+    color: #9db8ff;
+    font-size: 0.75em;
+    line-height: 1;
+    text-align: center;
+}
+
+.option-group__title {
+    margin-right: auto;
+}
+
+.option-group.option-group--selection {
+    margin-top: 0.8rem;
+    border-top: 0;
+    padding-top: 0;
+    padding-bottom: 1rem;
+}
+
+.option-group.option-group--selection + .option-group--selection {
+    margin-top: 1rem;
+    border-top: 1px dashed #454b5d;
+    padding-top: 1rem;
+}
+
+.option-group--selection > summary + * {
+    margin-top: 0.75rem;
+}
+
+.option-group--selection__actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.option-group__selected-summary {
+    overflow: hidden;
+    color: #a7b0aa;
+    font-size: 0.78rem;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.option-management-dialog {
+    width: min(70rem, calc(100vw - 2rem));
+    max-height: calc(100vh - 2rem);
+}
+
+.management-page {
+    width: min(66rem, calc(100% - 2rem));
+    margin: 0 auto;
+    padding: 2rem 0 4rem;
+}
+
+.management-page__header,
+.management-page__section-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1.5rem;
+}
+
+.management-page__header {
+    margin-bottom: 2rem;
+}
+
+.management-panel {
+    margin-bottom: 1.5rem;
+    padding: 1.5rem;
+    border: 1px solid #454b5d;
+    border-radius: 1rem;
+    background: #1d2030;
+}
+
+.management-page [data-option-management-groups] {
+    display: grid;
+    gap: 1rem;
+}
+
+.management-page [data-option-management-groups] .option-group {
+    margin: 0;
+}
+
+@media (max-width: 720px) {
+    .management-page__header,
+    .management-page__section-heading {
+        flex-direction: column;
+    }
+}
+
+.option-management-dialog__header,
+.option-category-management-row,
+.inline-form-row,
+.list-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.option-category-management-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 6rem auto;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 0;
+    border-bottom: 1px solid #454b5d;
+}
+
+.option-category-management-row__name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.option-category-management-row__count {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.option-category-form {
+    margin-block: 1rem;
+}
+
+.option-category-form .inline-form-row {
+    justify-content: flex-start;
+}
+
+.option-category-form .text-input {
+    width: min(24rem, 100%);
+}
+
+.option-category-form button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.option-group-category-select {
+    margin-bottom: 0.75rem;
+}
+
+.badge-option__management-movement {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.badge-option__management-movement .text-input {
+    width: auto;
+    min-width: 8rem;
+}
+
+.small-button.option-item-icon-button {
+    display: inline-grid;
+    width: 2rem;
+    height: 2rem;
+    flex: 0 0 2rem;
+    place-items: center;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    background: transparent;
+    font-size: 1rem;
+    line-height: 1;
+    text-indent: -0.12em;
+}
+
+.small-button.option-item-icon-button.small-button--danger {
+    color: #ffaaa4;
+    background: transparent;
+}
+
+.list-pagination {
+    justify-content: center;
+    margin-top: 0.65rem;
+}
+
+@media (max-width: 700px) {
+    .option-management-dialog {
+        width: 100vw;
+        max-width: none;
+        height: 100vh;
+        max-height: none;
+        margin: 0;
+        border-radius: 0;
+    }
+
+    .option-category-management-row,
+    .inline-form-row {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .option-category-management-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .option-category-management-row__actions {
+        grid-column: 1 / -1;
+    }
+}
+
 .subsection-heading.option-group__heading {
     display: grid;
     grid-template-columns: 2.25rem auto minmax(0, 1fr);

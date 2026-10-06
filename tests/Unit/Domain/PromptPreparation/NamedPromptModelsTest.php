@@ -40,4 +40,18 @@ class NamedPromptModelsTest extends TestCase
         self::assertSame('表情', $group->name);
         self::assertSame(OptionSelectionMode::Multiple, $group->selectionMode);
     }
+
+    public function test_オプションブロックのカテゴリだけを変更する(): void
+    {
+        $group = new OptionPromptGroup(1, '表情', OptionSelectionMode::Multiple, 2);
+
+        $changed = $group->changeCategory(3);
+
+        self::assertSame(1, $changed->id);
+        self::assertSame('表情', $changed->name);
+        self::assertSame(OptionSelectionMode::Multiple, $changed->selectionMode);
+        self::assertSame(2, $changed->position);
+        self::assertSame(3, $changed->categoryId);
+        self::assertNull($group->categoryId);
+    }
 }

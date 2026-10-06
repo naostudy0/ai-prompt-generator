@@ -24,7 +24,7 @@ class TopPageTest extends TestCase
             ->assertSee('服装')
             ->assertSee('推奨強度')
             ->assertSee('描写')
-            ->assertSee('ブロックを追加')
+            ->assertSee('オプションを管理')
             ->assertSee('服装を検索')
             ->assertSee('衣装LoRA')
             ->assertSee('衣装LoRAを検索')
@@ -64,11 +64,25 @@ class TopPageTest extends TestCase
             ->assertSee(route('lora-triggers.store'), false)
             ->assertSee(route('outfits.store'), false)
             ->assertSee(route('prompt-options.index'), false)
+            ->assertSee(route('prompt-options.manage'), false)
             ->assertDontSee('<h3>デフォルト</h3>', false)
             ->assertDontSee('data-preview', false);
         $content = $response->getContent();
 
         $this->assertIsString($content);
         $this->assertSame(2, substr_count($content, 'aria-pressed="true"'));
+    }
+
+    public function test_オプション管理を専用ページに表示する(): void
+    {
+        $this->get(route('prompt-options.manage'))
+            ->assertOk()
+            ->assertSee('オプションを管理')
+            ->assertSee('選択画面に戻る')
+            ->assertSee('カテゴリ')
+            ->assertSee('ブロックと項目')
+            ->assertSee('data-prompt-option-management', false)
+            ->assertSee(route('prompt-preparation'), false)
+            ->assertSee(route('prompt-option-categories.index'), false);
     }
 }

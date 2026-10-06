@@ -397,3 +397,73 @@ test('一括送信の成功IDと失敗理由を候補ごとに表示する', asy
         '失敗：ワークフローが未設定です。',
     ]);
 });
+
+test('31人物をページ分割しページ間で一括送信の選択を保持する', () => {
+    const dom = new JSDOM(`<main>
+        <button data-character-variant-open>差し替え</button>
+        <dialog data-character-variant-dialog>
+            <button data-character-variant-close>閉じる</button>
+            <input data-character-variant-search>
+            <select data-character-variant-family><option value="">all</option><option value="1">Illustrious</option><option value="2">Anima</option></select>
+            <button data-character-variant-previous>前へ</button>
+            <span data-character-variant-page-status></span>
+            <button data-character-variant-next>次へ</button>
+            <span data-character-variant-count></span>
+            <p data-character-variant-status></p>
+            <div data-character-variant-list></div>
+        </dialog>
+    </main>`);
+    const page = dom.window.document.querySelector('main');
+    page.querySelector('dialog').showModal = () => {};
+    const loras = Array.from({ length: 31 }, (_, index) => ({
+        id: index + 1,
+        name: `Character ${String(index + 1).padStart(2, '0')}`,
+        fileName: `character-${index + 1}`,
+        modelFamilyId: index === 30 ? 2 : 1,
+        recommendedStrength: 1,
+        tags: Array(11).fill(`<lora:character-${index + 1}:1>,`),
+    }));
+    initializeCharacterLoraVariantPage({
+        page,
+        documentObject: dom.window.document,
+        clipboard: { writeText: async () => {} },
+        getCandidates: () => ({ loras, triggers: [] }),
+        getSource: () => ({
+            positive: '<lora:original:1>,',
+            original: createCharacterLoraSourceMetadata('', '<lora:original:1>,', ''),
+        }),
+        notify: () => {},
+    });
+
+    page.querySelector('[data-character-variant-open]').click();
+    assert.equal(page.querySelectorAll('.character-variant-row').length, 30);
+    assert.equal(
+        page.querySelector('[data-character-variant-page-status]').textContent,
+        '31人物・1/2ページ',
+    );
+    page.querySelector('[data-character-variant-next]').click();
+    assert.equal(page.querySelectorAll('.character-variant-row').length, 1);
+    page.querySelector('.character-variant-send-selection input').click();
+    assert.equal(page.querySelector('[data-character-variant-count]').textContent, '30件選択');
+    page.querySelector('[data-character-variant-previous]').click();
+    page.querySelector('[data-character-variant-next]').click();
+    assert.equal(page.querySelector('.character-variant-send-selection input').checked, false);
+
+    const search = page.querySelector('[data-character-variant-search]');
+    search.value = 'Character 01';
+    search.dispatchEvent(new dom.window.Event('input'));
+    assert.equal(
+        page.querySelector('[data-character-variant-page-status]').textContent,
+        '1人物・1/1ページ',
+    );
+    const family = page.querySelector('[data-character-variant-family]');
+    search.value = '';
+    search.dispatchEvent(new dom.window.Event('input'));
+    family.value = '2';
+    family.dispatchEvent(new dom.window.Event('change'));
+    assert.equal(
+        page.querySelector('[data-character-variant-page-status]').textContent,
+        '1人物・1/1ページ',
+    );
+    assert.equal(page.querySelector('.character-variant-send-selection input').checked, false);
+});
