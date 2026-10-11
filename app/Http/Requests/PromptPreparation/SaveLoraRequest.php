@@ -39,6 +39,7 @@ final class SaveLoraRequest extends FormRequest
         return [
             'name.not_regex' => '登録名にファイル名として使用できない文字が含まれています。',
             'name.not_in' => '登録名に「.」または「..」は使用できません。',
+            'fileName.unique' => '同じファイル名のLoRAがすでに登録されています。',
         ];
     }
 }

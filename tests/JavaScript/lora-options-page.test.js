@@ -350,3 +350,46 @@ test('トリガー追加時は非表示のLoRA生成設定を入力検証の対�
         },
     ]);
 });
+
+test('LoRA保存時の項目別エラーを管理ダイアログに表示する', async () => {
+    const documentObject = createDocument();
+    const validationMessage = '同じファイル名のLoRAがすでに登録されています。';
+    const fetcher = async (url, options = {}) => {
+        if (url === '/loras' && options.method === 'POST') {
+            return {
+                ok: false,
+                status: 422,
+                json: async () => ({
+                    message: 'The given data was invalid.',
+                    errors: { fileName: [validationMessage] },
+                }),
+            };
+        }
+
+        return {
+            ok: true,
+            json: async () => ({ loras: [], triggers: [], outfits: [] }),
+        };
+    };
+    initializeLoraOptionsPage({
+        page: documentObject.querySelector('main'),
+        documentObject,
+        fetcher,
+        csrfToken: 'csrf',
+        onLoadedChange: () => {},
+        notify: () => {},
+    });
+    await flushAsyncEvents();
+
+    documentObject.querySelector('[data-option-add="lora"]').click();
+    documentObject.querySelector('[data-option-name]').value = '人物';
+    documentObject.querySelector('[data-option-file-name]').value = 'character.v1';
+    documentObject
+        .querySelector('[data-option-form]')
+        .dispatchEvent(new documentObject.defaultView.Event('submit', { cancelable: true }));
+    await flushAsyncEvents();
+
+    const status = documentObject.querySelector('[data-option-form-status]');
+    assert.equal(status.textContent, validationMessage);
+    assert.equal(status.dataset.state, 'error');
+});

@@ -139,6 +139,22 @@ test('新規登録はPOSTで更新はPUTで送信する', async () => {
     assert.equal(requests[1].options.body, JSON.stringify(values));
 });
 
+test('保存時の入力エラーはAPIが返した項目別メッセージを通知する', async () => {
+    const fetcher = async () => ({
+        ok: false,
+        status: 422,
+        json: async () => ({
+            message: 'The given data was invalid.',
+            errors: { fileName: ['同じファイル名のLoRAがすでに登録されています。'] },
+        }),
+    });
+
+    await assert.rejects(
+        () => saveLoraPromptOption(fetcher, '/loras', 'csrf', null, {}),
+        new Error('同じファイル名のLoRAがすでに登録されています。'),
+    );
+});
+
 test('指定した登録をDELETEで削除する', async () => {
     let request;
     const fetcher = async (url, options) => {
