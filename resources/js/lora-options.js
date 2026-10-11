@@ -33,15 +33,34 @@ const isOutfit = (value) =>
     typeof value.name === 'string' &&
     typeof value.content === 'string';
 
-const assertSuccessfulResponse = (response) => {
+const responseErrorMessage = async (response) => {
+    if (response.status === 422) {
+        try {
+            const result = await response.json();
+            const firstError = Object.values(result?.errors ?? {})
+                .flat()
+                .find((message) => typeof message === 'string' && message.trim() !== '');
+
+            if (firstError !== undefined) {
+                return firstError;
+            }
+        } catch {
+            // Fall through to the generic message when the response is not valid JSON.
+        }
+    }
+
+    return '保存できませんでした。時間をおいて再度お試しください。';
+};
+
+const assertSuccessfulResponse = async (response) => {
     if (!response.ok) {
-        throw new Error('The LoRA prompt option request failed.');
+        throw new Error(await responseErrorMessage(response));
     }
 };
 
 export const requestLoraPromptOptions = async (fetcher, url) => {
     const response = await fetcher(url, { headers: { Accept: 'application/json' } });
-    assertSuccessfulResponse(response);
+    await assertSuccessfulResponse(response);
     const result = await response.json();
 
     if (
@@ -69,7 +88,7 @@ export const saveLoraPromptOption = async (fetcher, url, csrfToken, id, values) 
         },
         body: JSON.stringify(values),
     });
-    assertSuccessfulResponse(response);
+    await assertSuccessfulResponse(response);
 
     return response.json();
 };
@@ -79,7 +98,7 @@ export const deleteLoraPromptOption = async (fetcher, url, csrfToken, id) => {
         method: 'DELETE',
         headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken },
     });
-    assertSuccessfulResponse(response);
+    await assertSuccessfulResponse(response);
 };
 
 export const filterLoras = (loras, searchText) => {

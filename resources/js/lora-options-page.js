@@ -433,9 +433,11 @@ export const initializeLoraOptionsPage = ({
             closeDialog(optionDialog);
             notify('保存しました。');
             await loadOptions();
-        } catch {
+        } catch (error) {
             status.textContent =
-                '保存できませんでした。入力内容を確認するか、時間をおいて再度お試しください。';
+                error instanceof Error
+                    ? error.message
+                    : '保存できませんでした。時間をおいて再度お試しください。';
             status.dataset.state = 'error';
         } finally {
             page.querySelector('[data-option-save]').disabled = false;

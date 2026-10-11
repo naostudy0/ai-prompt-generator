@@ -116,6 +116,9 @@ class LoraPromptOptionApiTest extends TestCase
             'fileName' => $existingFileName,
             'recommendedStrength' => 1,
         ]);
+        $duplicateFileResponse
+            ->assertUnprocessable()
+            ->assertJsonPath('errors.fileName.0', '同じファイル名のLoRAがすでに登録されています。');
         $sameNameResponse = $this->postJson(route('loras.store'), [
             'modelFamilyId' => 1,
             ...$this->generationSettings(),
