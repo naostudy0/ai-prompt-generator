@@ -16,7 +16,9 @@ import { adjustPromptWeight } from './prompt-weight-adjustment.js';
 import { initializeFavoritePromptsPage } from './favorite-prompts-page.js';
 import { normalizePromptForComparison } from './prompt-text.js';
 import { initializeCharacterLoraVariantPage } from './character-lora-variant-page.js';
+import { initializeIllustrationPromptGenerator } from './illustration-prompt-generator.js';
 import {
+    createAiCharacterLoraOutput,
     createCharacterLoraSourceMetadata,
     locateCharacterLoraSourceMetadata,
     trackCharacterLoraSourceEdit,
@@ -538,27 +540,36 @@ export const initializePromptPreparationPage = ({
             outputs.positive,
             createPositivePromptSections({ ...lora, ...clothingLora }, categories),
         );
-        variantSourceMetadata = createCharacterLoraSourceMetadata(
+        const nextVariantMetadata = createCharacterLoraSourceMetadata(
             createPromptOutputs(currentPrompts, selectedPrompts).positive,
             lora.lora,
             lora.trigger,
         );
-        variantFamilySource = {
+        const nextVariantFamily = {
             modelFamilyId: activeFamilyId(),
             loraId: loraOptionsController.getSelectedLoraId?.() ?? null,
             defaults: { ...selectedPrompts },
             defaultSections: createPromptOutputs(currentPrompts, selectedPrompts),
         };
-        previousPositiveOutput = outputs.positive;
+        applyOutputPair({
+            positive: outputs.positive,
+            negative: outputs.negative,
+            variantMetadata: nextVariantMetadata,
+            variantFamily: nextVariantFamily,
+        });
 
+        outputSection?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+    };
+
+    const applyOutputPair = ({ positive, negative, variantMetadata, variantFamily }) => {
         for (const polarity of ['positive', 'negative']) {
             const outputElement = getOutputElement(polarity);
             const content = outputElement?.querySelector('[data-output-content]');
             const status = outputElement?.querySelector('[data-copy-status]');
 
             if (content instanceof HTMLTextAreaElement) {
-                content.value = outputs[polarity];
-                resizeOutputContent(content);
+                content.value = polarity === 'positive' ? positive : negative;
+                content.dispatchEvent(new view.Event('input', { bubbles: true }));
             }
 
             if (status instanceof HTMLElement) {
@@ -569,10 +580,10 @@ export const initializePromptPreparationPage = ({
                 updateCopyAvailability(outputElement);
             }
         }
-
+        variantSourceMetadata = variantMetadata;
+        variantFamilySource = variantFamily;
+        previousPositiveOutput = positive;
         characterVariantController.updateAvailability();
-
-        outputSection?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
     };
 
     const resetPrompts = () => {
@@ -989,6 +1000,38 @@ export const initializePromptPreparationPage = ({
         notify: showToast,
         fetcher,
         csrfToken,
+    });
+    initializeIllustrationPromptGenerator({
+        page,
+        documentObject,
+        fetcher,
+        csrfToken,
+        applyPrompt: ({ positivePrompt, negativePrompt }) => {
+            if (positivePrompt.trim() === '') {
+                return;
+            }
+            const selectedLora = loraOptionsController.getSelections();
+            const aiOutput = createAiCharacterLoraOutput(
+                positivePrompt,
+                selectedLora.lora,
+                selectedLora.trigger,
+            );
+            applyOutputPair({
+                positive: aiOutput.positive,
+                negative: negativePrompt,
+                variantMetadata: aiOutput.metadata,
+                variantFamily:
+                    aiOutput.metadata === null
+                        ? null
+                        : {
+                              modelFamilyId: activeFamilyId(),
+                              loraId: loraOptionsController.getSelectedLoraId?.() ?? null,
+                              defaults: { positive: false, negative: false },
+                              defaultSections: { positive: '', negative: '' },
+                          },
+            });
+            outputSection?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+        },
     });
     initializeComfyUiPage({
         page,

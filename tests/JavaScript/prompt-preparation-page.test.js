@@ -428,6 +428,59 @@ const addCategoryControls = (documentObject) => {
     );
 };
 
+const addIllustrationPromptControls = (documentObject) => {
+    const page = documentObject.querySelector('main');
+    page.dataset.illustrationPromptGenerationUrl = '/illustration-prompts/generate';
+    page.insertAdjacentHTML('beforeend', `<button data-illustration-prompt-open></button>
+        <dialog data-illustration-prompt-dialog><button data-illustration-prompt-close></button>
+        <textarea data-illustration-prompt-description></textarea>
+        <select data-illustration-prompt-style><option value="danbooru_tags">tags</option></select>
+        <button data-illustration-prompt-generate></button><p data-illustration-prompt-status></p>
+        <section data-illustration-prompt-preview hidden><textarea data-illustration-prompt-positive></textarea>
+        <textarea data-illustration-prompt-negative></textarea><p data-illustration-prompt-metadata></p>
+        <button data-illustration-prompt-apply></button></section></dialog>`);
+    const dialog = page.querySelector('[data-illustration-prompt-dialog]');
+    dialog.showModal = () => { dialog.open = true; };
+    dialog.close = () => { dialog.open = false; };
+};
+
+test('AI生成結果へ選択中の人物LoRAを加えて既存出力へ反映する', async () => {
+    const documentObject = createDocument();
+    addLoraControls(documentObject);
+    addIllustrationPromptControls(documentObject);
+    const fetcher = async (url) => {
+        if (url === '/default-prompts') {
+            return successfulResponse({ positive: 'default positive,', negative: 'default negative,' });
+        }
+        if (url === '/illustration-prompts/generate') {
+            return successfulResponse({ positivePrompt: 'AI base,', negativePrompt: 'AI negative,', model: 'model', promptStyle: 'danbooru_tags', generationTimeMs: 2 });
+        }
+        return successfulResponse({
+            loras: [{ id: 1, name: '人物', fileName: 'person.safetensors', recommendedStrength: 0.8, tags: Array.from({ length: 11 }, (_, step) => `<lora:person.safetensors:${step / 10}>,`) }],
+            triggers: [{ id: 2, loraId: 1, name: '標準', content: 'character trigger,' }],
+            outfits: [],
+        });
+    };
+    initializePromptPreparationPage({ documentObject, fetcher });
+    await flushAsyncEvents();
+    const lora = documentObject.querySelector('[data-lora-list]');
+    lora.value = '1';
+    lora.dispatchEvent(new documentObject.defaultView.Event('change'));
+    const trigger = documentObject.querySelector('[data-trigger-list]');
+    trigger.value = '2';
+    trigger.dispatchEvent(new documentObject.defaultView.Event('change'));
+    documentObject.querySelector('[data-illustration-prompt-description]').value = 'scene';
+    documentObject.querySelector('[data-illustration-prompt-generate]').click();
+    await flushAsyncEvents();
+    documentObject.querySelector('[data-illustration-prompt-apply]').click();
+
+    assert.equal(documentObject.querySelector('[data-output="positive"] [data-output-content]').value, 'AI base,\n\n<lora:person.safetensors:0.8>,\n\ncharacter trigger,');
+    assert.equal(documentObject.querySelector('[data-output="negative"] [data-output-content]').value, 'AI negative,');
+    assert.equal(lora.value, '1');
+    documentObject.querySelector('[data-display]').click();
+    assert.match(documentObject.querySelector('[data-output="positive"] [data-output-content]').value, /^default positive,/);
+});
+
 test('生成後の手編集と衣装文面を保持して別人物のpositiveをコピーする', async () => {
     const documentObject = createDocument();
     addLoraControls(documentObject);

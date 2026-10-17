@@ -38,6 +38,13 @@ export const initializeIllustrationPromptGenerator = ({
     let requestToken = 0;
     let pending = false;
 
+    if (
+        !dialog || !openButton || !closeButton || !description || !style || !generateButton ||
+        !status || !preview || !positive || !negative || !metadata || !applyButton
+    ) {
+        return { abort: () => {} };
+    }
+
     const abort = () => {
         requestToken += 1;
         requestController?.abort();
@@ -123,7 +130,7 @@ export const initializeIllustrationPromptGenerator = ({
             status.textContent = 'positiveプロンプトを入力してください。';
             return;
         }
-        applyPrompt({ positivePrompt: positive.value.trim(), negativePrompt: negative.value.trim() });
+        applyPrompt({ positivePrompt: positive.value, negativePrompt: negative.value });
         close();
     });
 
