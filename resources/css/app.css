@@ -103,6 +103,12 @@ button:disabled {
     display: none;
 }
 
+.output-shortcut-hint {
+    margin: 0.45rem 0 0;
+    color: #9ca99e;
+    font-size: 0.75rem;
+}
+
 .page-header {
     max-width: 44rem;
     margin-bottom: 3rem;
@@ -1469,16 +1475,96 @@ button:focus-visible {
     }
 
     .selection-summary__action {
-        position: sticky;
-        bottom: -1rem;
-        margin: 0.8rem -1rem -1rem;
-        padding: 0.85rem 1rem 1rem;
-        background: linear-gradient(to bottom, rgb(22 29 24 / 75%), #161d18 30%);
+        margin-top: 0.8rem;
     }
 
     .selection-summary__display-button {
         width: 100%;
         margin: 0;
+    }
+
+    .prompt-clips {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #344139;
+    }
+
+    .prompt-clips__form label {
+        display: block;
+        margin-bottom: 0.35rem;
+        color: #aeb8b0;
+        font-size: 0.76rem;
+    }
+
+    .prompt-clips__save-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 0.4rem;
+    }
+
+    .prompt-clips__save-row input {
+        min-width: 0;
+        border: 1px solid #596c5d;
+        border-radius: 0.45rem;
+        padding: 0.45rem 0.5rem;
+        color: #edf1ed;
+        background: #101611;
+    }
+
+    .prompt-clips__empty,
+    .prompt-clips__status {
+        margin: 0.65rem 0 0;
+        color: #aeb8b0;
+        font-size: 0.75rem;
+        line-height: 1.4;
+    }
+
+    .prompt-clips__status[data-state='error'] {
+        color: #ff9a9a;
+    }
+
+    .prompt-clips__list {
+        display: grid;
+        gap: 0.55rem;
+        margin: 0.75rem 0 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .prompt-clip {
+        display: grid;
+        gap: 0.4rem;
+        padding-top: 0.55rem;
+        border-top: 1px solid #344139;
+    }
+
+    .prompt-clip__name {
+        overflow-wrap: anywhere;
+        color: #edf1ed;
+        font-size: 0.82rem;
+        font-weight: 700;
+    }
+
+    .prompt-clip__actions {
+        display: flex;
+        gap: 0.65rem;
+    }
+
+    .prompt-clip__restore,
+    .prompt-clip__delete {
+        border: 0;
+        padding: 0;
+        background: transparent;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+
+    .prompt-clip__restore {
+        color: #b7d98b;
+    }
+
+    .prompt-clip__delete {
+        color: #ff8686;
     }
 
     [data-default-prompts-section],

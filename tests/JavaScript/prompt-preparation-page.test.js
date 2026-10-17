@@ -53,6 +53,15 @@ const createDocument = () => {
                     <aside>
                         <div data-selection-summary-list></div>
                         <button type="button" data-sidebar-display disabled>プロンプトを作成</button>
+                        <section data-prompt-clips>
+                            <form data-prompt-clip-form>
+                                <input data-prompt-clip-name>
+                                <button type="submit">保存</button>
+                            </form>
+                            <p data-prompt-clip-empty></p>
+                            <ul data-prompt-clip-list></ul>
+                            <p data-prompt-clip-status></p>
+                        </section>
                     </aside>
                 </main>
             </body>
@@ -72,6 +81,176 @@ const flushAsyncEvents = async () => {
 };
 
 const pendingResponse = () => new Promise(() => {});
+
+test('クリップ呼び出しは出力だけを置き換えて選択状態を維持する', async () => {
+    const documentObject = createDocument();
+    addLoraControls(documentObject);
+    addCategoryControls(documentObject);
+    const values = new Map();
+    const clipStorage = {
+        getItem: (key) => values.get(key) ?? null,
+        setItem: (key, value) => values.set(key, value),
+    };
+    const fetcher = async (url) => {
+        if (url === '/default-prompts') {
+            return successfulResponse({
+                positive: 'default positive,',
+                negative: 'default negative,',
+            });
+        }
+        if (url === '/lora-prompt-options') {
+            return successfulResponse({
+                loras: [
+                    {
+                        id: 1,
+                        name: '人物',
+                        fileName: 'person.safetensors',
+                        recommendedStrength: 0.8,
+                        tags: Array.from(
+                            { length: 11 },
+                            (_, step) =>
+                                `<lora:person.safetensors:${step === 10 ? '1' : (step / 10).toFixed(1)}>,`,
+                        ),
+                    },
+                ],
+                triggers: [],
+                outfits: [],
+            });
+        }
+        if (url === '/prompt-options') {
+            return successfulResponse({
+                groups: [
+                    {
+                        id: 1,
+                        name: '表情',
+                        selectionMode: 'multiple',
+                        position: 1,
+                        options: [{ id: 1, name: '笑顔', content: 'smile,', position: 1 }],
+                    },
+                ],
+            });
+        }
+        throw new Error(`Unexpected request: ${url}`);
+    };
+    initializePromptPreparationPage({ documentObject, fetcher, clipStorage });
+    await flushAsyncEvents();
+    const page = documentObject.querySelector('main');
+    const loraList = page.querySelector('[data-lora-list]');
+    loraList.value = '1';
+    loraList.dispatchEvent(new documentObject.defaultView.Event('change'));
+    page.querySelector('[data-option-groups] .prompt-badge').click();
+    page.querySelector('[data-display]').click();
+    const savedPositive = 'default positive,\n\n<lora:person.safetensors:0.8>,\n\nsmile,';
+    page.querySelector('[data-prompt-clip-name]').value = '途中案';
+    page.querySelector('[data-prompt-clip-form]').requestSubmit();
+    const positive = page.querySelector('[data-output="positive"] [data-output-content]');
+    const negative = page.querySelector('[data-output="negative"] [data-output-content]');
+    positive.value = 'changed positive,';
+    negative.value = 'changed negative,';
+    const selectionSummary = page.querySelector('[data-selection-summary-list]').textContent;
+    page.querySelector('.prompt-clip__restore').click();
+
+    assert.equal(positive.value, savedPositive);
+    assert.equal(negative.value, 'default negative,');
+    assert.equal(loraList.value, '1');
+    assert.equal(
+        page.querySelector('[data-option-groups] .prompt-badge').getAttribute('aria-pressed'),
+        'true',
+    );
+    assert.equal(page.querySelector('[data-selection-summary-list]').textContent, selectionSummary);
+    assert.equal(
+        page
+            .querySelector('[data-default-prompt="positive"] [data-select]')
+            .getAttribute('aria-pressed'),
+        'true',
+    );
+    assert.equal(
+        page
+            .querySelector('[data-default-prompt="negative"] [data-select]')
+            .getAttribute('aria-pressed'),
+        'true',
+    );
+    assert.equal(positive.closest('[data-output]').querySelector('[data-copy]').disabled, false);
+});
+
+test('選択した出力をCommandと上下キーで強度調整して選択を維持する', async () => {
+    const documentObject = createDocument();
+    const fetcher = async () =>
+        successfulResponse({ positive: 'eyes closed, smile,', negative: '' });
+    let copiedContent;
+    initializePromptPreparationPage({
+        documentObject,
+        fetcher,
+        clipStorage: null,
+        clipboard: {
+            writeText: async (content) => {
+                copiedContent = content;
+            },
+        },
+    });
+    await flushAsyncEvents();
+    const page = documentObject.querySelector('main');
+    page.querySelector('[data-display]').click();
+    const positive = page.querySelector('[data-output="positive"] [data-output-content]');
+    positive.setSelectionRange(0, 'eyes closed'.length);
+
+    const increaseEvent = new documentObject.defaultView.KeyboardEvent('keydown', {
+        key: 'ArrowUp',
+        metaKey: true,
+        bubbles: true,
+        cancelable: true,
+    });
+    positive.dispatchEvent(increaseEvent);
+
+    assert.equal(positive.value, '(eyes closed:1.05), smile,');
+    assert.equal(positive.selectionStart, 0);
+    assert.equal(positive.selectionEnd, '(eyes closed:1.05)'.length);
+    assert.equal(increaseEvent.defaultPrevented, true);
+    assert.equal(positive.closest('[data-output]').querySelector('[data-copy]').disabled, false);
+    positive.closest('[data-output]').querySelector('[data-copy]').click();
+    await flushAsyncEvents();
+    assert.equal(copiedContent, '(eyes closed:1.05), smile,');
+
+    positive.dispatchEvent(
+        new documentObject.defaultView.KeyboardEvent('keydown', {
+            key: 'ArrowDown',
+            metaKey: true,
+            bubbles: true,
+            cancelable: true,
+        }),
+    );
+    assert.equal(positive.value, 'eyes closed, smile,');
+    assert.equal(positive.selectionEnd, 'eyes closed'.length);
+});
+
+test('範囲未選択またはCommandなしでは出力と既定動作を変更しない', async () => {
+    const documentObject = createDocument();
+    const fetcher = async () => successfulResponse({ positive: 'eyes closed,', negative: '' });
+    initializePromptPreparationPage({ documentObject, fetcher, clipStorage: null });
+    await flushAsyncEvents();
+    const page = documentObject.querySelector('main');
+    page.querySelector('[data-display]').click();
+    const positive = page.querySelector('[data-output="positive"] [data-output-content]');
+    positive.setSelectionRange(0, 0);
+    const noSelectionEvent = new documentObject.defaultView.KeyboardEvent('keydown', {
+        key: 'ArrowUp',
+        metaKey: true,
+        bubbles: true,
+        cancelable: true,
+    });
+    positive.dispatchEvent(noSelectionEvent);
+    positive.setSelectionRange(0, 'eyes closed'.length);
+    const noCommandEvent = new documentObject.defaultView.KeyboardEvent('keydown', {
+        key: 'ArrowUp',
+        bubbles: true,
+        cancelable: true,
+    });
+    positive.dispatchEvent(noCommandEvent);
+
+    assert.equal(positive.value, 'eyes closed,');
+    assert.equal(noSelectionEvent.defaultPrevented, false);
+    assert.equal(noCommandEvent.defaultPrevented, false);
+});
 
 test('人物LoRAを選ぶと系統別のpositiveとnegativeを出力する', async () => {
     const documentObject = createDocument();
@@ -317,6 +496,59 @@ test('生成後の手編集と衣装文面を保持して別人物のpositiveを
     assert.equal(positive.value, originalPositive);
     assert.equal(negative.value, originalNegative);
     assert.equal(loraList.value, '1');
+});
+
+test('表示操作なしで貼り付けた文面へ人物LoRAを挿入してコピーする', async () => {
+    const documentObject = createDocument();
+    addLoraControls(documentObject);
+    const page = documentObject.querySelector('main');
+    page.insertAdjacentHTML(
+        'beforeend',
+        `<button data-character-variant-open disabled>差し替え</button>
+        <dialog data-character-variant-dialog>
+            <button data-character-variant-close>閉じる</button>
+            <input data-character-variant-search>
+            <p data-character-variant-status></p>
+            <div data-character-variant-list></div>
+        </dialog>`,
+    );
+    const dialog = page.querySelector('[data-character-variant-dialog]');
+    dialog.showModal = () => {
+        dialog.open = true;
+    };
+    const candidateLora = {
+        id: 2,
+        name: '別人物',
+        fileName: 'second',
+        recommendedStrength: 0.8,
+        tags: Array.from({ length: 11 }, (_, step) => `<lora:second:${step / 10}>,`),
+    };
+    const fetcher = async (url) =>
+        successfulResponse(
+            url === '/default-prompts'
+                ? { positive: 'masterpiece,', negative: 'bad anatomy,' }
+                : { loras: [candidateLora], triggers: [], outfits: [] },
+        );
+    const copied = [];
+    initializePromptPreparationPage({
+        documentObject,
+        fetcher,
+        clipboard: { writeText: async (value) => copied.push(value) },
+    });
+    await flushAsyncEvents();
+    const positive = page.querySelector('[data-output="positive"] [data-output-content]');
+    positive.value = 'custom,\n\nmasterpiece,\n\n<lora:dress:1>,';
+    positive.dispatchEvent(
+        new documentObject.defaultView.InputEvent('input', {
+            bubbles: true,
+            inputType: 'insertFromPaste',
+        }),
+    );
+    page.querySelector('[data-character-variant-open]').click();
+    page.querySelector('.character-variant-item').click();
+    await flushAsyncEvents();
+
+    assert.equal(copied[0], 'custom,\n\nmasterpiece,\n\n<lora:second:0.8>,\n\n<lora:dress:1>,');
 });
 
 test('お気に入りを復元した直後に保存済み人物LoRAを差し替えてコピーする', async () => {

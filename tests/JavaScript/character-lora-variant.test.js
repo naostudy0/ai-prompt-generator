@@ -131,6 +131,19 @@ test('デフォルト内の空行より後に人物LoRAを挿入する', () => {
     );
 });
 
+test('貼り付けた文面内のデフォルト区間より後に人物LoRAを挿入する', () => {
+    const positive = 'custom,\n\nmasterpiece,\n\n<lora:dress:1>,';
+    const metadata = locateCharacterLoraSourceMetadata(
+        positive,
+        createCharacterLoraSourceMetadata('masterpiece,', '', ''),
+    );
+
+    assert.equal(
+        createCharacterLoraVariant(positive, metadata, candidate, null),
+        'custom,\n\nmasterpiece,\n\n<lora:other.safetensors:0.8>,\n\n<lora:dress:1>,',
+    );
+});
+
 test('デフォルトを手編集で削除した場合も衣装LoRAの前に人物LoRAを挿入する', () => {
     const generated = 'masterpiece,\n\n<lora:dress:1>,';
     const positive = '<lora:dress:1>,';

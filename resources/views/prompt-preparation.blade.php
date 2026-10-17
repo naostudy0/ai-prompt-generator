@@ -271,6 +271,7 @@
                                 rows="8"
                                 data-output-content
                             ></textarea>
+                            <p class="output-shortcut-hint">範囲選択して⌘↑／⌘↓で強度を0.05ずつ調整</p>
                             <p class="copy-status" data-copy-status role="status" aria-live="polite"></p>
                         </article>
                     @endforeach
@@ -587,6 +588,24 @@
                         プロンプトを作成
                     </button>
                 </div>
+                <section class="prompt-clips" aria-labelledby="prompt-clips-heading" data-prompt-clips>
+                    <h2 id="prompt-clips-heading">クリップ</h2>
+                    <form class="prompt-clips__form" data-prompt-clip-form>
+                        <label for="prompt-clip-name">名前</label>
+                        <div class="prompt-clips__save-row">
+                            <input
+                                id="prompt-clip-name"
+                                type="text"
+                                maxlength="100"
+                                data-prompt-clip-name
+                            >
+                            <button class="small-button" type="submit">保存</button>
+                        </div>
+                    </form>
+                    <p class="prompt-clips__empty" data-prompt-clip-empty>クリップはありません。</p>
+                    <ul class="prompt-clips__list" data-prompt-clip-list></ul>
+                    <p class="prompt-clips__status" data-prompt-clip-status role="status" aria-live="polite"></p>
+                </section>
             </aside>
         </main>
     </body>
