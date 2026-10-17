@@ -9,7 +9,7 @@ return [
     ],
 
     'illustration_llm' => [
-        'base_url' => env('ILLUSTRATION_LLM_BASE_URL', 'http://host.docker.internal:11434'),
+        'base_url' => env('ILLUSTRATION_LLM_BASE_URL', 'http://illustration-llm:11434'),
         'model' => env('ILLUSTRATION_LLM_MODEL', 'gemma3:12b'),
         'connect_timeout' => (int) env('ILLUSTRATION_LLM_CONNECT_TIMEOUT_SECONDS', 3),
         'timeout' => (int) env('ILLUSTRATION_LLM_TIMEOUT_SECONDS', 120),

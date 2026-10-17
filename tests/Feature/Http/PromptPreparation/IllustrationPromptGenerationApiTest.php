@@ -30,6 +30,7 @@ final class IllustrationPromptGenerationApiTest extends TestCase
             ]);
     }
 
+    /** @param array<string, string> $payload */
     #[DataProvider('validInputs')]
     public function test_有効な説明とスタイルを受け付ける(array $payload, string $expectedDescription, string $expectedStyle): void
     {
@@ -52,6 +53,7 @@ final class IllustrationPromptGenerationApiTest extends TestCase
         ];
     }
 
+    /** @param array<string, mixed> $payload */
     #[DataProvider('invalidInputs')]
     public function test_不正な入力を422で拒否する(array $payload): void
     {
@@ -79,7 +81,9 @@ final class IllustrationPromptGenerationApiTest extends TestCase
     #[DataProvider('mappedFailures')]
     public function test_外部サービスの失敗を分類したstatusへ変換する(string $exceptionClass, int $status): void
     {
-        $this->bindThrowingGenerator(new $exceptionClass('RAW SECRET http://upstream.test'));
+        $exception = new $exceptionClass('RAW SECRET http://upstream.test');
+        self::assertInstanceOf(RuntimeException::class, $exception);
+        $this->bindThrowingGenerator($exception);
 
         $response = $this->postJson(route('illustration-prompts.generate'), ['description' => '説明']);
 
@@ -119,23 +123,23 @@ final class IllustrationPromptGenerationApiTest extends TestCase
     /** @param array<string, string> $received */
     private function bindSuccessFakes(array &$received = []): void
     {
-        $this->app->instance(IllustrationPromptInstructions::class, new class implements IllustrationPromptInstructions
-        {
+        $this->app->instance(IllustrationPromptInstructions::class, new class () implements IllustrationPromptInstructions {
             public function for(PromptStyle $style): string
             {
                 return $style->value;
             }
         });
-        $this->app->instance(IllustrationPromptGenerator::class, new class($received) implements IllustrationPromptGenerator
-        {
-            /** @param array<string, string> $received */
-            public function __construct(private array &$received)
+        $capture = static function (string $systemPrompt, string $description) use (&$received): void {
+            $received = ['instruction' => $systemPrompt, 'description' => $description];
+        };
+        $this->app->instance(IllustrationPromptGenerator::class, new class ($capture) implements IllustrationPromptGenerator {
+            public function __construct(private readonly \Closure $capture)
             {
             }
 
             public function generate(string $systemPrompt, string $description): GeneratedIllustrationPrompt
             {
-                $this->received = ['instruction' => $systemPrompt, 'description' => $description];
+                ($this->capture)($systemPrompt, $description);
 
                 return new GeneratedIllustrationPrompt('positive', 'negative', 'fake-model', 12);
             }
@@ -144,15 +148,13 @@ final class IllustrationPromptGenerationApiTest extends TestCase
 
     private function bindThrowingGenerator(RuntimeException $exception): void
     {
-        $this->app->instance(IllustrationPromptInstructions::class, new class implements IllustrationPromptInstructions
-        {
+        $this->app->instance(IllustrationPromptInstructions::class, new class () implements IllustrationPromptInstructions {
             public function for(PromptStyle $style): string
             {
                 return 'instruction';
             }
         });
-        $this->app->instance(IllustrationPromptGenerator::class, new class($exception) implements IllustrationPromptGenerator
-        {
+        $this->app->instance(IllustrationPromptGenerator::class, new class ($exception) implements IllustrationPromptGenerator {
             public function __construct(private readonly RuntimeException $exception)
             {
             }

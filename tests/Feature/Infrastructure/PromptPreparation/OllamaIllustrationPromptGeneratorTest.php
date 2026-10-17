@@ -152,10 +152,16 @@ final class OllamaIllustrationPromptGeneratorTest extends TestCase
         ];
     }
 
+    /** @param array<string, int> $metrics */
     #[DataProvider('optionalMetrics')]
     public function test_評価時間がないかゼロなら毎秒トークン数を記録しない(array $metrics): void
     {
-        Log::spy();
+        $loggedContext = null;
+        Log::shouldReceive('info')->once()->withArgs(function (string $message, array $context) use (&$loggedContext): bool {
+            $loggedContext = $context;
+
+            return true;
+        });
         Http::fake(['*' => Http::response(array_merge([
             'model' => 'model',
             'message' => ['content' => '{"positive_prompt":"ok","negative_prompt":""}'],
@@ -163,9 +169,8 @@ final class OllamaIllustrationPromptGeneratorTest extends TestCase
 
         app(OllamaIllustrationPromptGenerator::class)->generate('system', 'description');
 
-        Log::shouldHaveReceived('info')->once()->withArgs(
-            fn (string $message, array $context): bool => !array_key_exists('tokens_per_second', $context),
-        );
+        self::assertIsArray($loggedContext);
+        self::assertArrayNotHasKey('tokens_per_second', $loggedContext);
     }
 
     /** @return array<string, array{array<string, int>}> */

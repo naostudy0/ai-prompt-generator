@@ -39,8 +39,19 @@ export const initializeIllustrationPromptGenerator = ({
     let pending = false;
 
     if (
-        !dialog || !openButton || !closeButton || !description || !style || !generateButton ||
-        !status || !preview || !positive || !negative || !metadata || !applyButton
+        !documentObject.defaultView ||
+        !dialog ||
+        !openButton ||
+        !closeButton ||
+        !description ||
+        !style ||
+        !generateButton ||
+        !status ||
+        !preview ||
+        !positive ||
+        !negative ||
+        !metadata ||
+        !applyButton
     ) {
         return { abort: () => {} };
     }
@@ -70,10 +81,15 @@ export const initializeIllustrationPromptGenerator = ({
     dialog.addEventListener('close', abort);
 
     generateButton.addEventListener('click', async () => {
-        if (pending) return;
+        if (pending) {
+            return;
+        }
         const value = description.value.trim();
         if (value.length === 0 || value.length > 2000) {
-            status.textContent = value.length === 0 ? '指示を入力してください。' : '指示は2,000文字以内で入力してください。';
+            status.textContent =
+                value.length === 0
+                    ? '指示を入力してください。'
+                    : '指示は2,000文字以内で入力してください。';
             return;
         }
 
@@ -97,12 +113,15 @@ export const initializeIllustrationPromptGenerator = ({
                 signal: requestController.signal,
             });
             const body = await responseJson(response);
-            if (token !== requestToken) return;
+            if (token !== requestToken) {
+                return;
+            }
             if (!response.ok || !isGenerationResult(body)) {
                 const fieldMessage = body?.errors?.description?.[0];
-                status.textContent = typeof fieldMessage === 'string'
-                    ? fieldMessage
-                    : `${typeof body?.message === 'string' ? body.message : '生成に失敗しました。'} 入力内容を確認して再試行してください。`;
+                status.textContent =
+                    typeof fieldMessage === 'string'
+                        ? fieldMessage
+                        : `${typeof body?.message === 'string' ? body.message : '生成に失敗しました。'} 入力内容を確認して再試行してください。`;
                 return;
             }
             positive.value = body.positivePrompt;

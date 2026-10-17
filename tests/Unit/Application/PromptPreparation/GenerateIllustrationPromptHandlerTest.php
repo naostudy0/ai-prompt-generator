@@ -61,16 +61,17 @@ final class GenerateIllustrationPromptHandlerTest extends TestCase
         $instructions = $this->instructionsFake([
             PromptStyle::DanbooruTags->value => 'fixed system instruction',
         ]);
-        $generator = new class($received) implements IllustrationPromptGenerator
-        {
-            /** @param array<string, string> $received */
-            public function __construct(private array &$received)
+        $capture = static function (string $systemPrompt, string $description) use (&$received): void {
+            $received = compact('systemPrompt', 'description');
+        };
+        $generator = new class ($capture) implements IllustrationPromptGenerator {
+            public function __construct(private readonly \Closure $capture)
             {
             }
 
             public function generate(string $systemPrompt, string $description): GeneratedIllustrationPrompt
             {
-                $this->received = compact('systemPrompt', 'description');
+                ($this->capture)($systemPrompt, $description);
 
                 return new GeneratedIllustrationPrompt('positive', 'negative', 'model', 10);
             }
@@ -89,8 +90,7 @@ final class GenerateIllustrationPromptHandlerTest extends TestCase
     /** @param array<string, string> $values */
     private function instructionsFake(array $values): IllustrationPromptInstructions
     {
-        return new class($values) implements IllustrationPromptInstructions
-        {
+        return new class ($values) implements IllustrationPromptInstructions {
             /** @param array<string, string> $values */
             public function __construct(private readonly array $values)
             {
@@ -105,8 +105,7 @@ final class GenerateIllustrationPromptHandlerTest extends TestCase
 
     private function generatorFake(GeneratedIllustrationPrompt $generated): IllustrationPromptGenerator
     {
-        return new class($generated) implements IllustrationPromptGenerator
-        {
+        return new class ($generated) implements IllustrationPromptGenerator {
             public function __construct(private readonly GeneratedIllustrationPrompt $generated)
             {
             }
