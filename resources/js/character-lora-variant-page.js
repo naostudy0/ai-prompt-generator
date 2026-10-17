@@ -1,12 +1,22 @@
 import {
+    createCharacterLoraCandidateKey,
     createCharacterLoraVariant,
     getCharacterLoraCandidates,
 } from './character-lora-variant.js';
+import {
+    findCharacterLoraVariantGroupIndex,
+    parseCharacterLoraVariantGroups,
+    prepareCharacterLoraVariantGroup,
+    removeCharacterLoraVariantGroup,
+    replaceCharacterLoraVariantGroup,
+    resolveCharacterLoraVariantGroup,
+    serializeCharacterLoraVariantGroups,
+} from './character-lora-variant-groups.js';
 import { writePromptToClipboard } from './default-prompts.js';
 import { replaceModelFamilyDefault } from './model-family-default-variant.js';
 
 const storageKey = 'comfyui-character-variant-unchecked-v1';
-const candidateKey = (lora, trigger) => `lora:${lora.id}:trigger:${trigger?.id ?? 'none'}`;
+const groupStorageKey = 'comfyui-character-variant-groups-v1';
 
 export const initializeCharacterLoraVariantPage = ({
     page,
@@ -32,6 +42,11 @@ export const initializeCharacterLoraVariantPage = ({
     const status = page.querySelector('[data-character-variant-status]');
     const count = page.querySelector('[data-character-variant-count]');
     const sendButton = page.querySelector('[data-character-variant-send]');
+    const groupSelect = page.querySelector('[data-character-variant-group-select]');
+    const groupLoad = page.querySelector('[data-character-variant-group-load]');
+    const groupDelete = page.querySelector('[data-character-variant-group-delete]');
+    const groupName = page.querySelector('[data-character-variant-group-name]');
+    const groupSave = page.querySelector('[data-character-variant-group-save]');
     if (!view || !(dialog instanceof view.HTMLDialogElement)) {
         return { updateAvailability: () => {} };
     }
@@ -39,6 +54,8 @@ export const initializeCharacterLoraVariantPage = ({
     let snapshot = null;
     let currentPage = 1;
     let unchecked = new Set();
+    let groups = [];
+    let storageAvailable = true;
     const candidateResults = new Map();
     try {
         const saved = JSON.parse(view.localStorage.getItem(storageKey) ?? '[]');
@@ -47,6 +64,13 @@ export const initializeCharacterLoraVariantPage = ({
         }
     } catch {
         unchecked = new Set();
+        storageAvailable = false;
+    }
+    try {
+        groups = parseCharacterLoraVariantGroups(view.localStorage.getItem(groupStorageKey));
+    } catch {
+        groups = [];
+        storageAvailable = false;
     }
     const setStatus = (message) => {
         if (status instanceof view.HTMLElement) {
@@ -56,13 +80,59 @@ export const initializeCharacterLoraVariantPage = ({
     const persist = () => {
         try {
             view.localStorage.setItem(storageKey, JSON.stringify([...unchecked]));
+            return true;
         } catch {
             setStatus('チェック状態をブラウザーへ保存できません。');
+            return false;
+        }
+    };
+    const persistGroups = (nextGroups) => {
+        try {
+            view.localStorage.setItem(
+                groupStorageKey,
+                serializeCharacterLoraVariantGroups(nextGroups),
+            );
+            return true;
+        } catch {
+            setStatus('グループをブラウザーへ保存できません。');
+            return false;
+        }
+    };
+    const renderGroups = (selectedIndex = -1) => {
+        if (!(groupSelect instanceof view.HTMLSelectElement)) {
+            return;
+        }
+        if (groups.length === 0) {
+            groupSelect.replaceChildren(
+                Object.assign(documentObject.createElement('option'), {
+                    value: '',
+                    textContent: '保存済みグループなし',
+                }),
+            );
+        } else {
+            groupSelect.replaceChildren(
+                ...groups.map((group, index) =>
+                    Object.assign(documentObject.createElement('option'), {
+                        value: String(index),
+                        textContent: group.name,
+                    }),
+                ),
+            );
+            groupSelect.value = String(selectedIndex >= 0 ? selectedIndex : 0);
+        }
+        if (groupLoad instanceof view.HTMLButtonElement) {
+            groupLoad.disabled = groups.length === 0;
+        }
+        if (groupDelete instanceof view.HTMLButtonElement) {
+            groupDelete.disabled = groups.length === 0;
         }
     };
     const allCandidates = () => (snapshot ? getCharacterLoraCandidates(snapshot.options, '') : []);
     const selectedCandidates = () =>
-        allCandidates().filter(({ lora, trigger }) => !unchecked.has(candidateKey(lora, trigger)));
+        allCandidates().filter(
+            ({ lora, trigger }) =>
+                !unchecked.has(createCharacterLoraCandidateKey(lora, trigger)),
+        );
     const updateCount = () => {
         const total = selectedCandidates().length;
         if (count instanceof view.HTMLElement) {
@@ -137,7 +207,7 @@ export const initializeCharacterLoraVariantPage = ({
             const row = documentObject.createElement('div');
             row.className = 'character-variant-row';
             const name = trigger ? `${lora.name}・${trigger.name}` : lora.name;
-            const key = candidateKey(lora, trigger);
+            const key = createCharacterLoraCandidateKey(lora, trigger);
             const checkbox = documentObject.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.checked = !unchecked.has(key);
@@ -265,7 +335,9 @@ export const initializeCharacterLoraVariantPage = ({
         }
         snapshot = { ...source, options };
         const validKeys = new Set(
-            allCandidates().map(({ lora, trigger }) => candidateKey(lora, trigger)),
+            allCandidates().map(({ lora, trigger }) =>
+                createCharacterLoraCandidateKey(lora, trigger),
+            ),
         );
         unchecked = new Set([...unchecked].filter((key) => validKeys.has(key)));
         persist();
@@ -295,6 +367,10 @@ export const initializeCharacterLoraVariantPage = ({
             );
         }
         render();
+        renderGroups();
+        if (!storageAvailable) {
+            setStatus('ブラウザーへ保存できません。画面を閉じるまでチェック操作は利用できます。');
+        }
         dialog.showModal();
         search?.focus();
     });
@@ -322,10 +398,90 @@ export const initializeCharacterLoraVariantPage = ({
     });
     page.querySelector('[data-character-variant-clear-all]')?.addEventListener('click', () => {
         unchecked = new Set(
-            allCandidates().map(({ lora, trigger }) => candidateKey(lora, trigger)),
+            allCandidates().map(({ lora, trigger }) =>
+                createCharacterLoraCandidateKey(lora, trigger),
+            ),
         );
         persist();
         render();
+    });
+    groupSave?.addEventListener('click', () => {
+        if (!(groupName instanceof view.HTMLInputElement)) {
+            return;
+        }
+        try {
+            const group = prepareCharacterLoraVariantGroup(
+                groupName.value,
+                selectedCandidates().map(({ lora, trigger }) =>
+                    createCharacterLoraCandidateKey(lora, trigger),
+                ),
+            );
+            const existingIndex = findCharacterLoraVariantGroupIndex(groups, group.name);
+            if (
+                existingIndex >= 0 &&
+                !view.confirm(
+                    `「${groups[existingIndex].name}」を現在の選択${group.candidateKeys.length}件で上書きします。`,
+                )
+            ) {
+                return;
+            }
+            const nextGroups = replaceCharacterLoraVariantGroup(groups, group, existingIndex);
+            if (!persistGroups(nextGroups)) {
+                return;
+            }
+            groups = nextGroups;
+            const selectedIndex = existingIndex >= 0 ? existingIndex : groups.length - 1;
+            renderGroups(selectedIndex);
+            groupName.value = '';
+            setStatus(`「${group.name}」を${group.candidateKeys.length}件で保存しました。`);
+        } catch (error) {
+            setStatus(error instanceof Error ? error.message : 'グループを保存できませんでした。');
+        }
+    });
+    groupLoad?.addEventListener('click', () => {
+        if (!(groupSelect instanceof view.HTMLSelectElement) || !snapshot) {
+            return;
+        }
+        const index = Number(groupSelect.value);
+        const group = groups[index];
+        if (!group) {
+            return;
+        }
+        const availableKeys = new Set(
+            allCandidates().map(({ lora, trigger }) =>
+                createCharacterLoraCandidateKey(lora, trigger),
+            ),
+        );
+        const resolved = resolveCharacterLoraVariantGroup(group.candidateKeys, availableKeys);
+        unchecked = new Set([...availableKeys].filter((key) => !resolved.selectedKeys.has(key)));
+        const persisted = persist();
+        render();
+        if (!persisted) {
+            setStatus('グループを呼び出しましたが、チェック状態をブラウザーへ保存できません。');
+        } else if (resolved.unavailableCount > 0) {
+            setStatus(
+                `利用できない候補${resolved.unavailableCount}件を除いて呼び出しました。`,
+            );
+        } else {
+            setStatus(`「${group.name}」を呼び出しました。`);
+        }
+    });
+    groupDelete?.addEventListener('click', () => {
+        if (!(groupSelect instanceof view.HTMLSelectElement)) {
+            return;
+        }
+        const index = Number(groupSelect.value);
+        const group = groups[index];
+        if (!group || !view.confirm(`「${group.name}」を削除します。`)) {
+            return;
+        }
+        const nextGroups = removeCharacterLoraVariantGroup(groups, index);
+        if (!persistGroups(nextGroups)) {
+            return;
+        }
+        groups = nextGroups;
+        renderGroups(Math.min(index, groups.length - 1));
+        setStatus(`「${group.name}」を削除しました。`);
     });
     sendButton?.addEventListener('click', async () => {
         const selected = selectedCandidates();
@@ -338,7 +494,7 @@ export const initializeCharacterLoraVariantPage = ({
             const items = [];
             const localFailures = [];
             for (const { lora, trigger } of selected) {
-                const key = candidateKey(lora, trigger);
+                const key = createCharacterLoraCandidateKey(lora, trigger);
                 try {
                     items.push({
                         candidateKey: key,

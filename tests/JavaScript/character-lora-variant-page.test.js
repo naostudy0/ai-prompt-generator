@@ -467,3 +467,203 @@ test('31人物をページ分割しページ間で一括送信の選択を保持
     );
     assert.equal(page.querySelector('.character-variant-send-selection input').checked, false);
 });
+
+const createGroupDialog = () =>
+    new JSDOM(`<main data-comfy-ui-prompt-batch-url="/comfyui/prompts/batch">
+        <button data-character-variant-open>差し替え</button>
+        <dialog data-character-variant-dialog>
+            <button data-character-variant-close>閉じる</button>
+            <select data-character-variant-group-select></select>
+            <button data-character-variant-group-load>呼び出す</button>
+            <button data-character-variant-group-delete>削除</button>
+            <input data-character-variant-group-name>
+            <button data-character-variant-group-save>現在のチェックで保存</button>
+            <button data-character-variant-select-all>全選択</button>
+            <button data-character-variant-clear-all>全解除</button>
+            <input data-character-variant-search>
+            <select data-character-variant-family><option value="">all</option></select>
+            <button data-character-variant-previous>前へ</button>
+            <span data-character-variant-page-status></span>
+            <button data-character-variant-next>次へ</button>
+            <span data-character-variant-count></span>
+            <p data-character-variant-status></p>
+            <div data-character-variant-list></div>
+            <button data-character-variant-send>一括送信</button>
+        </dialog>
+    </main>`, { url: 'https://example.test' });
+
+const groupCandidates = {
+    loras: [
+        {
+            id: 1,
+            name: '一人目',
+            fileName: 'first',
+            modelFamilyId: 1,
+            modelFamilyName: 'Illustrious',
+            recommendedStrength: 1,
+            tags: Array(11).fill('<lora:first:1>,'),
+        },
+        {
+            id: 2,
+            name: '二人目',
+            fileName: 'second',
+            modelFamilyId: 2,
+            modelFamilyName: 'Anima',
+            recommendedStrength: 1,
+            tags: Array(11).fill('<lora:second:1>,'),
+        },
+    ],
+    triggers: [
+        { id: 11, loraId: 1, name: '目あり', content: 'blue eyes,' },
+        { id: 12, loraId: 1, name: '目なし', content: 'short hair,' },
+    ],
+};
+
+const initializeGroupDialog = (dom, overrides = {}) => {
+    const page = dom.window.document.querySelector('main');
+    page.querySelector('dialog').showModal = () => {};
+    initializeCharacterLoraVariantPage({
+        page,
+        documentObject: dom.window.document,
+        clipboard: { writeText: async () => {} },
+        getCandidates: () => groupCandidates,
+        getSource: () => ({
+            positive: '<lora:original:1>,',
+            negative: '',
+            original: createCharacterLoraSourceMetadata('', '<lora:original:1>,', ''),
+        }),
+        notify: () => {},
+        ...overrides,
+    });
+    page.querySelector('[data-character-variant-open]').click();
+    return page;
+};
+
+test('現在のチェックを名前付きで保存し確認後だけ同名上書きと削除を行う', () => {
+    const dom = createGroupDialog();
+    const confirmations = [];
+    dom.window.confirm = (message) => {
+        confirmations.push(message);
+        return confirmations.length > 1;
+    };
+    const page = initializeGroupDialog(dom);
+    const name = page.querySelector('[data-character-variant-group-name]');
+    const save = page.querySelector('[data-character-variant-group-save]');
+    const select = page.querySelector('[data-character-variant-group-select]');
+
+    page.querySelectorAll('.character-variant-send-selection input')[1].click();
+    name.value = '  Portrait  ';
+    save.click();
+    assert.equal(select.options.length, 1);
+    assert.equal(select.options[0].textContent, 'Portrait');
+
+    page.querySelector('[data-character-variant-clear-all]').click();
+    name.value = ' portrait ';
+    save.click();
+    assert.match(confirmations[0], /Portrait/);
+    assert.match(confirmations[0], /0件/);
+    assert.equal(JSON.parse(dom.window.localStorage.getItem('comfyui-character-variant-groups-v1')).groups[0].candidateKeys.length, 2);
+
+    save.click();
+    assert.equal(select.options[0].textContent, 'portrait');
+    assert.equal(JSON.parse(dom.window.localStorage.getItem('comfyui-character-variant-groups-v1')).groups[0].candidateKeys.length, 0);
+
+    name.value = '   ';
+    save.click();
+    assert.match(page.querySelector('[data-character-variant-status]').textContent, /グループ名/);
+    name.value = 'a'.repeat(101);
+    save.click();
+    assert.match(page.querySelector('[data-character-variant-status]').textContent, /100文字/);
+
+    const checkedBeforeDelete = page.querySelectorAll('.character-variant-send-selection input:checked').length;
+    dom.window.confirm = () => false;
+    page.querySelector('[data-character-variant-group-delete]').click();
+    assert.equal(select.options.length, 1);
+    dom.window.confirm = () => true;
+    page.querySelector('[data-character-variant-group-delete]').click();
+    assert.equal(select.options[0].textContent, '保存済みグループなし');
+    assert.equal(page.querySelectorAll('.character-variant-send-selection input:checked').length, checkedBeforeDelete);
+});
+
+test('グループ呼び出しで全候補を置換し不足を通知して一括送信へ反映する', async () => {
+    const dom = createGroupDialog();
+    dom.window.localStorage.setItem(
+        'comfyui-character-variant-groups-v1',
+        JSON.stringify({
+            version: 1,
+            groups: [
+                {
+                    name: '構図用',
+                    candidateKeys: ['lora:1:trigger:12', 'lora:99:trigger:none'],
+                },
+            ],
+        }),
+    );
+    dom.window.confirm = () => true;
+    const requests = [];
+    const page = initializeGroupDialog(dom, {
+        fetcher: async (url, options) => {
+            requests.push({ url, body: JSON.parse(options.body) });
+            return {
+                ok: true,
+                json: async () => ({
+                    results: [
+                        {
+                            candidateKey: 'lora:1:trigger:12',
+                            status: 'accepted',
+                            promptId: 'prompt-1',
+                        },
+                    ],
+                }),
+            };
+        },
+    });
+    const search = page.querySelector('[data-character-variant-search]');
+    search.value = '一人目';
+    search.dispatchEvent(new dom.window.Event('input'));
+    const family = page.querySelector('[data-character-variant-family]');
+    family.value = '1';
+    family.dispatchEvent(new dom.window.Event('change'));
+    page.querySelector('[data-character-variant-clear-all]').click();
+    page.querySelectorAll('.character-variant-send-selection input')[0].click();
+
+    page.querySelector('[data-character-variant-group-load]').click();
+
+    const checks = [...page.querySelectorAll('.character-variant-send-selection input')].map(
+        (checkbox) => checkbox.checked,
+    );
+    assert.deepEqual(checks, [false, true]);
+    assert.equal(search.value, '一人目');
+    assert.equal(family.value, '1');
+    assert.match(page.querySelector('[data-character-variant-status]').textContent, /利用できない候補1件/);
+
+    page.querySelector('[data-character-variant-send]').click();
+    await setImmediate();
+    assert.equal(requests.length, 1);
+    assert.deepEqual(
+        requests[0].body.items.map((item) => item.candidateKey),
+        ['lora:1:trigger:12'],
+    );
+});
+
+test('ストレージを利用できなくてもチェックを変更しグループ保存失敗時は一覧を維持する', () => {
+    const dom = createGroupDialog();
+    Object.defineProperty(dom.window, 'localStorage', {
+        configurable: true,
+        get: () => {
+            throw new Error('denied');
+        },
+    });
+    const page = initializeGroupDialog(dom);
+
+    assert.equal(page.querySelectorAll('.character-variant-send-selection input:checked').length, 3);
+    page.querySelector('.character-variant-send-selection input').click();
+    assert.equal(page.querySelectorAll('.character-variant-send-selection input:checked').length, 2);
+    page.querySelector('[data-character-variant-group-name]').value = '保存不可';
+    page.querySelector('[data-character-variant-group-save]').click();
+    assert.equal(
+        page.querySelector('[data-character-variant-group-select]').options[0].textContent,
+        '保存済みグループなし',
+    );
+    assert.match(page.querySelector('[data-character-variant-status]').textContent, /保存できません/);
+});
