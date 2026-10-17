@@ -1,0 +1,122 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { JSDOM } from 'jsdom';
+import { initializeIllustrationPromptGenerator } from '../../resources/js/illustration-prompt-generator.js';
+
+const fixture = () => {
+    const dom = new JSDOM(`<!doctype html><main data-prompt-preparation data-illustration-prompt-generation-url="/generate">
+        <button data-illustration-prompt-open>open</button>
+        <dialog data-illustration-prompt-dialog>
+            <button data-illustration-prompt-close>close</button>
+            <textarea data-illustration-prompt-description></textarea>
+            <select data-illustration-prompt-style><option value="danbooru_tags">tags</option><option value="natural_language">natural</option></select>
+            <button data-illustration-prompt-generate>generate</button>
+            <p data-illustration-prompt-status></p>
+            <section data-illustration-prompt-preview hidden>
+                <textarea data-illustration-prompt-positive></textarea>
+                <textarea data-illustration-prompt-negative></textarea>
+                <p data-illustration-prompt-metadata></p>
+                <button data-illustration-prompt-apply>apply</button>
+            </section>
+        </dialog>
+    </main>`);
+    const { document } = dom.window;
+    const dialog = document.querySelector('dialog');
+    dialog.showModal = () => dialog.setAttribute('open', '');
+    dialog.close = () => dialog.removeAttribute('open');
+
+    return { dom, document, page: document.querySelector('main'), dialog };
+};
+
+test('生成後は編集可能なプレビューを表示し明示的な反映だけで出力を変更する', async () => {
+    const { document, page, dialog } = fixture();
+    const requests = [];
+    const applied = [];
+    const fetcher = async (url, options) => {
+        requests.push({ url, options });
+        return new Response(JSON.stringify({
+            positivePrompt: 'positive', negativePrompt: '', model: 'model-a',
+            promptStyle: 'danbooru_tags', generationTimeMs: 25,
+        }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    };
+    initializeIllustrationPromptGenerator({ page, documentObject: document, fetcher, csrfToken: 'token', applyPrompt: (value) => applied.push(value) });
+
+    document.querySelector('[data-illustration-prompt-open]').click();
+    assert.equal(dialog.hasAttribute('open'), true);
+    assert.equal(document.activeElement, document.querySelector('[data-illustration-prompt-description]'));
+    document.querySelector('[data-illustration-prompt-description]').value = 'blue eyes';
+    document.querySelector('[data-illustration-prompt-generate]').click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    assert.equal(requests[0].url, '/generate');
+    assert.equal(requests[0].options.method, 'POST');
+    assert.equal(requests[0].options.headers['X-CSRF-TOKEN'], 'token');
+    assert.deepEqual(JSON.parse(requests[0].options.body), { description: 'blue eyes', promptStyle: 'danbooru_tags' });
+    assert.equal(applied.length, 0);
+    assert.equal(document.querySelector('[data-illustration-prompt-positive]').value, 'positive');
+    assert.match(document.querySelector('[data-illustration-prompt-metadata]').textContent, /model-a.*25/);
+
+    document.querySelector('[data-illustration-prompt-positive]').value = 'edited';
+    document.querySelector('[data-illustration-prompt-apply]').click();
+    assert.deepEqual(applied, [{ positivePrompt: 'edited', negativePrompt: '' }]);
+    assert.equal(dialog.hasAttribute('open'), false);
+});
+
+test('空入力と上限超過は送信せずpositiveが空白なら反映しない', async () => {
+    const { document, page } = fixture();
+    let calls = 0;
+    const fetcher = async () => {
+        calls += 1;
+        return new Response(JSON.stringify({ positivePrompt: 'ok', negativePrompt: '', model: 'm', promptStyle: 'danbooru_tags', generationTimeMs: 1 }));
+    };
+    const applied = [];
+    initializeIllustrationPromptGenerator({ page, documentObject: document, fetcher, csrfToken: 'token', applyPrompt: (value) => applied.push(value) });
+    const description = document.querySelector('[data-illustration-prompt-description]');
+    const generate = document.querySelector('[data-illustration-prompt-generate]');
+
+    generate.click();
+    description.value = 'a'.repeat(2001);
+    generate.click();
+    assert.equal(calls, 0);
+    description.value = 'ok';
+    generate.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    document.querySelector('[data-illustration-prompt-positive]').value = '   ';
+    document.querySelector('[data-illustration-prompt-apply]').click();
+    assert.equal(applied.length, 0);
+});
+
+test('エラー後に入力を保ったまま再試行でき二重送信を防ぐ', async () => {
+    const { document, page } = fixture();
+    let resolveRequest;
+    let calls = 0;
+    const fetcher = () => {
+        calls += 1;
+        return new Promise((resolve) => { resolveRequest = resolve; });
+    };
+    initializeIllustrationPromptGenerator({ page, documentObject: document, fetcher, csrfToken: 'token', applyPrompt: () => {} });
+    document.querySelector('[data-illustration-prompt-description]').value = 'kept';
+    const generate = document.querySelector('[data-illustration-prompt-generate]');
+    generate.click();
+    generate.click();
+    assert.equal(calls, 1);
+    assert.equal(generate.disabled, true);
+    resolveRequest(new Response('not-json', { status: 503 }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assert.equal(document.querySelector('[data-illustration-prompt-description]').value, 'kept');
+    assert.equal(generate.disabled, false);
+    assert.match(document.querySelector('[data-illustration-prompt-status]').textContent, /再試行/);
+});
+
+test('閉じた後の遅延応答はプレビューを更新しない', async () => {
+    const { document, page } = fixture();
+    let resolveRequest;
+    const fetcher = () => new Promise((resolve) => { resolveRequest = resolve; });
+    const controller = initializeIllustrationPromptGenerator({ page, documentObject: document, fetcher, csrfToken: 'token', applyPrompt: () => assert.fail() });
+    document.querySelector('[data-illustration-prompt-description]').value = 'description';
+    document.querySelector('[data-illustration-prompt-generate]').click();
+    controller.abort();
+    resolveRequest(new Response(JSON.stringify({ positivePrompt: 'late', negativePrompt: '', model: 'm', promptStyle: 'danbooru_tags', generationTimeMs: 1 }), { headers: { 'Content-Type': 'application/json' } }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assert.equal(document.querySelector('[data-illustration-prompt-preview]').hidden, true);
+});
