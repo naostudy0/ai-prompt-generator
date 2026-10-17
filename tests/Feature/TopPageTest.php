@@ -50,6 +50,7 @@ class TopPageTest extends TestCase
             ->assertSee('data-sidebar-display', false)
             ->assertSee('プロンプトを作成')
             ->assertSee('AIでプロンプトを作成')
+            ->assertSee('現在のデフォルトプロンプトを含める')
             ->assertSee('data-illustration-prompt-dialog', false)
             ->assertSee(route('illustration-prompts.generate'), false)
             ->assertSee('data-favorite-save', false)

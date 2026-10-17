@@ -58,6 +58,10 @@
                         <option value="danbooru_tags">Danbooruタグ</option>
                         <option value="natural_language">自然文</option>
                     </select>
+                    <label class="illustration-prompt-dialog__default-option">
+                        <input type="checkbox" data-illustration-prompt-include-defaults checked>
+                        現在のデフォルトプロンプトを含める
+                    </label>
                     <button type="button" class="primary-button" data-illustration-prompt-generate>生成する</button>
                     <p role="status" aria-live="polite" data-illustration-prompt-status></p>
                     <section class="illustration-prompt-dialog__preview" data-illustration-prompt-preview hidden>
@@ -65,6 +69,13 @@
                         <textarea id="illustration-prompt-positive" class="text-input" data-illustration-prompt-positive></textarea>
                         <label class="field-label" for="illustration-prompt-negative">negative</label>
                         <textarea id="illustration-prompt-negative" class="text-input" data-illustration-prompt-negative></textarea>
+                        <section class="illustration-prompt-dialog__defaults" data-illustration-prompt-defaults hidden>
+                            <h3>反映時に追加されるデフォルト</h3>
+                            <label class="field-label" for="illustration-prompt-default-positive">positive デフォルト</label>
+                            <textarea id="illustration-prompt-default-positive" class="text-input" data-illustration-prompt-default-positive readonly></textarea>
+                            <label class="field-label" for="illustration-prompt-default-negative">negative デフォルト</label>
+                            <textarea id="illustration-prompt-default-negative" class="text-input" data-illustration-prompt-default-negative readonly></textarea>
+                        </section>
                         <p class="muted-text" data-illustration-prompt-metadata></p>
                         <button type="button" class="primary-button" data-illustration-prompt-apply>既存の出力へ反映</button>
                     </section>

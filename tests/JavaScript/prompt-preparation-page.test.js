@@ -437,9 +437,14 @@ const addIllustrationPromptControls = (documentObject) => {
         <dialog data-illustration-prompt-dialog><button data-illustration-prompt-close></button>
         <textarea data-illustration-prompt-description></textarea>
         <select data-illustration-prompt-style><option value="danbooru_tags">tags</option></select>
+        <label><input type="checkbox" data-illustration-prompt-include-defaults checked>defaults</label>
         <button data-illustration-prompt-generate></button><p data-illustration-prompt-status></p>
         <section data-illustration-prompt-preview hidden><textarea data-illustration-prompt-positive></textarea>
-        <textarea data-illustration-prompt-negative></textarea><p data-illustration-prompt-metadata></p>
+        <textarea data-illustration-prompt-negative></textarea>
+        <section data-illustration-prompt-defaults hidden>
+            <textarea data-illustration-prompt-default-positive readonly></textarea>
+            <textarea data-illustration-prompt-default-negative readonly></textarea>
+        </section><p data-illustration-prompt-metadata></p>
         <button data-illustration-prompt-apply></button></section></dialog>`,
     );
     const dialog = page.querySelector('[data-illustration-prompt-dialog]');
@@ -503,11 +508,11 @@ test('AI生成結果へ選択中の人物LoRAを加えて既存出力へ反映�
 
     assert.equal(
         documentObject.querySelector('[data-output="positive"] [data-output-content]').value,
-        'AI base,\n\n<lora:person.safetensors:0.8>,\n\ncharacter trigger,',
+        'default positive,\n\nAI base,\n\n<lora:person.safetensors:0.8>,\n\ncharacter trigger,',
     );
     assert.equal(
         documentObject.querySelector('[data-output="negative"] [data-output-content]').value,
-        'AI negative,',
+        'default negative,\n\nAI negative,',
     );
     assert.equal(lora.value, '1');
     documentObject.querySelector('[data-display]').click();

@@ -20,6 +20,7 @@ export const initializeIllustrationPromptGenerator = ({
     documentObject,
     fetcher,
     csrfToken,
+    getDefaultPrompts = () => ({ positive: '', negative: '' }),
     applyPrompt,
 }) => {
     const dialog = page.querySelector('[data-illustration-prompt-dialog]');
@@ -32,6 +33,10 @@ export const initializeIllustrationPromptGenerator = ({
     const preview = page.querySelector('[data-illustration-prompt-preview]');
     const positive = page.querySelector('[data-illustration-prompt-positive]');
     const negative = page.querySelector('[data-illustration-prompt-negative]');
+    const includeDefaults = page.querySelector('[data-illustration-prompt-include-defaults]');
+    const defaultsPreview = page.querySelector('[data-illustration-prompt-defaults]');
+    const defaultPositive = page.querySelector('[data-illustration-prompt-default-positive]');
+    const defaultNegative = page.querySelector('[data-illustration-prompt-default-negative]');
     const metadata = page.querySelector('[data-illustration-prompt-metadata]');
     const applyButton = page.querySelector('[data-illustration-prompt-apply]');
     let requestController = null;
@@ -50,11 +55,23 @@ export const initializeIllustrationPromptGenerator = ({
         !preview ||
         !positive ||
         !negative ||
+        !includeDefaults ||
+        !defaultsPreview ||
+        !defaultPositive ||
+        !defaultNegative ||
         !metadata ||
         !applyButton
     ) {
         return { abort: () => {} };
     }
+
+    const updateDefaultsPreview = () => {
+        const defaults = getDefaultPrompts();
+        defaultPositive.value = defaults.positive;
+        defaultNegative.value = defaults.negative;
+        defaultsPreview.hidden =
+            !includeDefaults.checked || (defaults.positive === '' && defaults.negative === '');
+    };
 
     const abort = () => {
         requestToken += 1;
@@ -79,6 +96,7 @@ export const initializeIllustrationPromptGenerator = ({
     });
     dialog.addEventListener('cancel', abort);
     dialog.addEventListener('close', abort);
+    includeDefaults.addEventListener('change', updateDefaultsPreview);
 
     generateButton.addEventListener('click', async () => {
         if (pending) {
@@ -127,6 +145,7 @@ export const initializeIllustrationPromptGenerator = ({
             positive.value = body.positivePrompt;
             negative.value = body.negativePrompt;
             metadata.textContent = `${body.model} / ${body.generationTimeMs} ms`;
+            updateDefaultsPreview();
             preview.hidden = false;
             status.textContent = '生成結果を確認し、必要なら編集してから反映してください。';
         } catch (error) {
@@ -149,7 +168,11 @@ export const initializeIllustrationPromptGenerator = ({
             status.textContent = 'positiveプロンプトを入力してください。';
             return;
         }
-        applyPrompt({ positivePrompt: positive.value, negativePrompt: negative.value });
+        applyPrompt({
+            positivePrompt: positive.value,
+            negativePrompt: negative.value,
+            includeDefaultPrompts: includeDefaults.checked,
+        });
         close();
     });
 

@@ -1,5 +1,6 @@
 import {
     createPromptOutputs,
+    joinPromptSections,
     requestDefaultPrompts,
     requestSaveDefaultPrompt,
     writePromptToClipboard,
@@ -1006,19 +1007,35 @@ export const initializePromptPreparationPage = ({
         documentObject,
         fetcher,
         csrfToken,
-        applyPrompt: ({ positivePrompt, negativePrompt }) => {
+        getDefaultPrompts: () => {
+            const currentPrompts = familyPrompts.get(activeFamilyId());
+            return currentPrompts
+                ? createPromptOutputs(currentPrompts, selectedPrompts)
+                : { positive: '', negative: '' };
+        },
+        applyPrompt: ({ positivePrompt, negativePrompt, includeDefaultPrompts }) => {
             if (positivePrompt.trim() === '') {
                 return;
             }
+            const currentPrompts = familyPrompts.get(activeFamilyId());
+            const includedSelections = {
+                positive: includeDefaultPrompts && selectedPrompts.positive,
+                negative: includeDefaultPrompts && selectedPrompts.negative,
+            };
+            const defaultSections = currentPrompts
+                ? createPromptOutputs(currentPrompts, includedSelections)
+                : { positive: '', negative: '' };
+            const positiveBase = joinPromptSections([defaultSections.positive, positivePrompt]);
+            const combinedNegative = joinPromptSections([defaultSections.negative, negativePrompt]);
             const selectedLora = loraOptionsController.getSelections();
             const aiOutput = createAiCharacterLoraOutput(
-                positivePrompt,
+                positiveBase,
                 selectedLora.lora,
                 selectedLora.trigger,
             );
             applyOutputPair({
                 positive: aiOutput.positive,
-                negative: negativePrompt,
+                negative: combinedNegative,
                 variantMetadata: aiOutput.metadata,
                 variantFamily:
                     aiOutput.metadata === null
@@ -1026,8 +1043,8 @@ export const initializePromptPreparationPage = ({
                         : {
                               modelFamilyId: activeFamilyId(),
                               loraId: loraOptionsController.getSelectedLoraId?.() ?? null,
-                              defaults: { positive: false, negative: false },
-                              defaultSections: { positive: '', negative: '' },
+                              defaults: includedSelections,
+                              defaultSections,
                           },
             });
             outputSection?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });

@@ -18,11 +18,16 @@ const fixture = () => {
             <button data-illustration-prompt-close>close</button>
             <textarea data-illustration-prompt-description></textarea>
             <select data-illustration-prompt-style><option value="danbooru_tags">tags</option><option value="natural_language">natural</option></select>
+            <label><input type="checkbox" data-illustration-prompt-include-defaults checked>defaults</label>
             <button data-illustration-prompt-generate>generate</button>
             <p data-illustration-prompt-status></p>
             <section data-illustration-prompt-preview hidden>
                 <textarea data-illustration-prompt-positive></textarea>
                 <textarea data-illustration-prompt-negative></textarea>
+                <section data-illustration-prompt-defaults hidden>
+                    <textarea data-illustration-prompt-default-positive readonly></textarea>
+                    <textarea data-illustration-prompt-default-negative readonly></textarea>
+                </section>
                 <p data-illustration-prompt-metadata></p>
                 <button data-illustration-prompt-apply>apply</button>
             </section>
@@ -55,6 +60,7 @@ test('生成後は編集可能なプレビューを表示し明示的な反映�
         documentObject: document,
         fetcher,
         csrfToken: 'token',
+        getDefaultPrompts: () => ({ positive: 'best quality,', negative: 'low quality,' }),
         applyPrompt: (value) => applied.push(value),
     });
 
@@ -77,6 +83,14 @@ test('生成後は編集可能なプレビューを表示し明示的な反映�
     });
     assert.equal(applied.length, 0);
     assert.equal(document.querySelector('[data-illustration-prompt-positive]').value, 'positive');
+    assert.equal(
+        document.querySelector('[data-illustration-prompt-default-positive]').value,
+        'best quality,',
+    );
+    assert.equal(
+        document.querySelector('[data-illustration-prompt-default-negative]').value,
+        'low quality,',
+    );
     assert.match(
         document.querySelector('[data-illustration-prompt-metadata]').textContent,
         /model-a.*25/,
@@ -84,8 +98,50 @@ test('生成後は編集可能なプレビューを表示し明示的な反映�
 
     document.querySelector('[data-illustration-prompt-positive]').value = 'edited';
     document.querySelector('[data-illustration-prompt-apply]').click();
-    assert.deepEqual(applied, [{ positivePrompt: 'edited', negativePrompt: '' }]);
+    assert.deepEqual(applied, [
+        {
+            positivePrompt: 'edited',
+            negativePrompt: '',
+            includeDefaultPrompts: true,
+        },
+    ]);
     assert.equal(dialog.hasAttribute('open'), false);
+});
+
+test('デフォルトを含めない選択を反映処理へ渡し追加予定の表示を隠す', async () => {
+    const { document, page } = fixture();
+    const applied = [];
+    initializeIllustrationPromptGenerator({
+        page,
+        documentObject: document,
+        fetcher: async () =>
+            jsonResponse({
+                positivePrompt: 'positive',
+                negativePrompt: 'negative',
+                model: 'model-a',
+                promptStyle: 'danbooru_tags',
+                generationTimeMs: 25,
+            }),
+        csrfToken: 'token',
+        getDefaultPrompts: () => ({ positive: 'best quality,', negative: 'low quality,' }),
+        applyPrompt: (value) => applied.push(value),
+    });
+    const includeDefaults = document.querySelector('[data-illustration-prompt-include-defaults]');
+    includeDefaults.checked = false;
+    document.querySelector('[data-illustration-prompt-description]').value = 'blue eyes';
+
+    document.querySelector('[data-illustration-prompt-generate]').click();
+    await delay(0);
+    assert.equal(document.querySelector('[data-illustration-prompt-defaults]').hidden, true);
+    document.querySelector('[data-illustration-prompt-apply]').click();
+
+    assert.deepEqual(applied, [
+        {
+            positivePrompt: 'positive',
+            negativePrompt: 'negative',
+            includeDefaultPrompts: false,
+        },
+    ]);
 });
 
 test('空入力と上限超過は送信せずpositiveが空白なら反映しない', async () => {
