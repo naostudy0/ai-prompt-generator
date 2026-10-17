@@ -2,6 +2,9 @@ import { filterLoras, selectLoraTag } from './lora-options.js';
 
 const sectionSeparator = '\n\n';
 
+export const createCharacterLoraCandidateKey = (lora, trigger) =>
+    `lora:${lora.id}:trigger:${trigger?.id ?? 'none'}`;
+
 export const createCharacterLoraSourceMetadata = (defaultPositive, lora, trigger) => {
     const insertionPoint = defaultPositive.length;
     const loraStart = defaultPositive === '' ? 0 : insertionPoint + sectionSeparator.length;

@@ -3,12 +3,18 @@ import test from 'node:test';
 
 import {
     createAiCharacterLoraOutput,
+    createCharacterLoraCandidateKey,
     createCharacterLoraSourceMetadata,
     createCharacterLoraVariant,
     getCharacterLoraCandidates,
     locateCharacterLoraSourceMetadata,
     trackCharacterLoraSourceEdit,
 } from '../../resources/js/character-lora-variant.js';
+
+test('人物LoRAと特定トリガーから候補キーを作る', () => {
+    assert.equal(createCharacterLoraCandidateKey({ id: 12 }, { id: 41 }), 'lora:12:trigger:41');
+    assert.equal(createCharacterLoraCandidateKey({ id: 18 }, null), 'lora:18:trigger:none');
+});
 
 test('AIの基礎文面へ人物LoRAとトリガーを別セクションで追加する', () => {
     const result = createAiCharacterLoraOutput(
