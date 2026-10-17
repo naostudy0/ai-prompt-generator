@@ -24,6 +24,7 @@ use App\Http\Controllers\PromptPreparation\Writes\DeleteLoraTriggerController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteModelFamilyController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteOptionCategoryController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteOptionPromptController;
+use App\Http\Controllers\PromptPreparation\Writes\GenerateIllustrationPromptController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteOutfitPromptController;
 use App\Http\Controllers\PromptPreparation\Writes\MoveOptionCategoryController;
 use App\Http\Controllers\PromptPreparation\Writes\MoveOptionPromptController;
@@ -85,6 +86,8 @@ Route::delete('/generation-setting-options/{option}', DeleteGenerationSettingOpt
 Route::post('/comfyui/prompts', QueueComfyUiPromptController::class)->name('comfyui-prompts.store');
 Route::post('/comfyui/prompts/batch', QueueComfyUiPromptBatchController::class)
     ->name('comfyui-prompts.batch');
+Route::post('/illustration-prompts/generate', GenerateIllustrationPromptController::class)
+    ->name('illustration-prompts.generate');
 
 Route::get('/lora-prompt-options', GetLoraPromptOptionsController::class)
     ->name('lora-prompt-options.index');

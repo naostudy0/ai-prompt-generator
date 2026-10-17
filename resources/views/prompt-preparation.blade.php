@@ -31,6 +31,7 @@
             data-comfy-ui-prompts-url="{{ $comfyUiPromptsUrl }}"
             data-comfy-ui-prompt-batch-url="{{ $comfyUiPromptBatchUrl }}"
             data-generation-setting-options-url="{{ $generationSettingOptionsUrl }}"
+            data-illustration-prompt-generation-url="{{ $illustrationPromptGenerationUrl }}"
         >
             <nav class="prompt-sidebar section-navigation" aria-labelledby="section-navigation-heading">
                 <h2 id="section-navigation-heading">セクション</h2>
@@ -41,7 +42,15 @@
             <header class="page-header">
                 <p class="eyebrow">AI IMAGE PROMPT BUILDER</p>
                 <h1>プロンプトを組み立てる</h1>
+                <button class="secondary-button" type="button" data-illustration-prompt-open>AIでプロンプトを作成</button>
             </header>
+
+            <dialog class="option-dialog" data-illustration-prompt-dialog aria-labelledby="illustration-prompt-heading">
+                <form method="dialog">
+                    <h2 id="illustration-prompt-heading">AIでプロンプトを作成</h2>
+                    <button type="submit" class="small-button" data-illustration-prompt-close>閉じる</button>
+                </form>
+            </dialog>
 
             <section class="input-section" aria-labelledby="input-heading">
                 <div class="section-heading">
