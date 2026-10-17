@@ -20,11 +20,29 @@ export const createCharacterLoraSourceMetadata = (defaultPositive, lora, trigger
 
 export const locateCharacterLoraSourceMetadata = (positive, metadata) => {
     if (metadata.lora === '') {
+        if (metadata.defaultPositive === '') {
+            return { ...metadata, insertionPoint: 0 };
+        }
+        const matches = [];
+        let searchFrom = 0;
+        while (searchFrom < positive.length) {
+            const start = positive.indexOf(metadata.defaultPositive, searchFrom);
+            if (start === -1) {
+                break;
+            }
+            const end = start + metadata.defaultPositive.length;
+            const boundedBefore =
+                start === 0 || positive.slice(start - 2, start) === sectionSeparator;
+            const boundedAfter =
+                end === positive.length || positive.startsWith(sectionSeparator, end);
+            if (boundedBefore && boundedAfter) {
+                matches.push(end);
+            }
+            searchFrom = start + 1;
+        }
         return {
             ...metadata,
-            insertionPoint: positive.startsWith(metadata.defaultPositive)
-                ? metadata.defaultPositive.length
-                : 0,
+            insertionPoint: matches.length === 1 ? matches[0] : 0,
         };
     }
 

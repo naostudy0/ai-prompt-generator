@@ -45,7 +45,7 @@ test('現在の完成プロンプトと選択状態をお気に入りとして�
         fetcher,
         csrfToken: 'token',
         capture: () => ({
-            positivePrompt: 'masterpiece, park,',
+            positivePrompt: '(masterpiece:1.05), park,',
             negativePrompt: 'bad anatomy,',
             selectionSnapshot: { optionIds: [3] },
             selectionSummary: [
@@ -65,7 +65,7 @@ test('現在の完成プロンプトと選択状態をお気に入りとして�
     assert.equal(request.options.method, 'POST');
     assert.equal(request.options.headers['X-CSRF-TOKEN'], 'token');
     assert.equal(request.options.body.get('name'), '公園');
-    assert.equal(request.options.body.get('positivePrompt'), 'masterpiece, park,');
+    assert.equal(request.options.body.get('positivePrompt'), '(masterpiece:1.05), park,');
     assert.equal(request.options.body.get('negativePrompt'), 'bad anatomy,');
     assert.equal(request.options.body.get('selectionSnapshot'), '{"optionIds":[3]}');
     assert.equal(

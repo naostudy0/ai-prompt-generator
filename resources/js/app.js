@@ -11,6 +11,8 @@ import { initializePromptOptionsPage } from './prompt-options-page.js';
 import { initializePromptOptionManagementPage } from './prompt-option-management-page.js';
 import { createPositivePromptSections } from './positive-prompt-sections.js';
 import { initializePromptSidebars } from './prompt-sidebars.js';
+import { initializePromptClips } from './prompt-clips.js';
+import { adjustPromptWeight } from './prompt-weight-adjustment.js';
 import { initializeFavoritePromptsPage } from './favorite-prompts-page.js';
 import { normalizePromptForComparison } from './prompt-text.js';
 import { initializeCharacterLoraVariantPage } from './character-lora-variant-page.js';
@@ -30,6 +32,7 @@ export const initializePromptPreparationPage = ({
     fetcher = fetch,
     clipboard = navigator.clipboard,
     schedule,
+    clipStorage,
 } = {}) => {
     const page = documentObject.querySelector('[data-prompt-preparation]');
     const view = documentObject.defaultView;
@@ -115,6 +118,20 @@ export const initializePromptPreparationPage = ({
     };
 
     const isPolarity = (value) => value === 'positive' || value === 'negative';
+    const hasUniquePromptSection = (output, section) => {
+        if (section === '') {
+            return true;
+        }
+        const start = output.indexOf(section);
+        if (start === -1 || output.indexOf(section, start + 1) !== -1) {
+            return false;
+        }
+        const end = start + section.length;
+        return (
+            (start === 0 || output.slice(start - 2, start) === '\n\n') &&
+            (end === output.length || output.startsWith('\n\n', end))
+        );
+    };
     const activeFamilyId = () => loraOptionsController.getSelectedModelFamilyId?.() ?? 1;
     const familyPromptsUrl = (id) => `${page.dataset.modelFamiliesUrl}/${id}/default-prompts`;
     const familyName = (id) =>
@@ -760,7 +777,8 @@ export const initializePromptPreparationPage = ({
     });
 
     outputElements.forEach((outputElement) => {
-        outputElement.querySelector('[data-output-content]')?.addEventListener('input', () => {
+        const outputContent = outputElement.querySelector('[data-output-content]');
+        outputContent?.addEventListener('input', (event) => {
             const status = outputElement.querySelector('[data-copy-status]');
 
             if (status instanceof HTMLElement) {
@@ -768,7 +786,52 @@ export const initializePromptPreparationPage = ({
             }
 
             updateCopyAvailability(outputElement);
-            if (outputElement.dataset.output === 'positive' && variantSourceMetadata !== null) {
+            if (
+                outputElement.dataset.output === 'positive' &&
+                (variantSourceMetadata === null || event.inputType === 'insertFromPaste')
+            ) {
+                const current = outputElement.querySelector('[data-output-content]')?.value ?? '';
+                const currentPrompts = familyPrompts.get(activeFamilyId()) ?? savedPrompts;
+                const defaults = createPromptOutputs(currentPrompts, selectedPrompts);
+                const selectedLora = loraOptionsController.getSelections();
+                let metadata = locateCharacterLoraSourceMetadata(
+                    current,
+                    createCharacterLoraSourceMetadata(
+                        defaults.positive,
+                        selectedLora.lora,
+                        selectedLora.trigger,
+                    ),
+                );
+                if (metadata.lora !== '' && metadata.loraRange === null) {
+                    metadata = locateCharacterLoraSourceMetadata(
+                        current,
+                        createCharacterLoraSourceMetadata(defaults.positive, '', ''),
+                    );
+                }
+                variantSourceMetadata = metadata;
+                variantFamilySource = {
+                    modelFamilyId: activeFamilyId(),
+                    loraId:
+                        metadata.lora === '' ? null : loraOptionsController.getSelectedLoraId?.(),
+                    defaults: {
+                        positive:
+                            selectedPrompts.positive &&
+                            hasUniquePromptSection(current, defaults.positive),
+                        negative:
+                            selectedPrompts.negative &&
+                            hasUniquePromptSection(
+                                getOutputElement('negative')?.querySelector('[data-output-content]')
+                                    ?.value ?? '',
+                                defaults.negative,
+                            ),
+                    },
+                    defaultSections: defaults,
+                };
+                previousPositiveOutput = current;
+            } else if (
+                outputElement.dataset.output === 'positive' &&
+                variantSourceMetadata !== null
+            ) {
                 const current = outputElement.querySelector('[data-output-content]')?.value ?? '';
                 variantSourceMetadata = trackCharacterLoraSourceEdit(
                     variantSourceMetadata,
@@ -780,9 +843,81 @@ export const initializePromptPreparationPage = ({
             characterVariantController.updateAvailability();
             resizeOutputContent(outputElement.querySelector('[data-output-content]'));
         });
+        outputContent?.addEventListener('keydown', (event) => {
+            if (
+                !(outputContent instanceof HTMLTextAreaElement) ||
+                !event.metaKey ||
+                (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')
+            ) {
+                return;
+            }
+
+            const start = outputContent.selectionStart;
+            const end = outputContent.selectionEnd;
+            const adjusted = adjustPromptWeight(
+                outputContent.value.slice(start, end),
+                event.key === 'ArrowUp' ? 'increase' : 'decrease',
+            );
+
+            if (adjusted === null) {
+                return;
+            }
+
+            event.preventDefault();
+            outputContent.setRangeText(adjusted, start, end, 'select');
+            outputContent.dispatchEvent(new view.Event('input', { bubbles: true }));
+        });
         outputElement.querySelector('[data-copy]')?.addEventListener('click', () => {
             copyOutput(outputElement);
         });
+    });
+
+    let promptClipStorage = clipStorage;
+    if (promptClipStorage === undefined) {
+        try {
+            promptClipStorage = view.sessionStorage;
+        } catch {
+            promptClipStorage = null;
+        }
+    }
+    initializePromptClips({
+        page,
+        documentObject,
+        storage: promptClipStorage,
+        getOutputs: () => ({
+            positive:
+                getOutputElement('positive')?.querySelector('[data-output-content]')?.value ?? '',
+            negative:
+                getOutputElement('negative')?.querySelector('[data-output-content]')?.value ?? '',
+            variantSource:
+                variantSourceMetadata && variantFamilySource
+                    ? {
+                          original: { ...variantSourceMetadata },
+                          family: structuredClone(variantFamilySource),
+                      }
+                    : null,
+        }),
+        restoreOutputs: ({ positivePrompt, negativePrompt, variantSource }) => {
+            variantSourceMetadata = variantSource?.original
+                ? locateCharacterLoraSourceMetadata(positivePrompt, variantSource.original)
+                : null;
+            variantFamilySource = variantSource?.family ?? null;
+            previousPositiveOutput = positivePrompt;
+            const restoredContents = [];
+            for (const [polarity, value] of [
+                ['positive', positivePrompt],
+                ['negative', negativePrompt],
+            ]) {
+                const content = getOutputElement(polarity)?.querySelector('[data-output-content]');
+                if (content instanceof HTMLTextAreaElement) {
+                    content.value = value;
+                    restoredContents.push(content);
+                }
+            }
+            restoredContents.forEach((content) =>
+                content.dispatchEvent(new view.Event('input', { bubbles: true })),
+            );
+        },
     });
 
     retryButton?.addEventListener('click', () => {

@@ -65,6 +65,38 @@ test('空のpositiveとnegativeを確認なしで現在の系統へ送信する'
     assert.match(page.querySelector('[data-comfyui-send-status]').textContent, /prompt-1/);
 });
 
+test('強度調整済みの出力をComfyUIへ送信する', async () => {
+    const dom = new JSDOM(`<main data-comfy-ui-prompts-url="/comfyui/prompts">
+        <article data-output="positive"><textarea data-output-content>(eyes closed:1.05),</textarea></article>
+        <article data-output="negative"><textarea data-output-content>(bad anatomy:0.95),</textarea></article>
+        <button data-comfyui-send>送信</button><p data-comfyui-send-status></p>
+    </main>`);
+    const page = dom.window.document.querySelector('main');
+    let request;
+    initializeComfyUiPage({
+        page,
+        documentObject: dom.window.document,
+        fetcher: async (url, options) => {
+            request = { url, options };
+            return { ok: true, json: async () => ({ promptId: 'prompt-2', queueNumber: 2 }) };
+        },
+        csrfToken: 'csrf',
+        getModelFamilyId: () => 1,
+        notify: () => {},
+    });
+
+    page.querySelector('[data-comfyui-send]').click();
+    await setImmediate();
+
+    assert.equal(request.url, '/comfyui/prompts');
+    assert.deepEqual(JSON.parse(request.options.body), {
+        modelFamilyId: 1,
+        loraId: null,
+        positive: '(eyes closed:1.05),',
+        negative: '(bad anatomy:0.95),',
+    });
+});
+
 test('送信中は二重送信を防ぐ', async () => {
     const dom = new JSDOM(`<main data-comfy-ui-prompts-url="/comfyui/prompts">
         <article data-output="positive"><textarea data-output-content>positive</textarea></article>
