@@ -18,6 +18,20 @@ export const createCharacterLoraSourceMetadata = (defaultPositive, lora, trigger
     };
 };
 
+export const createAiCharacterLoraOutput = (aiPositive, lora, trigger) => {
+    if (lora === '') {
+        return { positive: aiPositive, metadata: null };
+    }
+    const positive = [aiPositive, lora, trigger]
+        .filter((section) => section !== '')
+        .join(sectionSeparator);
+
+    return {
+        positive,
+        metadata: createCharacterLoraSourceMetadata(aiPositive, lora, trigger),
+    };
+};
+
 export const locateCharacterLoraSourceMetadata = (positive, metadata) => {
     if (metadata.lora === '') {
         if (metadata.defaultPositive === '') {

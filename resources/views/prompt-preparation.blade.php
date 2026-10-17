@@ -31,6 +31,7 @@
             data-comfy-ui-prompts-url="{{ $comfyUiPromptsUrl }}"
             data-comfy-ui-prompt-batch-url="{{ $comfyUiPromptBatchUrl }}"
             data-generation-setting-options-url="{{ $generationSettingOptionsUrl }}"
+            data-illustration-prompt-generation-url="{{ $illustrationPromptGenerationUrl }}"
         >
             <nav class="prompt-sidebar section-navigation" aria-labelledby="section-navigation-heading">
                 <h2 id="section-navigation-heading">セクション</h2>
@@ -41,7 +42,34 @@
             <header class="page-header">
                 <p class="eyebrow">AI IMAGE PROMPT BUILDER</p>
                 <h1>プロンプトを組み立てる</h1>
+                <button class="secondary-button" type="button" data-illustration-prompt-open>AIでプロンプトを作成</button>
             </header>
+
+            <dialog class="option-dialog illustration-prompt-dialog" data-illustration-prompt-dialog aria-labelledby="illustration-prompt-heading">
+                <div class="illustration-prompt-dialog__content">
+                    <div class="illustration-prompt-dialog__header">
+                        <h2 id="illustration-prompt-heading">AIでプロンプトを作成</h2>
+                        <button type="button" class="small-button" data-illustration-prompt-close>閉じる</button>
+                    </div>
+                    <label class="field-label" for="illustration-prompt-description">イラストの指示</label>
+                    <textarea id="illustration-prompt-description" class="text-input illustration-prompt-dialog__description" maxlength="2000" data-illustration-prompt-description></textarea>
+                    <label class="field-label" for="illustration-prompt-style">プロンプト形式</label>
+                    <select id="illustration-prompt-style" class="text-input" data-illustration-prompt-style>
+                        <option value="danbooru_tags">Danbooruタグ</option>
+                        <option value="natural_language">自然文</option>
+                    </select>
+                    <button type="button" class="primary-button" data-illustration-prompt-generate>生成する</button>
+                    <p role="status" aria-live="polite" data-illustration-prompt-status></p>
+                    <section class="illustration-prompt-dialog__preview" data-illustration-prompt-preview hidden>
+                        <label class="field-label" for="illustration-prompt-positive">positive</label>
+                        <textarea id="illustration-prompt-positive" class="text-input" data-illustration-prompt-positive></textarea>
+                        <label class="field-label" for="illustration-prompt-negative">negative</label>
+                        <textarea id="illustration-prompt-negative" class="text-input" data-illustration-prompt-negative></textarea>
+                        <p class="muted-text" data-illustration-prompt-metadata></p>
+                        <button type="button" class="primary-button" data-illustration-prompt-apply>既存の出力へ反映</button>
+                    </section>
+                </div>
+            </dialog>
 
             <section class="input-section" aria-labelledby="input-heading">
                 <div class="section-heading">

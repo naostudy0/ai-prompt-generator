@@ -10,6 +10,40 @@
     border-radius: 0.5rem;
 }
 
+.illustration-prompt-dialog {
+    width: min(56rem, calc(100vw - 2rem));
+    max-height: calc(100vh - 2rem);
+}
+
+.illustration-prompt-dialog__content,
+.illustration-prompt-dialog__preview {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.illustration-prompt-dialog [hidden] {
+    display: none;
+}
+
+.illustration-prompt-dialog__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.illustration-prompt-dialog__description,
+.illustration-prompt-dialog__preview textarea {
+    min-height: 8rem;
+}
+
+@media (max-width: 640px) {
+    .illustration-prompt-dialog__header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+}
+
 [data-family-dialog] {
     width: min(calc(100% - 2rem), 42rem);
 }

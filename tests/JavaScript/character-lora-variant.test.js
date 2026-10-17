@@ -2,12 +2,45 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+    createAiCharacterLoraOutput,
     createCharacterLoraSourceMetadata,
     createCharacterLoraVariant,
     getCharacterLoraCandidates,
     locateCharacterLoraSourceMetadata,
     trackCharacterLoraSourceEdit,
 } from '../../resources/js/character-lora-variant.js';
+
+test('AIの基礎文面へ人物LoRAとトリガーを別セクションで追加する', () => {
+    const result = createAiCharacterLoraOutput(
+        'sunset classroom, brown hair,',
+        '<lora:original.safetensors:1>,',
+        'brown hair,',
+    );
+
+    assert.equal(
+        result.positive,
+        'sunset classroom, brown hair,\n\n<lora:original.safetensors:1>,\n\nbrown hair,',
+    );
+    assert.equal(
+        result.positive.slice(result.metadata.loraRange.start, result.metadata.loraRange.end),
+        '<lora:original.safetensors:1>,',
+    );
+    assert.equal(
+        result.positive.slice(result.metadata.triggerRange.start, result.metadata.triggerRange.end),
+        'brown hair,',
+    );
+    assert.equal(
+        createCharacterLoraVariant(result.positive, result.metadata, candidate, trigger),
+        'sunset classroom, brown hair,\n\n<lora:other.safetensors:0.8>,\n\nblue hair,',
+    );
+});
+
+test('人物LoRA未選択ならAI文面だけを返し差し替え情報を作らない', () => {
+    assert.deepEqual(createAiCharacterLoraOutput('sunset classroom,', '', 'ignored trigger'), {
+        positive: 'sunset classroom,',
+        metadata: null,
+    });
+});
 
 const candidate = {
     id: 2,

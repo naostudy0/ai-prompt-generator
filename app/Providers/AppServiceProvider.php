@@ -7,6 +7,8 @@ use App\Application\PromptPreparation\Ports\ComfyUiWorkflowStore;
 use App\Application\PromptPreparation\Ports\DefaultPromptQueryService;
 use App\Application\PromptPreparation\Ports\FavoriteImageStorage;
 use App\Application\PromptPreparation\Ports\FavoritePromptQueryService;
+use App\Application\PromptPreparation\Ports\IllustrationPromptGenerator;
+use App\Application\PromptPreparation\Ports\IllustrationPromptInstructions;
 use App\Application\PromptPreparation\Ports\ImageGenerationQueue;
 use App\Application\PromptPreparation\Ports\LoraGenerationSettingsProvider;
 use App\Application\PromptPreparation\Ports\LoraPromptOptionQueryService;
@@ -25,6 +27,8 @@ use App\Domain\PromptPreparation\Repositories\OptionPromptGroupRepository;
 use App\Domain\PromptPreparation\Repositories\OptionPromptRepository;
 use App\Domain\PromptPreparation\Repositories\OutfitPromptRepository;
 use App\Infrastructure\PromptPreparation\External\ComfyUi\ComfyUiImageGenerationQueue;
+use App\Infrastructure\PromptPreparation\External\IllustrationLlm\FileIllustrationPromptInstructions;
+use App\Infrastructure\PromptPreparation\External\IllustrationLlm\OllamaIllustrationPromptGenerator;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentDefaultPromptRepository;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentFavoritePromptRepository;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentGenerationSettingOptionRepository;
@@ -75,6 +79,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(FavoriteImageStorage::class, LaravelFavoriteImageStorage::class);
         $this->app->bind(ComfyUiWorkflowStore::class, LaravelComfyUiWorkflowStore::class);
         $this->app->bind(ImageGenerationQueue::class, ComfyUiImageGenerationQueue::class);
+        $this->app->bind(IllustrationPromptInstructions::class, FileIllustrationPromptInstructions::class);
+        $this->app->bind(IllustrationPromptGenerator::class, OllamaIllustrationPromptGenerator::class);
         $this->app->bind(LoraGenerationSettingsProvider::class, EloquentLoraGenerationSettingsProvider::class);
         $this->app->bind(GenerationSettingOptionRepository::class, EloquentGenerationSettingOptionRepository::class);
     }
