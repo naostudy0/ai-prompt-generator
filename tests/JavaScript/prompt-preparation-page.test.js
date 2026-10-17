@@ -522,6 +522,81 @@ test('AI生成結果へ選択中の人物LoRAを加えて既存出力へ反映�
     );
 });
 
+test('人物LoRA未選択のAI生成結果へ人物を追加してコピーする', async () => {
+    const documentObject = createDocument();
+    addLoraControls(documentObject);
+    addIllustrationPromptControls(documentObject);
+    const page = documentObject.querySelector('main');
+    page.insertAdjacentHTML(
+        'beforeend',
+        `<button data-character-variant-open disabled>差し替え</button>
+        <dialog data-character-variant-dialog>
+            <button data-character-variant-close>閉じる</button>
+            <input data-character-variant-search>
+            <p data-character-variant-status></p>
+            <div data-character-variant-list></div>
+        </dialog>`,
+    );
+    const dialog = page.querySelector('[data-character-variant-dialog]');
+    dialog.showModal = () => {
+        dialog.open = true;
+    };
+    dialog.close = () => {
+        dialog.open = false;
+    };
+    const fetcher = async (url) => {
+        if (url === '/default-prompts') {
+            return successfulResponse({ positive: 'best quality,', negative: 'low quality,' });
+        }
+        if (url === '/illustration-prompts/generate') {
+            return successfulResponse({
+                positivePrompt: 'AI scene,',
+                negativePrompt: 'AI negative,',
+                model: 'model',
+                promptStyle: 'danbooru_tags',
+                generationTimeMs: 2,
+            });
+        }
+        return successfulResponse({
+            loras: [
+                {
+                    id: 1,
+                    name: '人物',
+                    fileName: 'person.safetensors',
+                    recommendedStrength: 0.8,
+                    tags: Array.from(
+                        { length: 11 },
+                        (_, step) => `<lora:person.safetensors:${step / 10}>,`,
+                    ),
+                },
+            ],
+            triggers: [{ id: 2, loraId: 1, name: '標準', content: 'character trigger,' }],
+            outfits: [],
+        });
+    };
+    const copied = [];
+    initializePromptPreparationPage({
+        documentObject,
+        fetcher,
+        clipboard: { writeText: async (value) => copied.push(value) },
+    });
+    await flushAsyncEvents();
+    page.querySelector('[data-illustration-prompt-description]').value = 'scene';
+    page.querySelector('[data-illustration-prompt-generate]').click();
+    await flushAsyncEvents();
+    page.querySelector('[data-illustration-prompt-apply]').click();
+
+    const variantButton = page.querySelector('[data-character-variant-open]');
+    assert.equal(variantButton.disabled, false);
+    variantButton.click();
+    page.querySelector('.character-variant-item').click();
+    await flushAsyncEvents();
+
+    assert.deepEqual(copied, [
+        'best quality,\n\nAI scene,\n\n<lora:person.safetensors:0.8>,\n\ncharacter trigger,',
+    ]);
+});
+
 test('生成後の手編集と衣装文面を保持して別人物のpositiveをコピーする', async () => {
     const documentObject = createDocument();
     addLoraControls(documentObject);

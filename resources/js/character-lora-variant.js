@@ -20,7 +20,10 @@ export const createCharacterLoraSourceMetadata = (defaultPositive, lora, trigger
 
 export const createAiCharacterLoraOutput = (aiPositive, lora, trigger) => {
     if (lora === '') {
-        return { positive: aiPositive, metadata: null };
+        return {
+            positive: aiPositive,
+            metadata: createCharacterLoraSourceMetadata(aiPositive, '', ''),
+        };
     }
     const positive = [aiPositive, lora, trigger]
         .filter((section) => section !== '')

@@ -1037,15 +1037,12 @@ export const initializePromptPreparationPage = ({
                 positive: aiOutput.positive,
                 negative: combinedNegative,
                 variantMetadata: aiOutput.metadata,
-                variantFamily:
-                    aiOutput.metadata === null
-                        ? null
-                        : {
-                              modelFamilyId: activeFamilyId(),
-                              loraId: loraOptionsController.getSelectedLoraId?.() ?? null,
-                              defaults: includedSelections,
-                              defaultSections,
-                          },
+                variantFamily: {
+                    modelFamilyId: activeFamilyId(),
+                    loraId: loraOptionsController.getSelectedLoraId?.() ?? null,
+                    defaults: includedSelections,
+                    defaultSections,
+                },
             });
             outputSection?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
         },

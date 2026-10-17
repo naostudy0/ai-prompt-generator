@@ -35,11 +35,22 @@ test('AIの基礎文面へ人物LoRAとトリガーを別セクションで追�
     );
 });
 
-test('人物LoRA未選択ならAI文面だけを返し差し替え情報を作らない', () => {
-    assert.deepEqual(createAiCharacterLoraOutput('sunset classroom,', '', 'ignored trigger'), {
-        positive: 'sunset classroom,',
-        metadata: null,
+test('人物LoRA未選択でもAI文面の後へ人物を追加する差し替え情報を作る', () => {
+    const result = createAiCharacterLoraOutput('sunset classroom,', '', 'ignored trigger');
+
+    assert.equal(result.positive, 'sunset classroom,');
+    assert.deepEqual(result.metadata, {
+        lora: '',
+        trigger: '',
+        defaultPositive: 'sunset classroom,',
+        insertionPoint: 'sunset classroom,'.length,
+        loraRange: null,
+        triggerRange: null,
     });
+    assert.equal(
+        createCharacterLoraVariant(result.positive, result.metadata, candidate, trigger),
+        'sunset classroom,\n\n<lora:other.safetensors:0.8>,\n\nblue hair,',
+    );
 });
 
 const candidate = {
