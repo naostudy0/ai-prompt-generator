@@ -13,6 +13,7 @@ return [
         'model' => env('ILLUSTRATION_LLM_MODEL', 'gemma3:12b'),
         'connect_timeout' => (int) env('ILLUSTRATION_LLM_CONNECT_TIMEOUT_SECONDS', 3),
         'timeout' => (int) env('ILLUSTRATION_LLM_TIMEOUT_SECONDS', 120),
+        'num_predict' => (int) env('ILLUSTRATION_LLM_NUM_PREDICT', 512),
     ],
 
     /*

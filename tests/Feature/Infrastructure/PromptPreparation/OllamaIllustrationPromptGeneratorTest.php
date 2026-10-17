@@ -23,6 +23,7 @@ final class OllamaIllustrationPromptGeneratorTest extends TestCase
             'model' => 'illustration-model',
             'connect_timeout' => 2,
             'timeout' => 30,
+            'num_predict' => 512,
         ]);
     }
 
@@ -66,6 +67,8 @@ final class OllamaIllustrationPromptGeneratorTest extends TestCase
                 && $request->url() === 'http://llm.example.test/api/chat'
                 && $data['model'] === 'illustration-model'
                 && $data['stream'] === false
+                && $data['think'] === false
+                && $data['options'] === ['num_predict' => 512]
                 && $data['messages'] === [
                     ['role' => 'system', 'content' => 'SYSTEM INSTRUCTION SECRET'],
                     ['role' => 'user', 'content' => 'USER DESCRIPTION SECRET'],

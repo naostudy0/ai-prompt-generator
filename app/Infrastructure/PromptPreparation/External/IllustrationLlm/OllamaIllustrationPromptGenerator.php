@@ -30,6 +30,10 @@ final class OllamaIllustrationPromptGenerator implements IllustrationPromptGener
                 ->post($this->endpoint(), [
                     'model' => $configuredModel,
                     'stream' => false,
+                    'think' => false,
+                    'options' => [
+                        'num_predict' => (int) config('services.illustration_llm.num_predict'),
+                    ],
                     'messages' => [
                         ['role' => 'system', 'content' => $systemPrompt],
                         ['role' => 'user', 'content' => $description],

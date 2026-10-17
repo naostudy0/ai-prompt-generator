@@ -22,6 +22,7 @@ ILLUSTRATION_LLM_BASE_URL=http://illustration-llm:11434
 ILLUSTRATION_LLM_MODEL=gemma3:12b
 ILLUSTRATION_LLM_CONNECT_TIMEOUT_SECONDS=3
 ILLUSTRATION_LLM_TIMEOUT_SECONDS=120
+ILLUSTRATION_LLM_NUM_PREDICT=512
 ```
 
 各項目の意味は次のとおり。
@@ -32,6 +33,7 @@ ILLUSTRATION_LLM_TIMEOUT_SECONDS=120
 | `ILLUSTRATION_LLM_MODEL` | 外部LLM APIで使用できるモデル名 |
 | `ILLUSTRATION_LLM_CONNECT_TIMEOUT_SECONDS` | 接続が成立するまで待つ秒数 |
 | `ILLUSTRATION_LLM_TIMEOUT_SECONDS` | 生成応答を待つ秒数 |
+| `ILLUSTRATION_LLM_NUM_PREDICT` | 一回の生成で出力できる最大トークン数。通常は既定値の`512`を使用する |
 
 設定例のURLとモデル名は、そのまま使えることを保証する既定の接続先ではない。利用する外部LLM APIに合わせて変更する。
 
@@ -163,6 +165,9 @@ AIが生成したpositive
 - `ILLUSTRATION_LLM_MODEL`が外部LLM APIで使用できるモデル名である。
 - `.env`変更後に`php artisan config:clear`を実行した。
 - 応答に時間がかかる場合、`ILLUSTRATION_LLM_TIMEOUT_SECONDS`が短すぎない。
+- `ILLUSTRATION_LLM_NUM_PREDICT`が必要以上に大きく設定されていない。
+
+この機能はプロンプト生成に不要な長い推論を避けるため、外部LLM APIへ思考モードを無効にする指定を送る。思考モードに対応するモデルでも、画面には最終的なpositive／negativeだけを返す。
 
 ### 生成サービスから不正な応答を受信したと表示される
 

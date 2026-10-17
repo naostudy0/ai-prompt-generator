@@ -160,6 +160,29 @@ test('エラー後に入力を保ったまま再試行でき二重送信を防�
     assert.match(document.querySelector('[data-illustration-prompt-status]').textContent, /再試行/);
 });
 
+test('サービス利用不可では入力内容ではなく外部サービスの確認を案内する', async () => {
+    const { document, page } = fixture();
+    initializeIllustrationPromptGenerator({
+        page,
+        documentObject: document,
+        fetcher: async () =>
+            jsonResponse(
+                { message: 'プロンプト生成サービスを現在利用できません。' },
+                { status: 503 },
+            ),
+        csrfToken: 'token',
+        applyPrompt: () => {},
+    });
+    document.querySelector('[data-illustration-prompt-description]').value = 'kept';
+
+    document.querySelector('[data-illustration-prompt-generate]').click();
+    await delay(0);
+
+    const message = document.querySelector('[data-illustration-prompt-status]').textContent;
+    assert.match(message, /外部LLMサービスの接続状態や設定を確認/);
+    assert.doesNotMatch(message, /入力内容を確認/);
+});
+
 test('閉じた後の遅延応答はプレビューを更新しない', async () => {
     const { document, page } = fixture();
     let resolveRequest;

@@ -83,7 +83,7 @@ AI出力には系統別デフォルトを合成しない。別系統の人物LoR
 
 ## 外部LLM連携
 
-InfrastructureにOllama Chat API互換アダプターを置き、`POST /api/chat`を非ストリーミングで呼ぶ。モデル、systemメッセージ、userメッセージ、構造化出力のJSON Schemaを送る。モデル名は設定値を使い、特定名をApplicationの定数にしない。
+InfrastructureにOllama Chat API互換アダプターを置き、`POST /api/chat`を非ストリーミングで呼ぶ。モデル、systemメッセージ、userメッセージ、構造化出力のJSON Schemaを送る。用途外の長い推論を避けるため思考モードは無効にし、最大生成トークン数を設定値から送る。モデル名は設定値を使い、特定名をApplicationの定数にしない。
 
 接続先、モデル、タイムアウトは`config/services.php`と環境変数で管理する。設定項目は次を想定する。
 
@@ -91,6 +91,7 @@ InfrastructureにOllama Chat API互換アダプターを置き、`POST /api/chat
 - `ILLUSTRATION_LLM_MODEL`
 - `ILLUSTRATION_LLM_CONNECT_TIMEOUT_SECONDS`
 - `ILLUSTRATION_LLM_TIMEOUT_SECONDS`
+- `ILLUSTRATION_LLM_NUM_PREDICT`
 
 ベースURLはサーバー側で固定し、リクエストから接続先を受け取らない。認証情報が将来必要になる場合は、別の設計を経てサーバー側設定からアダプターに与える。
 

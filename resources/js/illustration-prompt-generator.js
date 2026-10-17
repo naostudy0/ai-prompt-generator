@@ -121,7 +121,7 @@ export const initializeIllustrationPromptGenerator = ({
                 status.textContent =
                     typeof fieldMessage === 'string'
                         ? fieldMessage
-                        : `${typeof body?.message === 'string' ? body.message : '生成に失敗しました。'} 入力内容を確認して再試行してください。`;
+                        : `${typeof body?.message === 'string' ? body.message : '生成に失敗しました。'} 外部LLMサービスの接続状態や設定を確認して再試行してください。`;
                 return;
             }
             positive.value = body.positivePrompt;
