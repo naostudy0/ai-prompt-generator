@@ -8,6 +8,9 @@ interface OptionPromptRepository
 {
     public function get(int $id): OptionPrompt;
 
+    /** @return list<OptionPrompt> */
+    public function getAllInGroupForUpdate(int $groupId): array;
+
     public function nextPosition(int $groupId): int;
 
     public function save(OptionPrompt $prompt): OptionPrompt;
