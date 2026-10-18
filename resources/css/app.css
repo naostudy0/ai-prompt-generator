@@ -17,9 +17,26 @@
 
 .illustration-prompt-dialog__content,
 .illustration-prompt-dialog__preview,
-.illustration-prompt-dialog__defaults {
+.illustration-prompt-dialog__defaults,
+.illustration-prompt-dialog__tag-groups {
     display: grid;
     gap: 0.75rem;
+}
+
+.illustration-prompt-dialog__tag-group-list {
+    display: grid;
+    gap: 0.5rem;
+    margin-block: 0.75rem;
+}
+
+.illustration-prompt-dialog__tag-group-item {
+    align-items: flex-start;
+    display: flex;
+    gap: 0.75rem;
+}
+
+.illustration-prompt-dialog__tag-group-item span {
+    display: block;
 }
 
 .illustration-prompt-dialog__default-option {

@@ -1,3 +1,9 @@
+const isReusableTagGroup = (value) =>
+    value !== null &&
+    typeof value === 'object' &&
+    typeof value.label === 'string' &&
+    typeof value.tags === 'string';
+
 const isGenerationResult = (value) =>
     value !== null &&
     typeof value === 'object' &&
@@ -5,7 +11,11 @@ const isGenerationResult = (value) =>
     typeof value.negativePrompt === 'string' &&
     typeof value.model === 'string' &&
     typeof value.promptStyle === 'string' &&
-    typeof value.generationTimeMs === 'number';
+    typeof value.generationTimeMs === 'number' &&
+    Array.isArray(value.reusableTagGroups) &&
+    value.reusableTagGroups.length >= 1 &&
+    value.reusableTagGroups.length <= 10 &&
+    value.reusableTagGroups.every(isReusableTagGroup);
 
 const responseJson = async (response) => {
     try {
@@ -21,6 +31,7 @@ export const initializeIllustrationPromptGenerator = ({
     fetcher,
     csrfToken,
     getDefaultPrompts = () => ({ positive: '', negative: '' }),
+    reloadPromptOptions = async () => {},
     applyPrompt,
 }) => {
     const dialog = page.querySelector('[data-illustration-prompt-dialog]');
@@ -39,9 +50,15 @@ export const initializeIllustrationPromptGenerator = ({
     const defaultNegative = page.querySelector('[data-illustration-prompt-default-negative]');
     const metadata = page.querySelector('[data-illustration-prompt-metadata]');
     const applyButton = page.querySelector('[data-illustration-prompt-apply]');
+    const tagGroupsSection = page.querySelector('[data-illustration-prompt-tag-groups]');
+    const tagGroupsList = page.querySelector('[data-illustration-prompt-tag-group-list]');
+    const saveTagGroupsButton = page.querySelector('[data-illustration-prompt-tag-group-save]');
+    const tagGroupsStatus = page.querySelector('[data-illustration-prompt-tag-group-status]');
     let requestController = null;
     let requestToken = 0;
     let pending = false;
+    let tagGroups = [];
+    let tagGroupsSavePending = false;
 
     if (
         !documentObject.defaultView ||
@@ -60,10 +77,51 @@ export const initializeIllustrationPromptGenerator = ({
         !defaultPositive ||
         !defaultNegative ||
         !metadata ||
-        !applyButton
+        !applyButton ||
+        !tagGroupsSection ||
+        !tagGroupsList ||
+        !saveTagGroupsButton ||
+        !tagGroupsStatus
     ) {
         return { abort: () => {} };
     }
+
+    const selectedTagGroups = () =>
+        [...tagGroupsList.querySelectorAll('input[type="checkbox"]')]
+            .filter((input) => input.checked)
+            .map((input) => tagGroups[Number(input.dataset.index)])
+            .filter(Boolean);
+
+    const updateSaveTagGroupsButton = () => {
+        saveTagGroupsButton.disabled = tagGroupsSavePending || selectedTagGroups().length === 0;
+    };
+
+    const renderTagGroups = (candidates) => {
+        tagGroups = candidates;
+        tagGroupsList.replaceChildren(
+            ...candidates.map((candidate, index) => {
+                const label = documentObject.createElement('label');
+                label.className = 'illustration-prompt-dialog__tag-group-item';
+                label.dataset.illustrationPromptTagGroupItem = '';
+                const checkbox = documentObject.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.dataset.index = String(index);
+                checkbox.addEventListener('change', updateSaveTagGroupsButton);
+                const text = documentObject.createElement('span');
+                const name = documentObject.createElement('strong');
+                name.textContent = candidate.label;
+                const tags = documentObject.createElement('span');
+                tags.className = 'muted-text';
+                tags.textContent = candidate.tags;
+                text.append(name, tags);
+                label.append(checkbox, text);
+                return label;
+            }),
+        );
+        tagGroupsStatus.textContent = '';
+        tagGroupsSection.hidden = candidates.length === 0;
+        updateSaveTagGroupsButton();
+    };
 
     const updateDefaultsPreview = () => {
         const defaults = getDefaultPrompts();
@@ -145,6 +203,7 @@ export const initializeIllustrationPromptGenerator = ({
             positive.value = body.positivePrompt;
             negative.value = body.negativePrompt;
             metadata.textContent = `${body.model} / ${body.generationTimeMs} ms`;
+            renderTagGroups(body.reusableTagGroups);
             updateDefaultsPreview();
             preview.hidden = false;
             status.textContent = '生成結果を確認し、必要なら編集してから反映してください。';
@@ -160,6 +219,49 @@ export const initializeIllustrationPromptGenerator = ({
                 description.disabled = false;
                 style.disabled = false;
             }
+        }
+    });
+
+    saveTagGroupsButton.addEventListener('click', async () => {
+        if (tagGroupsSavePending) {
+            return;
+        }
+        const groups = selectedTagGroups();
+        if (groups.length === 0) {
+            return;
+        }
+        tagGroupsSavePending = true;
+        updateSaveTagGroupsButton();
+        tagGroupsStatus.textContent = '候補を保存しています。';
+        try {
+            const response = await fetcher(page.dataset.illustrationPromptTagGroupsUrl, {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+                body: JSON.stringify({ groups }),
+            });
+            const body = await responseJson(response);
+            if (!response.ok || typeof body?.savedCount !== 'number' || typeof body?.duplicateCount !== 'number') {
+                throw new Error('save failed');
+            }
+            for (const input of tagGroupsList.querySelectorAll('input[type="checkbox"]:checked')) {
+                input.checked = false;
+            }
+            const result = `${body.savedCount}件保存、${body.duplicateCount}件重複`;
+            try {
+                await reloadPromptOptions();
+                tagGroupsStatus.textContent = `${result}でした。`;
+            } catch {
+                tagGroupsStatus.textContent = `${result}でした。保存済みですが一覧の更新に失敗しました。画面を再読み込みしてください。`;
+            }
+        } catch {
+            tagGroupsStatus.textContent = '候補を保存できませんでした。選択を保ったまま再試行できます。';
+        } finally {
+            tagGroupsSavePending = false;
+            updateSaveTagGroupsButton();
         }
     });
 

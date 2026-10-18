@@ -53,6 +53,8 @@ class TopPageTest extends TestCase
             ->assertSee('現在のデフォルトプロンプトを含める')
             ->assertSee('data-illustration-prompt-dialog', false)
             ->assertSee(route('illustration-prompts.generate'), false)
+            ->assertSee(route('illustration-prompt-tag-groups.store'), false)
+            ->assertSee('data-illustration-prompt-tag-groups-url', false)
             ->assertSee('data-favorite-save', false)
             ->assertSee('data-favorite-open', false)
             ->assertSee('グループ')
