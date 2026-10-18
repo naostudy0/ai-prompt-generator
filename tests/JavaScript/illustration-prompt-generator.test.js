@@ -12,7 +12,7 @@ const jsonResponse = (body, { status = 200 } = {}) => ({
 
 const fixture = () => {
     const dom =
-        new JSDOM(`<!doctype html><main data-prompt-preparation data-illustration-prompt-generation-url="/generate">
+        new JSDOM(`<!doctype html><main data-prompt-preparation data-illustration-prompt-generation-url="/generate" data-illustration-prompt-tag-groups-url="/tag-groups">
         <button data-illustration-prompt-open>open</button>
         <dialog data-illustration-prompt-dialog>
             <button data-illustration-prompt-close>close</button>
@@ -29,6 +29,11 @@ const fixture = () => {
                     <textarea data-illustration-prompt-default-negative readonly></textarea>
                 </section>
                 <p data-illustration-prompt-metadata></p>
+                <section data-illustration-prompt-tag-groups>
+                    <div data-illustration-prompt-tag-group-list></div>
+                    <button data-illustration-prompt-tag-group-save disabled>save tags</button>
+                    <p data-illustration-prompt-tag-group-status></p>
+                </section>
                 <button data-illustration-prompt-apply>apply</button>
             </section>
         </dialog>
@@ -53,6 +58,10 @@ test('生成後は編集可能なプレビューを表示し明示的な反映�
             model: 'model-a',
             promptStyle: 'danbooru_tags',
             generationTimeMs: 25,
+            reusableTagGroups: [
+                { label: '黒髪ロングの女の子', tags: '1girl, black hair, long hair' },
+                { label: '夕暮れの教室', tags: 'classroom, sunset' },
+            ],
         });
     };
     initializeIllustrationPromptGenerator({
@@ -95,6 +104,16 @@ test('生成後は編集可能なプレビューを表示し明示的な反映�
         document.querySelector('[data-illustration-prompt-metadata]').textContent,
         /model-a.*25/,
     );
+    const candidates = document.querySelectorAll('[data-illustration-prompt-tag-group-item]');
+    assert.equal(candidates.length, 2);
+    assert.equal(candidates[0].textContent.includes('黒髪ロングの女の子'), true);
+    assert.equal(candidates[0].textContent.includes('1girl, black hair, long hair'), true);
+    assert.equal(candidates[0].querySelector('input').checked, false);
+    assert.equal(candidates[1].querySelector('input').checked, false);
+    assert.equal(
+        document.querySelector('[data-illustration-prompt-tag-group-save]').disabled,
+        true,
+    );
 
     document.querySelector('[data-illustration-prompt-positive]').value = 'edited';
     document.querySelector('[data-illustration-prompt-apply]').click();
@@ -121,6 +140,7 @@ test('デフォルトを含めない選択を反映処理へ渡し追加予定�
                 model: 'model-a',
                 promptStyle: 'danbooru_tags',
                 generationTimeMs: 25,
+                reusableTagGroups: [{ label: '青い目', tags: 'blue eyes' }],
             }),
         csrfToken: 'token',
         getDefaultPrompts: () => ({ positive: 'best quality,', negative: 'low quality,' }),
@@ -155,6 +175,7 @@ test('空入力と上限超過は送信せずpositiveが空白なら反映しな
             model: 'm',
             promptStyle: 'danbooru_tags',
             generationTimeMs: 1,
+            reusableTagGroups: [{ label: '候補', tags: 'ok' }],
         });
     };
     const applied = [];
@@ -263,8 +284,124 @@ test('閉じた後の遅延応答はプレビューを更新しない', async ()
             model: 'm',
             promptStyle: 'danbooru_tags',
             generationTimeMs: 1,
+            reusableTagGroups: [{ label: '候補', tags: 'late' }],
         }),
     );
     await delay(0);
     assert.equal(document.querySelector('[data-illustration-prompt-preview]').hidden, true);
+});
+
+test('選択した候補だけを保存して一覧を更新し重複件数を案内する', async () => {
+    const { document, page } = fixture();
+    const requests = [];
+    let reloadCount = 0;
+    const fetcher = async (url, options) => {
+        requests.push({ url, options });
+        if (url === '/tag-groups') {
+            return jsonResponse({ groupId: 7, savedCount: 1, duplicateCount: 1 });
+        }
+        return jsonResponse({
+            positivePrompt: 'positive',
+            negativePrompt: '',
+            model: 'm',
+            promptStyle: 'danbooru_tags',
+            generationTimeMs: 1,
+            reusableTagGroups: [
+                { label: '人物', tags: '1girl, black hair' },
+                { label: '場所', tags: 'classroom, sunset' },
+            ],
+        });
+    };
+    initializeIllustrationPromptGenerator({
+        page,
+        documentObject: document,
+        fetcher,
+        csrfToken: 'token',
+        applyPrompt: () => {},
+        reloadPromptOptions: async () => {
+            reloadCount += 1;
+        },
+    });
+    document.querySelector('[data-illustration-prompt-description]').value = 'scene';
+    document.querySelector('[data-illustration-prompt-generate]').click();
+    await delay(0);
+    const checks = document.querySelectorAll('[data-illustration-prompt-tag-group-item] input');
+    checks[0].click();
+    checks[1].click();
+    document.querySelector('[data-illustration-prompt-tag-group-save]').click();
+    await delay(0);
+
+    assert.deepEqual(JSON.parse(requests[1].options.body), {
+        groups: [
+            { label: '人物', tags: '1girl, black hair' },
+            { label: '場所', tags: 'classroom, sunset' },
+        ],
+    });
+    assert.equal(requests[1].options.headers['X-CSRF-TOKEN'], 'token');
+    assert.equal(reloadCount, 1);
+    assert.equal(checks[0].checked, false);
+    assert.equal(checks[1].checked, false);
+    assert.match(
+        document.querySelector('[data-illustration-prompt-tag-group-status]').textContent,
+        /1件保存/,
+    );
+    assert.match(
+        document.querySelector('[data-illustration-prompt-tag-group-status]').textContent,
+        /1件重複/,
+    );
+});
+
+test('候補保存失敗は選択を保持し一覧更新だけ失敗した場合は保存済みと案内する', async () => {
+    const { document, page } = fixture();
+    let saveFails = true;
+    const fetcher = async (url) => {
+        if (url === '/tag-groups') {
+            return saveFails
+                ? jsonResponse({ message: 'failed' }, { status: 500 })
+                : jsonResponse({ groupId: 7, savedCount: 1, duplicateCount: 0 });
+        }
+        return jsonResponse({
+            positivePrompt: 'positive',
+            negativePrompt: '',
+            model: 'm',
+            promptStyle: 'danbooru_tags',
+            generationTimeMs: 1,
+            reusableTagGroups: [{ label: '人物', tags: '1girl' }],
+        });
+    };
+    initializeIllustrationPromptGenerator({
+        page,
+        documentObject: document,
+        fetcher,
+        csrfToken: 'token',
+        applyPrompt: () => {},
+        reloadPromptOptions: async () => {
+            throw new Error('reload');
+        },
+    });
+    document.querySelector('[data-illustration-prompt-description]').value = 'scene';
+    document.querySelector('[data-illustration-prompt-generate]').click();
+    await delay(0);
+    const check = document.querySelector('[data-illustration-prompt-tag-group-item] input');
+    check.click();
+    document.querySelector('[data-illustration-prompt-tag-group-save]').click();
+    await delay(0);
+    assert.equal(check.checked, true);
+    assert.match(
+        document.querySelector('[data-illustration-prompt-tag-group-status]').textContent,
+        /保存できません/,
+    );
+
+    saveFails = false;
+    document.querySelector('[data-illustration-prompt-tag-group-save]').click();
+    await delay(0);
+    assert.equal(check.checked, false);
+    assert.match(
+        document.querySelector('[data-illustration-prompt-tag-group-status]').textContent,
+        /保存済み/,
+    );
+    assert.match(
+        document.querySelector('[data-illustration-prompt-tag-group-status]').textContent,
+        /一覧/,
+    );
 });

@@ -3,6 +3,7 @@
 namespace Tests\Feature\Http\PromptPreparation;
 
 use App\Application\PromptPreparation\DTO\GeneratedIllustrationPrompt;
+use App\Application\PromptPreparation\DTO\ReusableIllustrationTagGroup;
 use App\Application\PromptPreparation\Exceptions\IllustrationPromptServiceUnavailable;
 use App\Application\PromptPreparation\Exceptions\InvalidIllustrationPromptResponse;
 use App\Application\PromptPreparation\Ports\IllustrationPromptGenerator;
@@ -27,6 +28,16 @@ final class IllustrationPromptGenerationApiTest extends TestCase
                 'model' => 'fake-model',
                 'promptStyle' => 'danbooru_tags',
                 'generationTimeMs' => 12,
+                'reusableTagGroups' => [
+                    [
+                        'label' => '黒髪ロングの女の子',
+                        'tags' => '1girl, solo, long black hair',
+                    ],
+                    [
+                        'label' => '夕暮れの教室',
+                        'tags' => 'classroom, sunset',
+                    ],
+                ],
             ]);
     }
 
@@ -141,7 +152,19 @@ final class IllustrationPromptGenerationApiTest extends TestCase
             {
                 ($this->capture)($systemPrompt, $description);
 
-                return new GeneratedIllustrationPrompt('positive', 'negative', 'fake-model', 12);
+                return new GeneratedIllustrationPrompt(
+                    'positive',
+                    'negative',
+                    'fake-model',
+                    12,
+                    [
+                        new ReusableIllustrationTagGroup(
+                            '黒髪ロングの女の子',
+                            '1girl, solo, long black hair',
+                        ),
+                        new ReusableIllustrationTagGroup('夕暮れの教室', 'classroom, sunset'),
+                    ],
+                );
             }
         });
     }

@@ -21,6 +21,7 @@ final readonly class SaveOptionPromptGroupHandler
     {
         $group = $this->transactions->run(function () use ($id, $name, $selectionMode): OptionPromptGroup {
             $current = $id === null ? null : $this->repository->getForUpdate($id);
+            $current?->assertUserManageable();
             $position = $current === null ? $this->repository->nextPosition() : $current->position;
 
             return $this->repository->save(new OptionPromptGroup(
@@ -29,6 +30,7 @@ final readonly class SaveOptionPromptGroupHandler
                 $selectionMode,
                 $position,
                 $current?->categoryId,
+                null,
             ));
         });
         if ($group->id === null) {

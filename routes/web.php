@@ -38,6 +38,7 @@ use App\Http\Controllers\PromptPreparation\Writes\SaveDefaultPromptController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveFamilyDefaultPromptController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveFavoritePromptController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveGenerationSettingOptionController;
+use App\Http\Controllers\PromptPreparation\Writes\SaveIllustrationPromptTagGroupsController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveLoraController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveLoraTriggerController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveModelFamilyController;
@@ -88,6 +89,8 @@ Route::post('/comfyui/prompts/batch', QueueComfyUiPromptBatchController::class)
     ->name('comfyui-prompts.batch');
 Route::post('/illustration-prompts/generate', GenerateIllustrationPromptController::class)
     ->name('illustration-prompts.generate');
+Route::post('/illustration-prompt-tag-groups', SaveIllustrationPromptTagGroupsController::class)
+    ->name('illustration-prompt-tag-groups.store');
 
 Route::get('/lora-prompt-options', GetLoraPromptOptionsController::class)
     ->name('lora-prompt-options.index');

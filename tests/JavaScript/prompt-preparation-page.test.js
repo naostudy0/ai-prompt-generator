@@ -431,6 +431,7 @@ const addCategoryControls = (documentObject) => {
 const addIllustrationPromptControls = (documentObject) => {
     const page = documentObject.querySelector('main');
     page.dataset.illustrationPromptGenerationUrl = '/illustration-prompts/generate';
+    page.dataset.illustrationPromptTagGroupsUrl = '/illustration-prompt-tag-groups';
     page.insertAdjacentHTML(
         'beforeend',
         `<button data-illustration-prompt-open></button>
@@ -445,6 +446,11 @@ const addIllustrationPromptControls = (documentObject) => {
             <textarea data-illustration-prompt-default-positive readonly></textarea>
             <textarea data-illustration-prompt-default-negative readonly></textarea>
         </section><p data-illustration-prompt-metadata></p>
+        <section data-illustration-prompt-tag-groups hidden>
+            <div data-illustration-prompt-tag-group-list></div>
+            <button data-illustration-prompt-tag-group-save disabled></button>
+            <p data-illustration-prompt-tag-group-status></p>
+        </section>
         <button data-illustration-prompt-apply></button></section></dialog>`,
     );
     const dialog = page.querySelector('[data-illustration-prompt-dialog]');
@@ -474,6 +480,7 @@ test('AI生成結果へ選択中の人物LoRAを加えて既存出力へ反映�
                 model: 'model',
                 promptStyle: 'danbooru_tags',
                 generationTimeMs: 2,
+                reusableTagGroups: [{ label: '青い目', tags: 'blue eyes' }],
             });
         }
         return successfulResponse({
@@ -555,6 +562,7 @@ test('人物LoRA未選択のAI生成結果へ人物を追加してコピーす�
                 model: 'model',
                 promptStyle: 'danbooru_tags',
                 generationTimeMs: 2,
+                reusableTagGroups: [{ label: '青い目', tags: 'blue eyes' }],
             });
         }
         return successfulResponse({

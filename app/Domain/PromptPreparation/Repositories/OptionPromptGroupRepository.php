@@ -10,6 +10,8 @@ interface OptionPromptGroupRepository
 
     public function getForUpdate(int $id): OptionPromptGroup;
 
+    public function findBySystemKeyForUpdate(string $systemKey): ?OptionPromptGroup;
+
     public function nextPosition(): int;
 
     public function save(OptionPromptGroup $group): OptionPromptGroup;

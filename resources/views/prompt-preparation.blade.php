@@ -32,6 +32,7 @@
             data-comfy-ui-prompt-batch-url="{{ $comfyUiPromptBatchUrl }}"
             data-generation-setting-options-url="{{ $generationSettingOptionsUrl }}"
             data-illustration-prompt-generation-url="{{ $illustrationPromptGenerationUrl }}"
+            data-illustration-prompt-tag-groups-url="{{ $illustrationPromptTagGroupsUrl }}"
         >
             <nav class="prompt-sidebar section-navigation" aria-labelledby="section-navigation-heading">
                 <h2 id="section-navigation-heading">セクション</h2>
@@ -77,6 +78,13 @@
                             <textarea id="illustration-prompt-default-negative" class="text-input" data-illustration-prompt-default-negative readonly></textarea>
                         </section>
                         <p class="muted-text" data-illustration-prompt-metadata></p>
+                        <section class="illustration-prompt-dialog__tag-groups" data-illustration-prompt-tag-groups hidden>
+                            <h3>再利用するタグのまとまり</h3>
+                            <p class="muted-text">保存したい候補を選ぶと、「AIプロンプト」ブロックから再利用できます。</p>
+                            <div class="illustration-prompt-dialog__tag-group-list" data-illustration-prompt-tag-group-list></div>
+                            <button type="button" class="secondary-button" data-illustration-prompt-tag-group-save disabled>選択した候補を保存</button>
+                            <p role="status" aria-live="polite" data-illustration-prompt-tag-group-status></p>
+                        </section>
                         <button type="button" class="primary-button" data-illustration-prompt-apply>既存の出力へ反映</button>
                     </section>
                 </div>

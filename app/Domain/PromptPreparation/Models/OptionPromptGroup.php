@@ -2,6 +2,7 @@
 
 namespace App\Domain\PromptPreparation\Models;
 
+use App\Domain\PromptPreparation\Exceptions\SystemManagedOptionPromptGroup;
 use InvalidArgumentException;
 
 final readonly class OptionPromptGroup
@@ -14,6 +15,7 @@ final readonly class OptionPromptGroup
         public OptionSelectionMode $selectionMode,
         public int $position,
         public ?int $categoryId = null,
+        public ?string $systemKey = null,
     ) {
         $this->name = trim($name);
         if ($this->name === '') {
@@ -26,6 +28,27 @@ final readonly class OptionPromptGroup
 
     public function changeCategory(?int $categoryId): self
     {
-        return new self($this->id, $this->name, $this->selectionMode, $this->position, $categoryId);
+        $this->assertUserManageable();
+
+        return new self(
+            $this->id,
+            $this->name,
+            $this->selectionMode,
+            $this->position,
+            $categoryId,
+            $this->systemKey,
+        );
+    }
+
+    public function isSystemManaged(): bool
+    {
+        return $this->systemKey !== null;
+    }
+
+    public function assertUserManageable(): void
+    {
+        if ($this->isSystemManaged()) {
+            throw new SystemManagedOptionPromptGroup();
+        }
     }
 }

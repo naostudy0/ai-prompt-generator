@@ -3,6 +3,7 @@
 namespace App\Infrastructure\PromptPreparation\External\IllustrationLlm;
 
 use App\Application\PromptPreparation\DTO\GeneratedIllustrationPrompt;
+use App\Application\PromptPreparation\DTO\ReusableIllustrationTagGroup;
 use App\Application\PromptPreparation\Exceptions\IllustrationPromptServiceUnavailable;
 use App\Application\PromptPreparation\Exceptions\InvalidIllustrationPromptResponse;
 use App\Application\PromptPreparation\Ports\IllustrationPromptGenerator;
@@ -43,8 +44,22 @@ final class OllamaIllustrationPromptGenerator implements IllustrationPromptGener
                         'properties' => [
                             'positive_prompt' => ['type' => 'string'],
                             'negative_prompt' => ['type' => 'string'],
+                            'reusable_tag_groups' => [
+                                'type' => 'array',
+                                'minItems' => 1,
+                                'maxItems' => 10,
+                                'items' => [
+                                    'type' => 'object',
+                                    'properties' => [
+                                        'label' => ['type' => 'string'],
+                                        'tags' => ['type' => 'string'],
+                                    ],
+                                    'required' => ['label', 'tags'],
+                                    'additionalProperties' => false,
+                                ],
+                            ],
                         ],
-                        'required' => ['positive_prompt', 'negative_prompt'],
+                        'required' => ['positive_prompt', 'negative_prompt', 'reusable_tag_groups'],
                         'additionalProperties' => false,
                     ],
                 ]);
@@ -83,8 +98,31 @@ final class OllamaIllustrationPromptGenerator implements IllustrationPromptGener
         }
         $positive = $generated['positive_prompt'] ?? null;
         $negative = $generated['negative_prompt'] ?? null;
+        $reusableTagGroups = $generated['reusable_tag_groups'] ?? null;
         if (!is_string($positive) || !is_string($negative) || trim($positive) === '') {
             $this->invalidResponse($requestId, $configuredModel, $startedAt, 'invalid_prompt_fields');
+        }
+        if (!is_array($reusableTagGroups) || !array_is_list($reusableTagGroups)
+            || count($reusableTagGroups) < 1 || count($reusableTagGroups) > 10) {
+            $this->invalidResponse($requestId, $configuredModel, $startedAt, 'invalid_reusable_tag_groups');
+        }
+
+        $parsedGroups = [];
+        foreach ($reusableTagGroups as $group) {
+            if (!is_array($group) || array_is_list($group)) {
+                $this->invalidResponse($requestId, $configuredModel, $startedAt, 'invalid_reusable_tag_group');
+            }
+            $label = $group['label'] ?? null;
+            $tags = $group['tags'] ?? null;
+            if (!is_string($label) || !is_string($tags)) {
+                $this->invalidResponse($requestId, $configuredModel, $startedAt, 'invalid_reusable_tag_group_fields');
+            }
+            $label = $this->trimWhitespace($label);
+            $tags = $this->trimWhitespace($tags);
+            if ($label === '' || mb_strlen($label) > 100 || preg_match('/[^,\s]/u', $tags) !== 1) {
+                $this->invalidResponse($requestId, $configuredModel, $startedAt, 'invalid_reusable_tag_group_values');
+            }
+            $parsedGroups[] = new ReusableIllustrationTagGroup($label, $tags);
         }
 
         $model = is_string($data['model'] ?? null) && trim($data['model']) !== ''
@@ -103,6 +141,7 @@ final class OllamaIllustrationPromptGenerator implements IllustrationPromptGener
             negativePrompt: trim($negative),
             model: $model,
             generationTimeMs: $elapsedMs,
+            reusableTagGroups: $parsedGroups,
         );
     }
 
@@ -161,5 +200,10 @@ final class OllamaIllustrationPromptGenerator implements IllustrationPromptGener
     private function elapsedMilliseconds(int $startedAt): int
     {
         return max(0, (int) round((hrtime(true) - $startedAt) / 1_000_000));
+    }
+
+    private function trimWhitespace(string $value): string
+    {
+        return preg_replace('/^\s+|\s+$/u', '', $value) ?? trim($value);
     }
 }

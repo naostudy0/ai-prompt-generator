@@ -1013,6 +1013,7 @@ export const initializePromptPreparationPage = ({
                 ? createPromptOutputs(currentPrompts, selectedPrompts)
                 : { positive: '', negative: '' };
         },
+        reloadPromptOptions: () => promptCategoriesController.reload(),
         applyPrompt: ({ positivePrompt, negativePrompt, includeDefaultPrompts }) => {
             if (positivePrompt.trim() === '') {
                 return;

@@ -3,6 +3,7 @@
 namespace Tests\Unit\Application\PromptPreparation;
 
 use App\Application\PromptPreparation\DTO\GeneratedIllustrationPrompt;
+use App\Application\PromptPreparation\DTO\ReusableIllustrationTagGroup;
 use App\Application\PromptPreparation\Ports\IllustrationPromptGenerator;
 use App\Application\PromptPreparation\Ports\IllustrationPromptInstructions;
 use App\Application\PromptPreparation\Writes\GenerateIllustrationPrompt\GenerateIllustrationPromptHandler;
@@ -22,6 +23,10 @@ final class GenerateIllustrationPromptHandlerTest extends TestCase
             negativePrompt: 'low quality',
             model: 'illustration-model',
             generationTimeMs: 321,
+            reusableTagGroups: [
+                new ReusableIllustrationTagGroup('黒髪ロングの女の子', '1girl, solo, long black hair'),
+                new ReusableIllustrationTagGroup('夕暮れの教室', 'classroom, sunset'),
+            ],
         ));
 
         $result = (new GenerateIllustrationPromptHandler($instructions, $generator))->handle(
@@ -33,6 +38,10 @@ final class GenerateIllustrationPromptHandlerTest extends TestCase
         self::assertSame('illustration-model', $result->model);
         self::assertSame('danbooru_tags', $result->promptStyle);
         self::assertSame(321, $result->generationTimeMs);
+        self::assertSame('黒髪ロングの女の子', $result->reusableTagGroups[0]->label);
+        self::assertSame('1girl, solo, long black hair', $result->reusableTagGroups[0]->tags);
+        self::assertSame('夕暮れの教室', $result->reusableTagGroups[1]->label);
+        self::assertSame('classroom, sunset', $result->reusableTagGroups[1]->tags);
     }
 
     public function test_natural_language形式の指示を選ぶ(): void

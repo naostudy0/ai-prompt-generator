@@ -453,3 +453,67 @@ test('カテゴリ保存後の一覧再取得失敗を保存失敗として再�
     assert.match(notifications.at(-1), /保存済み/);
     assert.match(notifications.at(-1), /再読み込み/);
 });
+
+test('システム管理ブロックはブロック操作だけを制限して項目操作を利用できる', async () => {
+    const documentObject = createDocument();
+    const systemManagedGroups = [
+        {
+            id: 1,
+            name: 'AIプロンプト',
+            selectionMode: 'multiple',
+            position: 1,
+            systemManaged: true,
+            options: [
+                { id: 10, position: 1, name: '黒髪ロング', content: 'black hair, long hair,' },
+            ],
+        },
+        {
+            id: 2,
+            name: 'AIプロンプト',
+            selectionMode: 'multiple',
+            position: 2,
+            systemManaged: false,
+            options: [],
+        },
+    ];
+    initializePromptOptionsPage({
+        page: documentObject.querySelector('main'),
+        documentObject,
+        fetcher: async () => ({ ok: true, json: async () => ({ groups: systemManagedGroups }) }),
+        csrfToken: 'csrf',
+        onLoadedChange: () => {},
+        notify: () => {},
+    });
+    await flush();
+
+    const managementGroups = documentObject.querySelector('[data-option-management-groups]');
+    const systemGroup = managementGroups.querySelector('[data-group-id="1"]');
+    const userGroup = managementGroups.querySelector('[data-group-id="2"]');
+    const button = (container, label) =>
+        [...container.querySelectorAll('button')].find(
+            (candidate) => candidate.textContent === label,
+        );
+
+    const systemLabel = (container) =>
+        [...container.querySelectorAll('.selection-mode')].find(
+            (candidate) => candidate.textContent === 'システム管理',
+        );
+    assert.equal(systemLabel(systemGroup).hidden, false);
+    assert.equal(systemGroup.querySelector('.drag-handle').draggable, false);
+    assert.equal(button(systemGroup, '上へ').disabled, true);
+    assert.equal(button(systemGroup, '下へ').disabled, true);
+    assert.equal(button(systemGroup, '編集').disabled, true);
+    assert.equal(systemGroup.querySelector('.option-group-category-select').disabled, true);
+    assert.equal(button(systemGroup, '項目追加').disabled, false);
+    assert.equal(systemGroup.querySelector('[title="黒髪ロングを編集"]').disabled, false);
+    assert.equal(systemGroup.querySelector('[title="黒髪ロングを削除"]').disabled, false);
+    assert.equal(
+        systemGroup.querySelector('[aria-label="黒髪ロングの移動先ブロック"]').disabled,
+        false,
+    );
+
+    assert.equal(systemLabel(userGroup).hidden, true);
+    assert.equal(userGroup.querySelector('.drag-handle').draggable, true);
+    assert.equal(button(userGroup, '編集').disabled, false);
+    assert.equal(userGroup.querySelector('.option-group-category-select').disabled, false);
+});

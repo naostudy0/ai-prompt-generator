@@ -26,6 +26,7 @@ final readonly class GenerateIllustrationPromptHandler
             model: $generated->model,
             promptStyle: $input->promptStyle->value,
             generationTimeMs: $generated->generationTimeMs,
+            reusableTagGroups: $generated->reusableTagGroups,
         );
     }
 }
