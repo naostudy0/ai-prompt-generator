@@ -15,6 +15,9 @@ final readonly class MoveOptionPromptGroupHandler
 
     public function handle(int $id, ?int $beforeId): void
     {
-        $this->transactions->run(fn () => $this->repository->moveBefore($id, $beforeId));
+        $this->transactions->run(function () use ($id, $beforeId): void {
+            $this->repository->getForUpdate($id)->assertUserManageable();
+            $this->repository->moveBefore($id, $beforeId);
+        });
     }
 }

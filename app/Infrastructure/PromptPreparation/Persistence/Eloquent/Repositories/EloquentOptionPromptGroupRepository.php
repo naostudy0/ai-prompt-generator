@@ -19,6 +19,16 @@ final class EloquentOptionPromptGroupRepository implements OptionPromptGroupRepo
         return $this->toDomain(OptionPromptGroupRecord::query()->lockForUpdate()->findOrFail($id));
     }
 
+    public function findBySystemKeyForUpdate(string $systemKey): ?OptionPromptGroup
+    {
+        $record = OptionPromptGroupRecord::query()
+            ->where('system_key', $systemKey)
+            ->lockForUpdate()
+            ->first();
+
+        return $record instanceof OptionPromptGroupRecord ? $this->toDomain($record) : null;
+    }
+
     public function nextPosition(): int
     {
         return ((int) OptionPromptGroupRecord::query()->lockForUpdate()->max('position')) + 1;
@@ -34,6 +44,7 @@ final class EloquentOptionPromptGroupRepository implements OptionPromptGroupRepo
             'selection_mode' => $group->selectionMode->value,
             'position' => $group->position,
             'option_category_id' => $group->categoryId,
+            'system_key' => $group->systemKey,
         ])->save();
 
         return $this->toDomain($record);
@@ -82,6 +93,7 @@ final class EloquentOptionPromptGroupRepository implements OptionPromptGroupRepo
             selectionMode: OptionSelectionMode::from($record->selection_mode),
             position: $record->position,
             categoryId: $record->option_category_id === null ? null : (int) $record->option_category_id,
+            systemKey: $record->system_key,
         );
     }
 }

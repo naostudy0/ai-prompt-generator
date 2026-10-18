@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Domain\PromptPreparation;
 
+use App\Domain\PromptPreparation\Exceptions\SystemManagedOptionPromptGroup;
 use App\Domain\PromptPreparation\Models\OptionPrompt;
 use App\Domain\PromptPreparation\Models\OptionPromptGroup;
 use App\Domain\PromptPreparation\Models\OptionSelectionMode;
@@ -53,5 +54,32 @@ class NamedPromptModelsTest extends TestCase
         self::assertSame(2, $changed->position);
         self::assertSame(3, $changed->categoryId);
         self::assertNull($group->categoryId);
+    }
+
+    public function test_通常ブロックは利用者が管理できる(): void
+    {
+        $group = new OptionPromptGroup(1, 'AIプロンプト', OptionSelectionMode::Multiple, 1);
+
+        $group->assertUserManageable();
+
+        self::assertFalse($group->isSystemManaged());
+        self::assertSame(3, $group->changeCategory(3)->categoryId);
+    }
+
+    public function test_システム管理ブロックの利用者操作を拒否する(): void
+    {
+        $group = new OptionPromptGroup(
+            1,
+            'AIプロンプト',
+            OptionSelectionMode::Multiple,
+            1,
+            null,
+            'ai_prompt_suggestions',
+        );
+
+        self::assertTrue($group->isSystemManaged());
+        $this->expectException(SystemManagedOptionPromptGroup::class);
+
+        $group->changeCategory(3);
     }
 }

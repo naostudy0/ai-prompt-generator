@@ -3,6 +3,7 @@
 namespace Tests\Feature\Http\PromptPreparation;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class PromptOptionApiTest extends TestCase
@@ -180,10 +181,72 @@ class PromptOptionApiTest extends TestCase
         $this->assertDatabaseHas('option_categories', ['id' => $categoryId, 'position' => 1]);
     }
 
+    public function test_システム管理ブロックの名前と選択方式とカテゴリと順序を変更できない(): void
+    {
+        $groupId = $this->createSystemManagedGroup();
+        $categoryId = (int) $this->postJson(
+            route('prompt-option-categories.store'),
+            ['name' => '人物表現'],
+        )->assertCreated()->json('id');
+
+        $this->putJson(route('prompt-option-groups.update', ['group' => $groupId]), [
+            'name' => '変更後',
+            'selectionMode' => 'single',
+        ])->assertConflict();
+        $this->patchJson(route('prompt-option-groups.change-category', ['group' => $groupId]), [
+            'categoryId' => $categoryId,
+        ])->assertConflict();
+        $this->patchJson(route('prompt-option-groups.move', ['group' => $groupId]), [
+            'beforeGroupId' => 1,
+        ])->assertConflict();
+
+        $this->assertDatabaseHas('option_prompt_groups', [
+            'id' => $groupId,
+            'name' => 'AIプロンプト',
+            'selection_mode' => 'multiple',
+            'option_category_id' => null,
+            'position' => 7,
+        ]);
+    }
+
+    public function test_同名の利用者作成ブロックは通常どおり変更できる(): void
+    {
+        $this->createSystemManagedGroup();
+        $created = $this->postJson(route('prompt-option-groups.store'), [
+            'name' => 'AIプロンプト',
+            'selectionMode' => 'multiple',
+        ])->assertCreated()->json();
+
+        $this->putJson(route('prompt-option-groups.update', ['group' => $created['id']]), [
+            'name' => '利用者のAIプロンプト',
+            'selectionMode' => 'single',
+        ])->assertOk();
+
+        $this->assertDatabaseHas('option_prompt_groups', [
+            'id' => $created['id'],
+            'name' => '利用者のAIプロンプト',
+            'selection_mode' => 'single',
+            'system_key' => null,
+        ]);
+    }
+
     private function create(string $name, string $content, int $groupId): int
     {
         return (int) $this->postJson(route('prompt-options.store'), [
             'name' => $name, 'content' => $content, 'groupId' => $groupId,
         ])->assertCreated()->json('id');
+    }
+
+    private function createSystemManagedGroup(): int
+    {
+        return (int) DB::table('option_prompt_groups')->insertGetId([
+            'name' => 'AIプロンプト',
+            'selection_mode' => 'multiple',
+            'position' => 7,
+            'option_category_id' => null,
+            'system_key' => 'ai_prompt_suggestions',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 }

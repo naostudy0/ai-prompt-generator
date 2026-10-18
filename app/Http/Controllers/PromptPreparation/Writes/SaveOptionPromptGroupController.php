@@ -4,6 +4,7 @@ namespace App\Http\Controllers\PromptPreparation\Writes;
 
 use App\Application\PromptPreparation\Writes\SaveOptionPromptGroup\SaveOptionPromptGroupHandler;
 use App\Domain\PromptPreparation\Models\OptionSelectionMode;
+use App\Domain\PromptPreparation\Exceptions\SystemManagedOptionPromptGroup;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,11 +18,15 @@ final class SaveOptionPromptGroupController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'selectionMode' => ['required', 'string', Rule::enum(OptionSelectionMode::class)],
         ]);
-        $result = $handler->handle(
-            $group,
-            (string) $validated['name'],
-            OptionSelectionMode::from((string) $validated['selectionMode']),
-        );
+        try {
+            $result = $handler->handle(
+                $group,
+                (string) $validated['name'],
+                OptionSelectionMode::from((string) $validated['selectionMode']),
+            );
+        } catch (SystemManagedOptionPromptGroup) {
+            return response()->json(['message' => 'このブロックはシステム管理のため変更できません。'], 409);
+        }
 
         return response()->json($result, $group === null ? 201 : 200);
     }
