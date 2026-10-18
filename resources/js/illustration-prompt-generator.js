@@ -244,7 +244,11 @@ export const initializeIllustrationPromptGenerator = ({
                 body: JSON.stringify({ groups }),
             });
             const body = await responseJson(response);
-            if (!response.ok || typeof body?.savedCount !== 'number' || typeof body?.duplicateCount !== 'number') {
+            if (
+                !response.ok ||
+                typeof body?.savedCount !== 'number' ||
+                typeof body?.duplicateCount !== 'number'
+            ) {
                 throw new Error('save failed');
             }
             for (const input of tagGroupsList.querySelectorAll('input[type="checkbox"]:checked')) {
@@ -258,7 +262,8 @@ export const initializeIllustrationPromptGenerator = ({
                 tagGroupsStatus.textContent = `${result}でした。保存済みですが一覧の更新に失敗しました。画面を再読み込みしてください。`;
             }
         } catch {
-            tagGroupsStatus.textContent = '候補を保存できませんでした。選択を保ったまま再試行できます。';
+            tagGroupsStatus.textContent =
+                '候補を保存できませんでした。選択を保ったまま再試行できます。';
         } finally {
             tagGroupsSavePending = false;
             updateSaveTagGroupsButton();

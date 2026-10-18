@@ -18,13 +18,13 @@ final class EloquentOptionPromptRepository implements OptionPromptRepository
 
     public function getAllInGroupForUpdate(int $groupId): array
     {
-        return OptionPromptRecord::query()
+        return array_values(OptionPromptRecord::query()
             ->where('option_prompt_group_id', $groupId)
             ->orderBy('position')
             ->lockForUpdate()
             ->get()
             ->map(fn (OptionPromptRecord $record): OptionPrompt => $this->toDomain($record))
-            ->all();
+            ->all());
     }
 
     public function nextPosition(int $groupId): int

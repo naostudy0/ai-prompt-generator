@@ -1111,7 +1111,13 @@ export const initializePromptOptionsPage = ({
     void load();
     return {
         reorderGroup: (id, beforeId) => {
-            if (!loaded || busy || id === beforeId || !groupById(id) || groupById(id).systemManaged) {
+            if (
+                !loaded ||
+                busy ||
+                id === beforeId ||
+                !groupById(id) ||
+                groupById(id).systemManaged
+            ) {
                 return;
             }
             const without = groups.filter((group) => group.id !== id);

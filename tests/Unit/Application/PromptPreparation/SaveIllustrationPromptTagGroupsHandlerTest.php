@@ -36,10 +36,11 @@ final class SaveIllustrationPromptTagGroupsHandlerTest extends TestCase
         self::assertSame(1, $result->groupId);
         self::assertSame(2, $result->savedCount);
         self::assertSame(1, $result->duplicateCount);
-        self::assertSame('ai_prompt_suggestions', $groups->group?->systemKey);
-        self::assertSame('AIプロンプト', $groups->group?->name);
-        self::assertSame(OptionSelectionMode::Multiple, $groups->group?->selectionMode);
-        self::assertNull($groups->group?->categoryId);
+        self::assertNotNull($groups->group);
+        self::assertSame('ai_prompt_suggestions', $groups->group->systemKey);
+        self::assertSame('AIプロンプト', $groups->group->name);
+        self::assertSame(OptionSelectionMode::Multiple, $groups->group->selectionMode);
+        self::assertNull($groups->group->categoryId);
         self::assertSame(['Tag One, tag two,', 'sunset, classroom,'], array_map(
             static fn (OptionPrompt $prompt): string => $prompt->content->value,
             $prompts->prompts,
@@ -114,7 +115,11 @@ final class InMemoryOptionPromptGroupRepository implements OptionPromptGroupRepo
 
     public function nextPosition(): int
     {
-        return ($this->group?->position ?? 0) + 1;
+        if ($this->group === null) {
+            return 1;
+        }
+
+        return $this->group->position + 1;
     }
 
     public function save(OptionPromptGroup $group): OptionPromptGroup

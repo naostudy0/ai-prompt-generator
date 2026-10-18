@@ -463,7 +463,9 @@ test('システム管理ブロックはブロック操作だけを制限して�
             selectionMode: 'multiple',
             position: 1,
             systemManaged: true,
-            options: [{ id: 10, position: 1, name: '黒髪ロング', content: 'black hair, long hair,' }],
+            options: [
+                { id: 10, position: 1, name: '黒髪ロング', content: 'black hair, long hair,' },
+            ],
         },
         {
             id: 2,
@@ -488,7 +490,9 @@ test('システム管理ブロックはブロック操作だけを制限して�
     const systemGroup = managementGroups.querySelector('[data-group-id="1"]');
     const userGroup = managementGroups.querySelector('[data-group-id="2"]');
     const button = (container, label) =>
-        [...container.querySelectorAll('button')].find((candidate) => candidate.textContent === label);
+        [...container.querySelectorAll('button')].find(
+            (candidate) => candidate.textContent === label,
+        );
 
     const systemLabel = (container) =>
         [...container.querySelectorAll('.selection-mode')].find(
@@ -503,7 +507,10 @@ test('システム管理ブロックはブロック操作だけを制限して�
     assert.equal(button(systemGroup, '項目追加').disabled, false);
     assert.equal(systemGroup.querySelector('[title="黒髪ロングを編集"]').disabled, false);
     assert.equal(systemGroup.querySelector('[title="黒髪ロングを削除"]').disabled, false);
-    assert.equal(systemGroup.querySelector('[aria-label="黒髪ロングの移動先ブロック"]').disabled, false);
+    assert.equal(
+        systemGroup.querySelector('[aria-label="黒髪ロングの移動先ブロック"]').disabled,
+        false,
+    );
 
     assert.equal(systemLabel(userGroup).hidden, true);
     assert.equal(userGroup.querySelector('.drag-handle').draggable, true);

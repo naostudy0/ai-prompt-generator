@@ -110,7 +110,10 @@ test('生成後は編集可能なプレビューを表示し明示的な反映�
     assert.equal(candidates[0].textContent.includes('1girl, black hair, long hair'), true);
     assert.equal(candidates[0].querySelector('input').checked, false);
     assert.equal(candidates[1].querySelector('input').checked, false);
-    assert.equal(document.querySelector('[data-illustration-prompt-tag-group-save]').disabled, true);
+    assert.equal(
+        document.querySelector('[data-illustration-prompt-tag-group-save]').disabled,
+        true,
+    );
 
     document.querySelector('[data-illustration-prompt-positive]').value = 'edited';
     document.querySelector('[data-illustration-prompt-apply]').click();
@@ -338,8 +341,14 @@ test('選択した候補だけを保存して一覧を更新し重複件数を�
     assert.equal(reloadCount, 1);
     assert.equal(checks[0].checked, false);
     assert.equal(checks[1].checked, false);
-    assert.match(document.querySelector('[data-illustration-prompt-tag-group-status]').textContent, /1件保存/);
-    assert.match(document.querySelector('[data-illustration-prompt-tag-group-status]').textContent, /1件重複/);
+    assert.match(
+        document.querySelector('[data-illustration-prompt-tag-group-status]').textContent,
+        /1件保存/,
+    );
+    assert.match(
+        document.querySelector('[data-illustration-prompt-tag-group-status]').textContent,
+        /1件重複/,
+    );
 });
 
 test('候補保存失敗は選択を保持し一覧更新だけ失敗した場合は保存済みと案内する', async () => {
@@ -352,14 +361,23 @@ test('候補保存失敗は選択を保持し一覧更新だけ失敗した場�
                 : jsonResponse({ groupId: 7, savedCount: 1, duplicateCount: 0 });
         }
         return jsonResponse({
-            positivePrompt: 'positive', negativePrompt: '', model: 'm',
-            promptStyle: 'danbooru_tags', generationTimeMs: 1,
+            positivePrompt: 'positive',
+            negativePrompt: '',
+            model: 'm',
+            promptStyle: 'danbooru_tags',
+            generationTimeMs: 1,
             reusableTagGroups: [{ label: '人物', tags: '1girl' }],
         });
     };
     initializeIllustrationPromptGenerator({
-        page, documentObject: document, fetcher, csrfToken: 'token', applyPrompt: () => {},
-        reloadPromptOptions: async () => { throw new Error('reload'); },
+        page,
+        documentObject: document,
+        fetcher,
+        csrfToken: 'token',
+        applyPrompt: () => {},
+        reloadPromptOptions: async () => {
+            throw new Error('reload');
+        },
     });
     document.querySelector('[data-illustration-prompt-description]').value = 'scene';
     document.querySelector('[data-illustration-prompt-generate]').click();
@@ -369,12 +387,21 @@ test('候補保存失敗は選択を保持し一覧更新だけ失敗した場�
     document.querySelector('[data-illustration-prompt-tag-group-save]').click();
     await delay(0);
     assert.equal(check.checked, true);
-    assert.match(document.querySelector('[data-illustration-prompt-tag-group-status]').textContent, /保存できません/);
+    assert.match(
+        document.querySelector('[data-illustration-prompt-tag-group-status]').textContent,
+        /保存できません/,
+    );
 
     saveFails = false;
     document.querySelector('[data-illustration-prompt-tag-group-save]').click();
     await delay(0);
     assert.equal(check.checked, false);
-    assert.match(document.querySelector('[data-illustration-prompt-tag-group-status]').textContent, /保存済み/);
-    assert.match(document.querySelector('[data-illustration-prompt-tag-group-status]').textContent, /一覧/);
+    assert.match(
+        document.querySelector('[data-illustration-prompt-tag-group-status]').textContent,
+        /保存済み/,
+    );
+    assert.match(
+        document.querySelector('[data-illustration-prompt-tag-group-status]').textContent,
+        /一覧/,
+    );
 });
