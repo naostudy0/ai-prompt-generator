@@ -331,6 +331,22 @@
                     <h2>人物LoRAを差し替えてコピー</h2>
                     <button class="secondary-button" type="button" data-character-variant-close>閉じる</button>
                 </div>
+                <fieldset class="character-variant-groups">
+                    <legend>グループ</legend>
+                    <div class="character-variant-group-row">
+                        <label class="field-label" for="character-variant-group-select">保存済みグループ</label>
+                        <select id="character-variant-group-select" class="text-input" data-character-variant-group-select>
+                            <option value="">保存済みグループなし</option>
+                        </select>
+                        <button class="secondary-button" type="button" data-character-variant-group-load disabled>呼び出す</button>
+                        <button class="small-button small-button--danger" type="button" data-character-variant-group-delete disabled>削除</button>
+                    </div>
+                    <div class="character-variant-group-row">
+                        <label class="field-label" for="character-variant-group-name">新しいグループ名</label>
+                        <input id="character-variant-group-name" class="text-input" maxlength="100" data-character-variant-group-name>
+                        <button class="secondary-button" type="button" data-character-variant-group-save>現在のチェックで保存</button>
+                    </div>
+                </fieldset>
                 <label class="field-label" for="character-variant-search">人物LoRAを検索</label>
                 <input id="character-variant-search" class="text-input" type="search" data-character-variant-search>
                 <label class="field-label" for="character-variant-family">系統で絞り込む</label>
@@ -338,8 +354,8 @@
                     <option value="">すべての系統</option>
                 </select>
                 <div class="editor-actions">
-                    <button class="secondary-button" type="button" data-character-variant-select-all>全候補を選択</button>
-                    <button class="secondary-button" type="button" data-character-variant-clear-all>全候補を解除</button>
+                    <button class="secondary-button" type="button" data-character-variant-select-all>すべて選択</button>
+                    <button class="secondary-button" type="button" data-character-variant-clear-all>すべて解除</button>
                     <span data-character-variant-count>0件選択</span>
                 </div>
                 <p class="editor-status" data-character-variant-status role="status" aria-live="polite"></p>

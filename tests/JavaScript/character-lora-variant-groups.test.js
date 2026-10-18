@@ -67,11 +67,7 @@ test('前後空白と大文字小文字を無視して同名グループを探�
 
 test('追加と上書きと削除で元のグループ配列を変更しない', () => {
     const original = [{ name: 'A', candidateKeys: ['lora:1:trigger:none'] }];
-    const added = replaceCharacterLoraVariantGroup(
-        original,
-        { name: 'B', candidateKeys: [] },
-        -1,
-    );
+    const added = replaceCharacterLoraVariantGroup(original, { name: 'B', candidateKeys: [] }, -1);
     const replaced = replaceCharacterLoraVariantGroup(
         original,
         { name: 'A new', candidateKeys: ['lora:2:trigger:3'] },

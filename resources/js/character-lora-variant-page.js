@@ -130,8 +130,7 @@ export const initializeCharacterLoraVariantPage = ({
     const allCandidates = () => (snapshot ? getCharacterLoraCandidates(snapshot.options, '') : []);
     const selectedCandidates = () =>
         allCandidates().filter(
-            ({ lora, trigger }) =>
-                !unchecked.has(createCharacterLoraCandidateKey(lora, trigger)),
+            ({ lora, trigger }) => !unchecked.has(createCharacterLoraCandidateKey(lora, trigger)),
         );
     const updateCount = () => {
         const total = selectedCandidates().length;
@@ -459,9 +458,7 @@ export const initializeCharacterLoraVariantPage = ({
         if (!persisted) {
             setStatus('グループを呼び出しましたが、チェック状態をブラウザーへ保存できません。');
         } else if (resolved.unavailableCount > 0) {
-            setStatus(
-                `利用できない候補${resolved.unavailableCount}件を除いて呼び出しました。`,
-            );
+            setStatus(`利用できない候補${resolved.unavailableCount}件を除いて呼び出しました。`);
         } else {
             setStatus(`「${group.name}」を呼び出しました。`);
         }
