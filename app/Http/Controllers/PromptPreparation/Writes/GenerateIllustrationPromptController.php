@@ -36,6 +36,13 @@ final class GenerateIllustrationPromptController extends Controller
             'model' => $result->model,
             'promptStyle' => $result->promptStyle,
             'generationTimeMs' => $result->generationTimeMs,
+            'reusableTagGroups' => array_map(
+                static fn ($group): array => [
+                    'label' => $group->label,
+                    'tags' => $group->tags,
+                ],
+                $result->reusableTagGroups,
+            ),
         ]);
     }
 }

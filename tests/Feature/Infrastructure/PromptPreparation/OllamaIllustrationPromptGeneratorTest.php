@@ -43,6 +43,12 @@ final class OllamaIllustrationPromptGeneratorTest extends TestCase
                 'message' => ['content' => json_encode([
                     'positive_prompt' => '  1girl, blue eyes  ',
                     'negative_prompt' => '   ',
+                    'reusable_tag_groups' => [
+                        [
+                            'label' => ' 黒髪ロングの女の子 ',
+                            'tags' => ' 1girl, solo, long black hair ',
+                        ],
+                    ],
                 ], JSON_THROW_ON_ERROR)],
                 'total_duration' => 2_000_000_000,
                 'eval_duration' => 500_000_000,
@@ -59,6 +65,8 @@ final class OllamaIllustrationPromptGeneratorTest extends TestCase
         self::assertSame('1girl, blue eyes', $result->positivePrompt);
         self::assertSame('', $result->negativePrompt);
         self::assertSame('resolved-model', $result->model);
+        self::assertSame('黒髪ロングの女の子', $result->reusableTagGroups[0]->label);
+        self::assertSame('1girl, solo, long black hair', $result->reusableTagGroups[0]->tags);
         self::assertGreaterThanOrEqual(0, $result->generationTimeMs);
         Http::assertSent(function (Request $request): bool {
             $data = $request->data();
@@ -74,7 +82,17 @@ final class OllamaIllustrationPromptGeneratorTest extends TestCase
                     ['role' => 'user', 'content' => 'USER DESCRIPTION SECRET'],
                 ]
                 && $data['format']['type'] === 'object'
-                && $data['format']['required'] === ['positive_prompt', 'negative_prompt'];
+                && $data['format']['required'] === [
+                    'positive_prompt',
+                    'negative_prompt',
+                    'reusable_tag_groups',
+                ]
+                && $data['format']['properties']['reusable_tag_groups']['minItems'] === 1
+                && $data['format']['properties']['reusable_tag_groups']['maxItems'] === 10
+                && $data['format']['properties']['reusable_tag_groups']['items']['required'] === [
+                    'label',
+                    'tags',
+                ];
         });
         self::assertSame('Illustration prompt generation completed.', $loggedMessage);
         self::assertIsArray($loggedContext);
@@ -89,6 +107,7 @@ final class OllamaIllustrationPromptGeneratorTest extends TestCase
         $encoded = json_encode($loggedContext, JSON_THROW_ON_ERROR);
         self::assertStringNotContainsString('SECRET', $encoded);
         self::assertStringNotContainsString('1girl', $encoded);
+        self::assertStringNotContainsString('黒髪ロングの女の子', $encoded);
     }
 
     #[DataProvider('unavailableResponses')]
@@ -152,6 +171,26 @@ final class OllamaIllustrationPromptGeneratorTest extends TestCase
             'missing key' => [['message' => ['content' => '{"positive_prompt":"ok"}']]],
             'wrong type' => [['message' => ['content' => '{"positive_prompt":1,"negative_prompt":""}']]],
             'empty positive' => [['message' => ['content' => '{"positive_prompt":" ","negative_prompt":""}']]],
+            'missing reusable groups' => [['message' => ['content' => '{"positive_prompt":"ok","negative_prompt":""}']]],
+            'empty reusable groups' => [['message' => ['content' => '{"positive_prompt":"ok","negative_prompt":"","reusable_tag_groups":[]}']]],
+            'too many reusable groups' => [['message' => ['content' => json_encode([
+                'positive_prompt' => 'ok',
+                'negative_prompt' => '',
+                'reusable_tag_groups' => array_fill(0, 11, ['label' => '場面', 'tags' => 'sunset']),
+            ], JSON_THROW_ON_ERROR)]]],
+            'reusable groups is not a list' => [['message' => ['content' => '{"positive_prompt":"ok","negative_prompt":"","reusable_tag_groups":{"label":"場面","tags":"sunset"}}']]],
+            'reusable group is not an object' => [['message' => ['content' => '{"positive_prompt":"ok","negative_prompt":"","reusable_tag_groups":[[]]}']]],
+            'empty reusable label' => [['message' => ['content' => '{"positive_prompt":"ok","negative_prompt":"","reusable_tag_groups":[{"label":"　","tags":"sunset"}]}']]],
+            'long reusable label' => [['message' => ['content' => json_encode([
+                'positive_prompt' => 'ok',
+                'negative_prompt' => '',
+                'reusable_tag_groups' => [[
+                    'label' => str_repeat('あ', 101),
+                    'tags' => 'sunset',
+                ]],
+            ], JSON_THROW_ON_ERROR)]]],
+            'reusable tags wrong type' => [['message' => ['content' => '{"positive_prompt":"ok","negative_prompt":"","reusable_tag_groups":[{"label":"場面","tags":1}]}']]],
+            'reusable tags only separators' => [['message' => ['content' => '{"positive_prompt":"ok","negative_prompt":"","reusable_tag_groups":[{"label":"場面","tags":" ,　, "}]}']]],
         ];
     }
 
@@ -167,7 +206,7 @@ final class OllamaIllustrationPromptGeneratorTest extends TestCase
         });
         Http::fake(['*' => Http::response(array_merge([
             'model' => 'model',
-            'message' => ['content' => '{"positive_prompt":"ok","negative_prompt":""}'],
+            'message' => ['content' => '{"positive_prompt":"ok","negative_prompt":"","reusable_tag_groups":[{"label":"場面","tags":"sunset"}]}'],
         ], $metrics))]);
 
         app(OllamaIllustrationPromptGenerator::class)->generate('system', 'description');
