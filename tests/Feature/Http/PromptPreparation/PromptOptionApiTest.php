@@ -230,6 +230,18 @@ class PromptOptionApiTest extends TestCase
         ]);
     }
 
+    public function test_システム管理状態だけを一覧へ公開して内部キーは公開しない(): void
+    {
+        $groupId = $this->createSystemManagedGroup();
+
+        $response = $this->getJson(route('prompt-options.index'))->assertOk();
+
+        $response->assertJsonPath('groups.0.systemManaged', false)
+            ->assertJsonPath('groups.6.id', $groupId)
+            ->assertJsonPath('groups.6.systemManaged', true)
+            ->assertJsonMissingPath('groups.6.systemKey');
+    }
+
     private function create(string $name, string $content, int $groupId): int
     {
         return (int) $this->postJson(route('prompt-options.store'), [

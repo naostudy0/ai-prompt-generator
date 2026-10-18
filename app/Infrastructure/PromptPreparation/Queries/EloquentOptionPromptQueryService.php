@@ -13,7 +13,7 @@ final class EloquentOptionPromptQueryService implements OptionPromptQueryService
         $options = DB::table('option_prompts')->orderBy('position')
             ->get(['id', 'option_prompt_group_id', 'position', 'name', 'content'])->groupBy('option_prompt_group_id');
         $groups = DB::table('option_prompt_groups')->orderBy('position')
-            ->get(['id', 'option_category_id', 'name', 'selection_mode', 'position'])
+            ->get(['id', 'option_category_id', 'name', 'selection_mode', 'position', 'system_key'])
             ->map(function (object $group) use ($options): array {
                 return [
                     'id' => (int) $group->id,
@@ -21,6 +21,7 @@ final class EloquentOptionPromptQueryService implements OptionPromptQueryService
                     'name' => (string) $group->name,
                     'selectionMode' => (string) $group->selection_mode,
                     'position' => (int) $group->position,
+                    'systemManaged' => $group->system_key !== null,
                     'options' => array_values($options->get($group->id, collect())->map(function (object $row): array {
                         $data = (array) $row;
 

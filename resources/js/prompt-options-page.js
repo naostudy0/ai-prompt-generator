@@ -33,6 +33,8 @@ export const initializePromptOptionsPage = ({
             restoreSelection: () => false,
             reset: () => {},
             reorderGroup: () => {},
+            changeGroupCategory: () => {},
+            reload: async () => {},
         };
     }
 
@@ -173,6 +175,9 @@ export const initializePromptOptionsPage = ({
     };
 
     const moveGroupToIndex = (id, index) => {
+        if (groupById(id)?.systemManaged) {
+            return;
+        }
         const without = groups.filter((group) => group.id !== id);
         const beforeId = without[index]?.id ?? null;
         void runMove(
@@ -497,7 +502,8 @@ export const initializePromptOptionsPage = ({
             drag.type = 'button';
             drag.className = 'drag-handle';
             drag.textContent = '☰';
-            drag.draggable = loaded && !busy;
+            drag.draggable = loaded && !busy && !group.systemManaged;
+            drag.disabled = !loaded || busy || group.systemManaged;
             drag.setAttribute('aria-label', `${group.name}をドラッグして移動`);
             drag.addEventListener('dragstart', () => {
                 draggedGroupId = group.id;
@@ -513,20 +519,24 @@ export const initializePromptOptionsPage = ({
             const mode = documentObject.createElement('span');
             mode.className = 'selection-mode';
             mode.textContent = group.selectionMode === 'single' ? '1つ選択' : '複数選択';
+            const systemManaged = documentObject.createElement('span');
+            systemManaged.className = 'selection-mode';
+            systemManaged.textContent = 'システム管理';
+            systemManaged.hidden = !group.systemManaged;
             const groupActions = documentObject.createElement('div');
             groupActions.className = 'list-actions';
             for (const [label, action, disabled] of [
                 [
                     '上へ',
                     () => moveGroupToIndex(group.id, Math.max(0, groupIndex - 1)),
-                    groupIndex === 0,
+                    group.systemManaged || groupIndex === 0,
                 ],
                 [
                     '下へ',
                     () => moveGroupToIndex(group.id, groupIndex + 1),
-                    groupIndex === groups.length - 1,
+                    group.systemManaged || groupIndex === groups.length - 1,
                 ],
-                ['編集', () => openGroupForm(group), false],
+                ['編集', () => openGroupForm(group), group.systemManaged],
                 ['項目追加', () => openItemForm(group.id), false],
             ]) {
                 const button = documentObject.createElement('button');
@@ -537,7 +547,7 @@ export const initializePromptOptionsPage = ({
                 button.addEventListener('click', action);
                 groupActions.append(button);
             }
-            heading.append(drag, title, mode, groupActions);
+            heading.append(drag, title, mode, systemManaged, groupActions);
 
             const search = documentObject.createElement('input');
             search.type = 'search';
@@ -643,6 +653,7 @@ export const initializePromptOptionsPage = ({
                     group.categoryId === null || group.categoryId === undefined
                         ? ''
                         : String(group.categoryId);
+                select.disabled = !loaded || busy || group.systemManaged;
                 select.addEventListener(
                     'change',
                     () =>
@@ -1100,7 +1111,7 @@ export const initializePromptOptionsPage = ({
     void load();
     return {
         reorderGroup: (id, beforeId) => {
-            if (!loaded || busy || id === beforeId || !groupById(id)) {
+            if (!loaded || busy || id === beforeId || !groupById(id) || groupById(id).systemManaged) {
                 return;
             }
             const without = groups.filter((group) => group.id !== id);
@@ -1114,11 +1125,12 @@ export const initializePromptOptionsPage = ({
             moveGroupToIndex(id, index);
         },
         changeGroupCategory: (id, categoryId) => {
-            if (!loaded || busy || !groupById(id)) {
+            if (!loaded || busy || !groupById(id) || groupById(id).systemManaged) {
                 return;
             }
             void assignCategory(id, categoryId);
         },
+        reload: () => load(),
         getSections: () => ({ optionGroups: createOptionSections(groups, selectedIds) }),
         getSelectionSnapshot: () => [...selectedIds],
         restoreSelection: (snapshot) => {
