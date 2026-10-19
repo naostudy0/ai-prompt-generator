@@ -1,0 +1,1 @@
+Regenerate only the target scene as Danbooru-style tags while preserving the surrounding scenario and unspecified continuity. Return only JSON.

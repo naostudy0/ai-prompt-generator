@@ -1,0 +1,1 @@
+Create concise English positive and negative image prompts for every ordered scene. Preserve continuity unless changes_from_previous explicitly changes an element. Return only JSON.

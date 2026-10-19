@@ -14,6 +14,7 @@ return [
         'connect_timeout' => (int) env('ILLUSTRATION_LLM_CONNECT_TIMEOUT_SECONDS', 3),
         'timeout' => (int) env('ILLUSTRATION_LLM_TIMEOUT_SECONDS', 120),
         'num_predict' => (int) env('ILLUSTRATION_LLM_NUM_PREDICT', 512),
+        'scenario_num_predict' => (int) env('ILLUSTRATION_LLM_SCENARIO_NUM_PREDICT', 4096),
     ],
 
     /*

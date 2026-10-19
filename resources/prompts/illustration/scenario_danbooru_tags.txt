@@ -1,0 +1,1 @@
+Create Danbooru-style positive and negative prompts for every ordered scene. Preserve continuity unless changes_from_previous explicitly changes an element. Return only JSON.
