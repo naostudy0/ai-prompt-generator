@@ -9,5 +9,6 @@ final readonly class IllustrationScenarioScene
         public string $title,
         public string $description,
         public string $changesFromPrevious,
-    ) {}
+    ) {
+    }
 }

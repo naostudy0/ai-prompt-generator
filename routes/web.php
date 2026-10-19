@@ -33,6 +33,7 @@ use App\Http\Controllers\PromptPreparation\Writes\MoveOptionPromptGroupControlle
 use App\Http\Controllers\PromptPreparation\Writes\PlanIllustrationScenarioController;
 use App\Http\Controllers\PromptPreparation\Writes\QueueComfyUiPromptBatchController;
 use App\Http\Controllers\PromptPreparation\Writes\QueueComfyUiPromptController;
+use App\Http\Controllers\PromptPreparation\Writes\RegenerateScenarioScenePromptController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveClothingLoraController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveClothingLoraTriggerController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveComfyUiWorkflowController;
@@ -48,7 +49,6 @@ use App\Http\Controllers\PromptPreparation\Writes\SaveOptionCategoryController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveOptionPromptController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveOptionPromptGroupController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveOutfitPromptController;
-use App\Http\Controllers\PromptPreparation\Writes\RegenerateScenarioScenePromptController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', PromptPreparationPageController::class)->name('prompt-preparation');

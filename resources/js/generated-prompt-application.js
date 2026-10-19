@@ -1,13 +1,14 @@
 import { createAiCharacterLoraOutput } from './character-lora-variant.js';
 import { joinPromptSections } from './default-prompts.js';
 
-export const createGeneratedPromptApplication = ({
-    getDefaultPrompts,
-    getSelectedCharacterLora,
-    getActiveFamilySource,
-    applyOutputPair,
-    afterApply = () => {},
-}) =>
+export const createGeneratedPromptApplication =
+    ({
+        getDefaultPrompts,
+        getSelectedCharacterLora,
+        getActiveFamilySource,
+        applyOutputPair,
+        afterApply = () => {},
+    }) =>
     ({ positivePrompt, negativePrompt, includeDefaultPrompts }) => {
         if (positivePrompt.trim() === '') {
             return false;

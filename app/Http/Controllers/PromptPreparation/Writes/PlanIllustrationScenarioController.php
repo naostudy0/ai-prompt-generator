@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\PromptPreparation\Writes;
 
 use App\Application\PromptPreparation\Exceptions\IllustrationPromptServiceUnavailable;

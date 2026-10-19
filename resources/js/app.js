@@ -1045,7 +1045,8 @@ export const initializePromptPreparationPage = ({
         csrfToken,
         confirmAction: (message) => view.confirm(message),
         createId: () =>
-            view.crypto?.randomUUID?.() ?? `scene-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+            view.crypto?.randomUUID?.() ??
+            `scene-${Date.now()}-${Math.random().toString(16).slice(2)}`,
         applyPrompt: applyGeneratedPrompt,
     });
     initializeComfyUiPage({

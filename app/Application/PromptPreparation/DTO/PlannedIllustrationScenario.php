@@ -10,5 +10,6 @@ final readonly class PlannedIllustrationScenario
         public array $scenes,
         public string $model,
         public int $generationTimeMs,
-    ) {}
+    ) {
+    }
 }

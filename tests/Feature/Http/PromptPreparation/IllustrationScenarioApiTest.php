@@ -16,7 +16,7 @@ final class IllustrationScenarioApiTest extends TestCase
 {
     public function test_シナリオ案を生成してcamelCaseで返す(): void
     {
-        $this->app->instance(IllustrationScenarioPlanner::class, new class implements IllustrationScenarioPlanner {
+        $this->app->instance(IllustrationScenarioPlanner::class, new class () implements IllustrationScenarioPlanner {
             public function plan(string $systemPrompt, string $description, int $sceneCount): PlannedIllustrationScenario
             {
                 return new PlannedIllustrationScenario('同じ人物', [new IllustrationScenarioScene('scene-1', '出発', '家を出る', '')], 'model', 12);
@@ -56,7 +56,7 @@ final class IllustrationScenarioApiTest extends TestCase
 
     public function test_外部サービスの不正応答を502へ変換する(): void
     {
-        $this->app->instance(IllustrationScenarioPlanner::class, new class implements IllustrationScenarioPlanner {
+        $this->app->instance(IllustrationScenarioPlanner::class, new class () implements IllustrationScenarioPlanner {
             public function plan(string $systemPrompt, string $description, int $sceneCount): PlannedIllustrationScenario
             {
                 throw new InvalidIllustrationPromptResponse('raw upstream response');
@@ -69,11 +69,16 @@ final class IllustrationScenarioApiTest extends TestCase
 
     private function bindGenerator(): void
     {
-        $this->app->instance(ScenarioIllustrationPromptGenerator::class, new class implements ScenarioIllustrationPromptGenerator {
+        $this->app->instance(ScenarioIllustrationPromptGenerator::class, new class () implements ScenarioIllustrationPromptGenerator {
+            /** @param list<IllustrationScenarioScene> $scenes */
             public function generateAll(string $systemPrompt, string $description, string $continuityNotes, array $scenes, PromptStyle $promptStyle): GeneratedScenarioPrompts
             {
                 return new GeneratedScenarioPrompts([new ScenarioIllustrationPrompt('a', 'p a', ''), new ScenarioIllustrationPrompt('b', 'p b', '')], 'model', 20);
             }
+            /**
+             * @param list<IllustrationScenarioScene> $scenes
+             * @param list<ScenarioIllustrationPrompt> $currentPrompts
+             */
             public function regenerateOne(string $systemPrompt, string $description, string $continuityNotes, array $scenes, array $currentPrompts, string $targetId, string $instruction, PromptStyle $promptStyle): ScenarioIllustrationPrompt
             {
                 return new ScenarioIllustrationPrompt($targetId, 'new '.$targetId, 'negative');
@@ -81,6 +86,7 @@ final class IllustrationScenarioApiTest extends TestCase
         });
     }
 
+    /** @return array<string, mixed> */
     private function scenarioPayload(): array
     {
         return ['description' => '登山', 'continuityNotes' => '同じ人物', 'promptStyle' => 'danbooru_tags', 'scenes' => [

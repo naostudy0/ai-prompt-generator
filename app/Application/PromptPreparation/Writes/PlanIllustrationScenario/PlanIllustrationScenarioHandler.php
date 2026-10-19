@@ -10,7 +10,8 @@ final readonly class PlanIllustrationScenarioHandler
     public function __construct(
         private IllustrationScenarioInstructions $instructions,
         private IllustrationScenarioPlanner $planner,
-    ) {}
+    ) {
+    }
 
     public function handle(PlanIllustrationScenarioInput $input): PlanIllustrationScenarioResult
     {

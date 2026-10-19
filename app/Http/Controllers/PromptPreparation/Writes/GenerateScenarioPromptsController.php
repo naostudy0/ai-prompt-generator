@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\PromptPreparation\Writes;
 
 use App\Application\PromptPreparation\DTO\IllustrationScenarioScene;
@@ -16,7 +17,9 @@ final class GenerateScenarioPromptsController extends Controller
     public function __invoke(GenerateScenarioPromptsRequest $request, GenerateScenarioPromptsHandler $handler): JsonResponse
     {
         $style = PromptStyle::from((string) $request->input('promptStyle', PromptStyle::DanbooruTags->value));
-        $scenes = array_map(static fn (array $scene): IllustrationScenarioScene => new IllustrationScenarioScene($scene['id'], $scene['title'], $scene['description'], (string) $scene['changesFromPrevious']), $request->validated('scenes'));
+        /** @var list<array{id: string, title: string, description: string, changesFromPrevious: string|null}> $validatedScenes */
+        $validatedScenes = array_values($request->validated('scenes'));
+        $scenes = array_map(static fn (array $scene): IllustrationScenarioScene => new IllustrationScenarioScene($scene['id'], $scene['title'], $scene['description'], (string) $scene['changesFromPrevious']), $validatedScenes);
         try {
             $result = $handler->handle(new GenerateScenarioPromptsInput((string) $request->validated('description'), (string) $request->validated('continuityNotes'), $scenes, $style));
         } catch (IllustrationPromptServiceUnavailable) {

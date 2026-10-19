@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\PromptPreparation\Writes;
 
 use App\Application\PromptPreparation\DTO\IllustrationScenarioScene;
@@ -17,8 +18,12 @@ final class RegenerateScenarioScenePromptController extends Controller
     public function __invoke(RegenerateScenarioScenePromptRequest $request, RegenerateScenarioScenePromptHandler $handler): JsonResponse
     {
         $style = PromptStyle::from((string) $request->input('promptStyle', PromptStyle::DanbooruTags->value));
-        $scenes = array_map(static fn (array $scene): IllustrationScenarioScene => new IllustrationScenarioScene($scene['id'], $scene['title'], $scene['description'], (string) $scene['changesFromPrevious']), $request->validated('scenes'));
-        $prompts = array_map(static fn (array $scene): ScenarioIllustrationPrompt => new ScenarioIllustrationPrompt($scene['id'], $scene['positivePrompt'], (string) $scene['negativePrompt']), $request->validated('currentPrompts'));
+        /** @var list<array{id: string, title: string, description: string, changesFromPrevious: string|null}> $validatedScenes */
+        $validatedScenes = array_values($request->validated('scenes'));
+        /** @var list<array{id: string, positivePrompt: string, negativePrompt: string|null}> $validatedPrompts */
+        $validatedPrompts = array_values($request->validated('currentPrompts'));
+        $scenes = array_map(static fn (array $scene): IllustrationScenarioScene => new IllustrationScenarioScene($scene['id'], $scene['title'], $scene['description'], (string) $scene['changesFromPrevious']), $validatedScenes);
+        $prompts = array_map(static fn (array $scene): ScenarioIllustrationPrompt => new ScenarioIllustrationPrompt($scene['id'], $scene['positivePrompt'], (string) $scene['negativePrompt']), $validatedPrompts);
         try {
             $result = $handler->handle(new RegenerateScenarioScenePromptInput((string) $request->validated('description'), (string) $request->validated('continuityNotes'), $scenes, $prompts, (string) $request->validated('targetId'), (string) $request->validated('instruction'), $style));
         } catch (IllustrationPromptServiceUnavailable) {
