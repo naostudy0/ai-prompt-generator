@@ -26,9 +26,11 @@ use App\Http\Controllers\PromptPreparation\Writes\DeleteOptionCategoryController
 use App\Http\Controllers\PromptPreparation\Writes\DeleteOptionPromptController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteOutfitPromptController;
 use App\Http\Controllers\PromptPreparation\Writes\GenerateIllustrationPromptController;
+use App\Http\Controllers\PromptPreparation\Writes\GenerateScenarioPromptsController;
 use App\Http\Controllers\PromptPreparation\Writes\MoveOptionCategoryController;
 use App\Http\Controllers\PromptPreparation\Writes\MoveOptionPromptController;
 use App\Http\Controllers\PromptPreparation\Writes\MoveOptionPromptGroupController;
+use App\Http\Controllers\PromptPreparation\Writes\PlanIllustrationScenarioController;
 use App\Http\Controllers\PromptPreparation\Writes\QueueComfyUiPromptBatchController;
 use App\Http\Controllers\PromptPreparation\Writes\QueueComfyUiPromptController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveClothingLoraController;
@@ -46,6 +48,7 @@ use App\Http\Controllers\PromptPreparation\Writes\SaveOptionCategoryController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveOptionPromptController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveOptionPromptGroupController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveOutfitPromptController;
+use App\Http\Controllers\PromptPreparation\Writes\RegenerateScenarioScenePromptController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', PromptPreparationPageController::class)->name('prompt-preparation');
@@ -89,6 +92,9 @@ Route::post('/comfyui/prompts/batch', QueueComfyUiPromptBatchController::class)
     ->name('comfyui-prompts.batch');
 Route::post('/illustration-prompts/generate', GenerateIllustrationPromptController::class)
     ->name('illustration-prompts.generate');
+Route::post('/illustration-scenarios/plan', PlanIllustrationScenarioController::class)->name('illustration-scenarios.plan');
+Route::post('/illustration-scenarios/prompts', GenerateScenarioPromptsController::class)->name('illustration-scenarios.prompts.generate');
+Route::post('/illustration-scenarios/scenes/prompt', RegenerateScenarioScenePromptController::class)->name('illustration-scenarios.scenes.prompt');
 Route::post('/illustration-prompt-tag-groups', SaveIllustrationPromptTagGroupsController::class)
     ->name('illustration-prompt-tag-groups.store');
 
