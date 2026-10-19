@@ -15,6 +15,7 @@ final class OllamaIllustrationScenarioGeneratorTest extends TestCase
 {
     public function test_指定件数の構造化シナリオ案を生成する(): void
     {
+        config(['services.illustration_llm.model' => 'gemma3:12b']);
         Http::fake(['*' => Http::response(['model' => 'test-model', 'message' => ['content' => json_encode([
             'continuity_notes' => '同じ人物',
             'scenes' => [
