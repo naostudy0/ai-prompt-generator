@@ -1,6 +1,5 @@
 import {
     createPromptOutputs,
-    joinPromptSections,
     requestDefaultPrompts,
     requestSaveDefaultPrompt,
     writePromptToClipboard,
@@ -18,8 +17,8 @@ import { initializeFavoritePromptsPage } from './favorite-prompts-page.js';
 import { normalizePromptForComparison } from './prompt-text.js';
 import { initializeCharacterLoraVariantPage } from './character-lora-variant-page.js';
 import { initializeIllustrationPromptGenerator } from './illustration-prompt-generator.js';
+import { createGeneratedPromptApplication } from './generated-prompt-application.js';
 import {
-    createAiCharacterLoraOutput,
     createCharacterLoraSourceMetadata,
     locateCharacterLoraSourceMetadata,
     trackCharacterLoraSourceEdit,
@@ -1002,6 +1001,28 @@ export const initializePromptPreparationPage = ({
         fetcher,
         csrfToken,
     });
+    const applyGeneratedPrompt = createGeneratedPromptApplication({
+        getDefaultPrompts: () => {
+            const currentPrompts = familyPrompts.get(activeFamilyId());
+            return currentPrompts
+                ? createPromptOutputs(currentPrompts, selectedPrompts)
+                : { positive: '', negative: '' };
+        },
+        getSelectedCharacterLora: () => {
+            const selected = loraOptionsController.getSelections();
+            return {
+                lora: selected.lora,
+                trigger: selected.trigger,
+                loraId: loraOptionsController.getSelectedLoraId?.() ?? null,
+            };
+        },
+        getActiveFamilySource: () => ({
+            modelFamilyId: activeFamilyId(),
+            defaults: { ...selectedPrompts },
+        }),
+        applyOutputPair,
+        afterApply: () => outputSection?.scrollIntoView?.({ behavior: 'smooth', block: 'start' }),
+    });
     initializeIllustrationPromptGenerator({
         page,
         documentObject,
@@ -1014,39 +1035,7 @@ export const initializePromptPreparationPage = ({
                 : { positive: '', negative: '' };
         },
         reloadPromptOptions: () => promptCategoriesController.reload(),
-        applyPrompt: ({ positivePrompt, negativePrompt, includeDefaultPrompts }) => {
-            if (positivePrompt.trim() === '') {
-                return;
-            }
-            const currentPrompts = familyPrompts.get(activeFamilyId());
-            const includedSelections = {
-                positive: includeDefaultPrompts && selectedPrompts.positive,
-                negative: includeDefaultPrompts && selectedPrompts.negative,
-            };
-            const defaultSections = currentPrompts
-                ? createPromptOutputs(currentPrompts, includedSelections)
-                : { positive: '', negative: '' };
-            const positiveBase = joinPromptSections([defaultSections.positive, positivePrompt]);
-            const combinedNegative = joinPromptSections([defaultSections.negative, negativePrompt]);
-            const selectedLora = loraOptionsController.getSelections();
-            const aiOutput = createAiCharacterLoraOutput(
-                positiveBase,
-                selectedLora.lora,
-                selectedLora.trigger,
-            );
-            applyOutputPair({
-                positive: aiOutput.positive,
-                negative: combinedNegative,
-                variantMetadata: aiOutput.metadata,
-                variantFamily: {
-                    modelFamilyId: activeFamilyId(),
-                    loraId: loraOptionsController.getSelectedLoraId?.() ?? null,
-                    defaults: includedSelections,
-                    defaultSections,
-                },
-            });
-            outputSection?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
-        },
+        applyPrompt: applyGeneratedPrompt,
     });
     initializeComfyUiPage({
         page,
