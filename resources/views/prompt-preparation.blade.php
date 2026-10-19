@@ -33,6 +33,9 @@
             data-generation-setting-options-url="{{ $generationSettingOptionsUrl }}"
             data-illustration-prompt-generation-url="{{ $illustrationPromptGenerationUrl }}"
             data-illustration-prompt-tag-groups-url="{{ $illustrationPromptTagGroupsUrl }}"
+            data-illustration-scenario-plan-url="{{ $illustrationScenarioPlanUrl }}"
+            data-illustration-scenario-prompts-url="{{ $illustrationScenarioPromptsUrl }}"
+            data-illustration-scenario-scene-prompt-url="{{ $illustrationScenarioScenePromptUrl }}"
         >
             <nav class="prompt-sidebar section-navigation" aria-labelledby="section-navigation-heading">
                 <h2 id="section-navigation-heading">セクション</h2>
@@ -44,7 +47,45 @@
                 <p class="eyebrow">AI IMAGE PROMPT BUILDER</p>
                 <h1>プロンプトを組み立てる</h1>
                 <button class="secondary-button" type="button" data-illustration-prompt-open>AIでプロンプトを作成</button>
+                <button class="secondary-button" type="button" data-scenario-open>シナリオを作成</button>
             </header>
+
+            <dialog class="option-dialog illustration-scenario-dialog" data-scenario-dialog aria-labelledby="illustration-scenario-heading">
+                <div class="illustration-scenario-dialog__content">
+                    <div class="illustration-scenario-dialog__header">
+                        <h2 id="illustration-scenario-heading">シナリオを作成</h2>
+                        <button type="button" class="small-button" data-scenario-close>閉じる</button>
+                    </div>
+                    <label class="field-label" for="scenario-description">シナリオの元になる内容</label>
+                    <textarea id="scenario-description" class="text-input illustration-scenario-dialog__description" maxlength="2000" data-scenario-description></textarea>
+                    <div class="illustration-scenario-dialog__settings">
+                        <label class="field-label" for="scenario-count">場面数</label>
+                        <input id="scenario-count" class="text-input" type="number" min="3" max="10" value="5" data-scenario-count>
+                        <label class="field-label" for="scenario-style">プロンプト形式</label>
+                        <select id="scenario-style" class="text-input" data-scenario-style>
+                            <option value="danbooru_tags">Danbooruタグ</option>
+                            <option value="natural_language">自然文</option>
+                        </select>
+                    </div>
+                    <button type="button" class="primary-button" data-scenario-plan>シナリオ案を作成</button>
+                    <p role="status" aria-live="polite" data-scenario-status></p>
+
+                    <section class="illustration-scenario-dialog__edit" data-scenario-edit hidden>
+                        <h3>流れと場面を編集</h3>
+                        <label class="field-label" for="scenario-continuity">全場面で固定する要素</label>
+                        <textarea id="scenario-continuity" class="text-input" maxlength="2000" data-scenario-continuity></textarea>
+                        <div class="illustration-scenario-dialog__scenes" data-scenario-scenes></div>
+                        <button type="button" class="secondary-button" data-scenario-add>場面を追加</button>
+                        <button type="button" class="primary-button" data-scenario-generate>全場面のプロンプトを生成</button>
+                    </section>
+
+                    <section class="illustration-scenario-dialog__results" data-scenario-results hidden>
+                        <h3>生成結果</h3>
+                        <p class="muted-text">場面ごとに確認・再生成し、既存の出力へ一つずつ反映できます。</p>
+                        <div class="illustration-scenario-dialog__result-list" data-scenario-result-list></div>
+                    </section>
+                </div>
+            </dialog>
 
             <dialog class="option-dialog illustration-prompt-dialog" data-illustration-prompt-dialog aria-labelledby="illustration-prompt-heading">
                 <div class="illustration-prompt-dialog__content">

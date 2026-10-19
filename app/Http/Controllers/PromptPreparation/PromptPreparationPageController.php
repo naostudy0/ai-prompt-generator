@@ -36,6 +36,9 @@ final class PromptPreparationPageController extends Controller
             'generationSettingOptionsUrl' => url('/generation-setting-options'),
             'illustrationPromptGenerationUrl' => route('illustration-prompts.generate'),
             'illustrationPromptTagGroupsUrl' => route('illustration-prompt-tag-groups.store'),
+            'illustrationScenarioPlanUrl' => route('illustration-scenarios.plan'),
+            'illustrationScenarioPromptsUrl' => route('illustration-scenarios.prompts.generate'),
+            'illustrationScenarioScenePromptUrl' => route('illustration-scenarios.scenes.prompt'),
         ]);
     }
 }

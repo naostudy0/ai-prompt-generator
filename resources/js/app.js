@@ -17,6 +17,7 @@ import { initializeFavoritePromptsPage } from './favorite-prompts-page.js';
 import { normalizePromptForComparison } from './prompt-text.js';
 import { initializeCharacterLoraVariantPage } from './character-lora-variant-page.js';
 import { initializeIllustrationPromptGenerator } from './illustration-prompt-generator.js';
+import { initializeIllustrationScenarioGenerator } from './illustration-scenario-generator.js';
 import { createGeneratedPromptApplication } from './generated-prompt-application.js';
 import {
     createCharacterLoraSourceMetadata,
@@ -1035,6 +1036,16 @@ export const initializePromptPreparationPage = ({
                 : { positive: '', negative: '' };
         },
         reloadPromptOptions: () => promptCategoriesController.reload(),
+        applyPrompt: applyGeneratedPrompt,
+    });
+    initializeIllustrationScenarioGenerator({
+        page,
+        documentObject,
+        fetcher,
+        csrfToken,
+        confirmAction: (message) => view.confirm(message),
+        createId: () =>
+            view.crypto?.randomUUID?.() ?? `scene-${Date.now()}-${Math.random().toString(16).slice(2)}`,
         applyPrompt: applyGeneratedPrompt,
     });
     initializeComfyUiPage({

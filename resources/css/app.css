@@ -65,10 +65,66 @@
     min-height: 4rem;
 }
 
+.illustration-scenario-dialog {
+    width: min(64rem, calc(100vw - 2rem));
+    max-height: calc(100vh - 2rem);
+}
+
+.illustration-scenario-dialog__content,
+.illustration-scenario-dialog__edit,
+.illustration-scenario-dialog__results,
+.illustration-scenario-dialog__scenes,
+.illustration-scenario-dialog__result-list {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.illustration-scenario-dialog__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.illustration-scenario-dialog__settings {
+    display: grid;
+    grid-template-columns: auto minmax(5rem, 8rem) auto minmax(10rem, 1fr);
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.illustration-scenario-dialog__description,
+.illustration-scenario-dialog [data-scenario-continuity] {
+    min-height: 7rem;
+}
+
+.illustration-scenario-dialog [data-scenario-scene],
+.illustration-scenario-dialog [data-scenario-result] {
+    display: grid;
+    gap: 0.6rem;
+    padding: 1rem;
+    border: 1px solid #4f5e52;
+    border-radius: 0.65rem;
+}
+
+.illustration-scenario-dialog [data-scenario-scene] textarea,
+.illustration-scenario-dialog [data-scenario-result] textarea {
+    min-height: 5rem;
+}
+
+.illustration-scenario-dialog [hidden] {
+    display: none;
+}
+
 @media (max-width: 640px) {
-    .illustration-prompt-dialog__header {
+    .illustration-prompt-dialog__header,
+    .illustration-scenario-dialog__header {
         align-items: stretch;
         flex-direction: column;
+    }
+
+    .illustration-scenario-dialog__settings {
+        grid-template-columns: 1fr;
     }
 }
 
