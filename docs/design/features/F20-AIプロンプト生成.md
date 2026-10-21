@@ -57,6 +57,14 @@
 
 `danbooru_tags`ではカンマ区切りの英語タグを使い、Danbooru系の既存タグを優先して重複を抑える。正確性が不明な特殊タグを無理に作らない。`natural_language`では画像生成AIが理解しやすい自然な英文とし、人物、背景、照明、構図を具体化しつつ冗長にしない。
 
+2人以上の人物を含む場合、`positive_prompt`は英語で次の順序に構造化する。
+
+1. `[Scene]`に総人数、性別ごとの人数、背景、構図、照明を書く。
+2. 人物ごとに`[Character A]`から順に一つのセクションを作り、その人物自身の性別、容姿、服装、位置、表情、動作だけを書く。
+3. `[Interactions]`に人物間の動作を、主体と対象をCharacterラベルで明示して書く。
+
+人物数、性別、動作の主体と対象は利用者の指定から変更せず、人物間で特徴、服装、動作を混同しない。`danbooru_tags`では各セクション内を簡潔なカンマ区切りタグ、`natural_language`では簡潔な英文とする。人物が1人の場合はセクション見出しを付けず、従来の形式を使う。`negative_prompt`と`reusable_tag_groups`の形式は変更しない。
+
 ### 人物LoRAと生成結果
 
 現在選択中の人物LoRAタグとトリガー文面はLLMへ送らない。LLMは利用者の説明だけを基に候補を生成する。
@@ -104,8 +112,11 @@ System Promptは次の専用資材とし、PHPコード内の長文リテラル�
 ```text
 resources/prompts/illustration/
 ├── danbooru_tags.txt
-└── natural_language.txt
+├── natural_language.txt
+└── multiple_character_prompt_rules.txt
 ```
+
+`multiple_character_prompt_rules.txt`はF20とF23で同じ意味を持つ複数人物の構造化規則を一元管理し、各形式・各生成経路の専用指示へ読み込み時に連結する。シナリオ案は画像用positiveを生成しないため、この共通規則を連結しない。
 
 ### 応答検証
 
@@ -230,6 +241,8 @@ AI生成UIのDOM参照、通信、プレビュー、反映を担当するJavaScr
 | --- | --- | --- |
 | R01・R02・R03 | 架空の日本語説明と`danbooru_tags`で生成する | 明示内容と矛盾しないカンマ区切り英語positiveと英語negativeがプレビューに表示される |
 | R02 | 形式を指定せず生成する | `danbooru_tags`用System Promptが使われ、レスポンスに同じ形式が返る |
+| R02 | 2人以上を指定して生成する | positiveがScene、人数分のCharacter、Interactionsに分かれ、各人物の属性と動作および人物間の主体・対象が指定どおりに保たれる |
+| R02 | 1人を指定して生成する | セクション見出しを強制せず、選択した形式の従来どおりのpositiveが返る |
 | R02・R03 | `natural_language`を選び架空の日本語説明で生成する | 明示内容を変えない冗長すぎない英文positiveとnegativeが表示される |
 | R04 | 既存出力がある状態で生成する | プレビューまでは既存出力が変わらず、「出力へ反映」でのみ両出力が候補へ置き換わる |
 | R04 | プレビューを手編集して反映する | 編集したpositive／negativeが出力欄に反映される |

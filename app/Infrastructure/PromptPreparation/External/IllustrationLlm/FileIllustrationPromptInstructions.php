@@ -21,6 +21,20 @@ final class FileIllustrationPromptInstructions implements IllustrationPromptInst
             throw new RuntimeException("Illustration prompt instruction is unreadable or empty: {$filename}");
         }
 
+        return trim($content)."\n\n".$this->multipleCharacterRules();
+    }
+
+    private function multipleCharacterRules(): string
+    {
+        $filename = 'multiple_character_prompt_rules.txt';
+        $content = is_readable(resource_path("prompts/illustration/{$filename}"))
+            ? file_get_contents(resource_path("prompts/illustration/{$filename}"))
+            : false;
+
+        if ($content === false || trim($content) === '') {
+            throw new RuntimeException("Illustration prompt instruction is unreadable or empty: {$filename}");
+        }
+
         return trim($content);
     }
 }

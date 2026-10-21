@@ -40,6 +40,46 @@ final class OllamaIllustrationScenarioGeneratorTest extends TestCase
         });
     }
 
+    public function test_シナリオ案の初回応答が不正JSONなら一度だけ再生成して正常応答を採用する(): void
+    {
+        Http::fakeSequence()
+            ->push(['message' => ['content' => '{invalid']], 200)
+            ->push(['model' => 'retry-model', 'message' => ['content' => json_encode([
+                'continuity_notes' => '同じ二人',
+                'scenes' => [
+                    ['id' => 'scene-1', 'title' => '出発', 'description' => '森を出る', 'changes_from_previous' => ''],
+                    ['id' => 'scene-2', 'title' => '道中', 'description' => '丘を登る', 'changes_from_previous' => '場所を変更'],
+                    ['id' => 'scene-3', 'title' => '到着', 'description' => '頂上へ着く', 'changes_from_previous' => ''],
+                ],
+            ], JSON_THROW_ON_ERROR)]], 200);
+
+        $result = app(OllamaIllustrationScenarioGenerator::class)->plan('planning system', '架空の冒険', 3);
+
+        self::assertSame('retry-model', $result->model);
+        self::assertSame('同じ二人', $result->continuityNotes);
+        Http::assertSentCount(2);
+    }
+
+    public function test_シナリオ案が二回とも指定件数を満たさない場合は件数不一致として拒否する(): void
+    {
+        $invalidPlan = ['message' => ['content' => json_encode([
+            'continuity_notes' => '同じ人物',
+            'scenes' => [
+                ['id' => 'scene-1', 'title' => '出発', 'description' => '家を出る', 'changes_from_previous' => ''],
+            ],
+        ], JSON_THROW_ON_ERROR)]];
+        Http::fakeSequence()->push($invalidPlan, 200)->push($invalidPlan, 200);
+
+        try {
+            app(OllamaIllustrationScenarioGenerator::class)->plan('planning system', '架空の登山', 3);
+            self::fail('Exception was not thrown.');
+        } catch (InvalidIllustrationPromptResponse $exception) {
+            self::assertSame('scene_count_mismatch', $exception->reason);
+        }
+
+        Http::assertSentCount(2);
+    }
+
     public function test_全場面の順序とIDが一致する候補だけを受け付ける(): void
     {
         Http::fake(['*' => Http::response(['message' => ['content' => json_encode(['scenes' => [

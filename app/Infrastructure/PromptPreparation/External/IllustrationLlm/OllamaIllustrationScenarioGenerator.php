@@ -21,6 +21,15 @@ final class OllamaIllustrationScenarioGenerator implements IllustrationScenarioP
 {
     public function plan(string $systemPrompt, string $description, int $sceneCount): PlannedIllustrationScenario
     {
+        try {
+            return $this->planOnce($systemPrompt, $description, $sceneCount);
+        } catch (InvalidIllustrationPromptResponse) {
+            return $this->planOnce($systemPrompt, $description, $sceneCount);
+        }
+    }
+
+    private function planOnce(string $systemPrompt, string $description, int $sceneCount): PlannedIllustrationScenario
+    {
         $schema = $this->objectSchema(['continuity_notes', 'scenes'], [
             'continuity_notes' => ['type' => 'string'],
             'scenes' => ['type' => 'array', 'minItems' => $sceneCount, 'maxItems' => $sceneCount, 'items' => $this->objectSchema(['id', 'title', 'description', 'changes_from_previous'], [
@@ -30,19 +39,22 @@ final class OllamaIllustrationScenarioGenerator implements IllustrationScenarioP
         [$data, $model, $elapsed] = $this->request('plan', $systemPrompt, ['description' => $description, 'scene_count' => $sceneCount], $schema);
         $notes = $data['continuity_notes'] ?? null;
         $rawScenes = $data['scenes'] ?? null;
-        if (!is_string($notes) || !is_array($rawScenes) || !array_is_list($rawScenes) || count($rawScenes) !== $sceneCount) {
-            $this->invalid();
+        if (!is_array($rawScenes) || !array_is_list($rawScenes) || count($rawScenes) !== $sceneCount) {
+            $this->invalid('scene_count_mismatch');
+        }
+        if (!is_string($notes)) {
+            $this->invalid('required_fields_missing');
         }
         $scenes = [];
         foreach ($rawScenes as $index => $scene) {
             if (!is_array($scene)) {
-                $this->invalid();
+                $this->invalid('required_fields_missing');
             }
             $title = $scene['title'] ?? null;
             $descriptionValue = $scene['description'] ?? null;
             $changes = $scene['changes_from_previous'] ?? null;
             if (!is_string($title) || trim($title) === '' || !is_string($descriptionValue) || trim($descriptionValue) === '' || !is_string($changes)) {
-                $this->invalid();
+                $this->invalid('required_fields_missing');
             }
             $scenes[] = new IllustrationScenarioScene('scene-'.($index + 1), trim($title), trim($descriptionValue), trim($changes));
         }
@@ -94,10 +106,10 @@ final class OllamaIllustrationScenarioGenerator implements IllustrationScenarioP
         try {
             $decoded = is_string($content) ? json_decode($content, true, 512, JSON_THROW_ON_ERROR) : null;
         } catch (JsonException) {
-            $this->invalid();
+            $this->invalid('invalid_json');
         }
         if (!is_array($decoded) || array_is_list($decoded)) {
-            $this->invalid();
+            $this->invalid('required_fields_missing');
         }
         $elapsed = max(0, (int) round((hrtime(true) - $started) / 1_000_000));
         Log::info('Illustration scenario generation completed.', ['request_id' => $requestId, 'operation' => $operation, 'model' => $model, 'outcome' => 'success', 'elapsed_ms' => $elapsed]);
@@ -137,8 +149,8 @@ final class OllamaIllustrationScenarioGenerator implements IllustrationScenarioP
     {
         return ['type' => 'object', 'properties' => $properties, 'required' => $required, 'additionalProperties' => false];
     }
-    private function invalid(): never
+    private function invalid(string $reason = 'invalid_response'): never
     {
-        throw new InvalidIllustrationPromptResponse('外部LLMの応答形式が不正です。');
+        throw new InvalidIllustrationPromptResponse('外部LLMの応答形式が不正です。', $reason);
     }
 }

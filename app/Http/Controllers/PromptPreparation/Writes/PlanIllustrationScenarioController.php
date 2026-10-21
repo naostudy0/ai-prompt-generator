@@ -18,8 +18,15 @@ final class PlanIllustrationScenarioController extends Controller
             $result = $handler->handle(new PlanIllustrationScenarioInput((string) $request->validated('description'), (int) $request->validated('sceneCount')));
         } catch (IllustrationPromptServiceUnavailable) {
             return response()->json(['message' => 'シナリオ生成サービスを現在利用できません。'], 503);
-        } catch (InvalidIllustrationPromptResponse) {
-            return response()->json(['message' => '生成サービスから不正な応答を受信しました。'], 502);
+        } catch (InvalidIllustrationPromptResponse $exception) {
+            $message = match ($exception->reason) {
+                'invalid_json' => '生成結果をJSONとして読み取れませんでした。もう一度お試しください。',
+                'scene_count_mismatch' => '生成された場面数が指定と一致しませんでした。もう一度お試しください。',
+                'required_fields_missing' => '生成結果に必要な項目が不足していました。もう一度お試しください。',
+                default => '生成サービスから不正な応答を受信しました。',
+            };
+
+            return response()->json(['message' => $message], 502);
         }
         return response()->json(['continuityNotes' => $result->continuityNotes, 'scenes' => array_map(static fn ($scene): array => ['id' => $scene->id, 'title' => $scene->title, 'description' => $scene->description, 'changesFromPrevious' => $scene->changesFromPrevious], $result->scenes), 'model' => $result->model, 'generationTimeMs' => $result->generationTimeMs]);
     }

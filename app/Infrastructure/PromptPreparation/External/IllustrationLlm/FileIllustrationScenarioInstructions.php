@@ -14,11 +14,11 @@ final class FileIllustrationScenarioInstructions implements IllustrationScenario
     }
     public function forPromptStyle(PromptStyle $style): string
     {
-        return $this->read('scenario_'.$style->value.'.txt');
+        return $this->read('scenario_'.$style->value.'.txt')."\n\n".$this->read('multiple_character_prompt_rules.txt');
     }
     public function forSceneRegeneration(PromptStyle $style): string
     {
-        return $this->read('scenario_scene_'.$style->value.'.txt');
+        return $this->read('scenario_scene_'.$style->value.'.txt')."\n\n".$this->read('multiple_character_prompt_rules.txt');
     }
     private function read(string $filename): string
     {

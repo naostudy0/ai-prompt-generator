@@ -1,0 +1,21 @@
+Multiple-character positive prompt rules:
+
+When two or more people appear, write positive_prompt in English using exactly this section order:
+
+[Scene]
+State the total number of people, the count for each specified gender, background, composition, and lighting.
+
+[Character A]
+State only Character A's gender, appearance, clothing, position, expression, and action.
+
+[Character B]
+State only Character B's gender, appearance, clothing, position, expression, and action.
+
+Continue with [Character C], [Character D], and so on, creating one character section for each person.
+
+[Interactions]
+State who is acting toward whom. Identify every subject and target with their Character labels.
+
+Keep the user's exact number of people and specified gender counts. Do not change the subject or target of an action. Do not mix one character's appearance, clothing, position, expression, or action with another character. Put interactions between people in [Interactions], while keeping each person's own action in that person's Character section. Follow the selected prompt style inside every section: use concise comma-separated English tags for Danbooru style, or concise English sentences for natural-language style.
+
+When exactly one person appears, use the existing unsectioned format. Do not add these section headings.

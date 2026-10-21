@@ -67,6 +67,22 @@ final class IllustrationScenarioApiTest extends TestCase
             ->assertStatus(502)->assertJsonMissing(['message' => 'raw upstream response']);
     }
 
+    public function test_シナリオ案の件数不一致を入力や生成本文を含まないメッセージで返す(): void
+    {
+        $this->app->instance(IllustrationScenarioPlanner::class, new class () implements IllustrationScenarioPlanner {
+            public function plan(string $systemPrompt, string $description, int $sceneCount): PlannedIllustrationScenario
+            {
+                throw new InvalidIllustrationPromptResponse('raw upstream response', 'scene_count_mismatch');
+            }
+        });
+
+        $this->postJson('/illustration-scenarios/plan', ['description' => 'SECRET DESCRIPTION', 'sceneCount' => 5])
+            ->assertStatus(502)
+            ->assertExactJson(['message' => '生成された場面数が指定と一致しませんでした。もう一度お試しください。'])
+            ->assertJsonMissing(['message' => 'raw upstream response'])
+            ->assertJsonMissing(['message' => 'SECRET DESCRIPTION']);
+    }
+
     private function bindGenerator(): void
     {
         $this->app->instance(ScenarioIllustrationPromptGenerator::class, new class () implements ScenarioIllustrationPromptGenerator {
