@@ -76,6 +76,10 @@ test('初期値5で案を作り編集後の全場面を生成して一件を反�
     page.querySelector('[data-scenario-plan]').click();
     await new Promise((resolve) => dom.window.setTimeout(resolve, 0));
     assert.equal(page.querySelectorAll('[data-scenario-scene]').length, 3);
+    assert.equal(
+        page.querySelector('[data-scenario-status]').textContent,
+        'シナリオ案を確認・編集し、「全場面の画像生成プロンプトを生成」を押してください。',
+    );
     page.querySelector('[data-scenario-generate]').click();
     await new Promise((resolve) => dom.window.setTimeout(resolve, 0));
     assert.equal(page.querySelectorAll('[data-scenario-result]').length, 3);
@@ -94,4 +98,46 @@ test('場面移動は元配列を変えずIDを維持する', () => {
         source.map((s) => s.id),
         ['a', 'b', 'c'],
     );
+});
+
+test('モーダル外のクリックは編集内容の破棄確認後だけ閉じる', async () => {
+    const { dom, page } = setup();
+    const dialog = page.querySelector('[data-scenario-dialog]');
+    let allowClose = false;
+    initializeIllustrationScenarioGenerator({
+        page,
+        documentObject: dom.window.document,
+        fetcher: async () => ({
+            ok: true,
+            json: async () => ({
+                continuityNotes: '',
+                scenes: [1, 2, 3].map((number) => ({
+                    id: `s${number}`,
+                    title: `t${number}`,
+                    description: `d${number}`,
+                    changesFromPrevious: '',
+                })),
+            }),
+        }),
+        csrfToken: 'token',
+        confirmAction: () => allowClose,
+        createId: () => 'new',
+        applyPrompt: () => {},
+    });
+    dialog.getBoundingClientRect = () => ({ left: 100, top: 100, right: 500, bottom: 500 });
+    page.querySelector('[data-scenario-open]').click();
+    page.querySelector('[data-scenario-description]').value = '登山';
+    page.querySelector('[data-scenario-plan]').click();
+    await new Promise((resolve) => dom.window.setTimeout(resolve, 0));
+
+    dialog.dispatchEvent(
+        new dom.window.MouseEvent('click', { bubbles: true, clientX: 50, clientY: 50 }),
+    );
+    assert.equal(dialog.open, true);
+
+    allowClose = true;
+    dialog.dispatchEvent(
+        new dom.window.MouseEvent('click', { bubbles: true, clientX: 50, clientY: 50 }),
+    );
+    assert.equal(dialog.open, false);
 });

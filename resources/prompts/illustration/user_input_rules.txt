@@ -1,0 +1,11 @@
+User input rules:
+
+If present, interpret these headings separately:
+- 【人物】: fixed character attributes
+- 【動作・表情】: actions and emotions
+- 【場所・背景】: scene environment
+- 【構図】: camera angle and framing
+- 【雰囲気】: lighting and overall impression
+- 【必須条件】: mandatory constraints that must not be changed or omitted
+
+All explicit user details take priority. Preserve the specified number, gender, appearance, clothing, and actions of every person. Keep each action's subject and target correct. Add only unspecified details, and never add anything that conflicts with the input. Do not omit requested details. Apply the same rules to free-form input.

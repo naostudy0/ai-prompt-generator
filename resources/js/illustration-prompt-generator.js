@@ -25,6 +25,19 @@ const responseJson = async (response) => {
     }
 };
 
+const clickedOutsideDialog = (event, dialog) => {
+    if (event.target !== dialog) {
+        return false;
+    }
+    const bounds = dialog.getBoundingClientRect();
+    return (
+        event.clientX < bounds.left ||
+        event.clientX > bounds.right ||
+        event.clientY < bounds.top ||
+        event.clientY > bounds.bottom
+    );
+};
+
 export const initializeIllustrationPromptGenerator = ({
     page,
     documentObject,
@@ -37,6 +50,10 @@ export const initializeIllustrationPromptGenerator = ({
     const dialog = page.querySelector('[data-illustration-prompt-dialog]');
     const openButton = page.querySelector('[data-illustration-prompt-open]');
     const closeButton = page.querySelector('[data-illustration-prompt-close]');
+    const inputMode = page.querySelector('[data-illustration-prompt-input-mode]');
+    const freeInput = page.querySelector('[data-illustration-prompt-free-input]');
+    const templateInput = page.querySelector('[data-illustration-prompt-template-input]');
+    const templateFields = [...page.querySelectorAll('[data-illustration-prompt-template]')];
     const description = page.querySelector('[data-illustration-prompt-description]');
     const style = page.querySelector('[data-illustration-prompt-style]');
     const generateButton = page.querySelector('[data-illustration-prompt-generate]');
@@ -65,6 +82,10 @@ export const initializeIllustrationPromptGenerator = ({
         !dialog ||
         !openButton ||
         !closeButton ||
+        !inputMode ||
+        !freeInput ||
+        !templateInput ||
+        templateFields.length !== 6 ||
         !description ||
         !style ||
         !generateButton ||
@@ -137,8 +158,17 @@ export const initializeIllustrationPromptGenerator = ({
         requestController = null;
         pending = false;
         generateButton.disabled = false;
+        inputMode.disabled = false;
         description.disabled = false;
+        for (const field of templateFields) {
+            field.disabled = false;
+        }
         style.disabled = false;
+    };
+    const updateInputMode = () => {
+        const usesTemplate = inputMode.value === 'template';
+        freeInput.hidden = usesTemplate;
+        templateInput.hidden = !usesTemplate;
     };
     const close = () => {
         abort();
@@ -146,22 +176,40 @@ export const initializeIllustrationPromptGenerator = ({
     };
     openButton.addEventListener('click', () => {
         dialog.showModal();
-        description.focus();
+        const target = inputMode.value === 'template' ? templateFields[0] : description;
+        target.focus();
     });
     closeButton.addEventListener('click', (event) => {
         event.preventDefault();
         close();
     });
+    dialog.addEventListener('click', (event) => {
+        if (clickedOutsideDialog(event, dialog)) {
+            close();
+        }
+    });
     dialog.addEventListener('cancel', abort);
     dialog.addEventListener('close', abort);
+    inputMode.addEventListener('change', updateInputMode);
     includeDefaults.addEventListener('change', updateDefaultsPreview);
+    updateInputMode();
 
     generateButton.addEventListener('click', async () => {
         if (pending) {
             return;
         }
+        const usesTemplate = inputMode.value === 'template';
         const value = description.value.trim();
-        if (value.length === 0 || value.length > 2000) {
+        const template = Object.fromEntries(
+            templateFields
+                .map((field) => [field.dataset.illustrationPromptTemplate, field.value.trim()])
+                .filter(([, fieldValue]) => fieldValue !== ''),
+        );
+        if (usesTemplate && Object.keys(template).length === 0) {
+            status.textContent = 'テンプレートの少なくとも1項目を入力してください。';
+            return;
+        }
+        if (!usesTemplate && (value.length === 0 || value.length > 2000)) {
             status.textContent =
                 value.length === 0
                     ? '指示を入力してください。'
@@ -171,7 +219,11 @@ export const initializeIllustrationPromptGenerator = ({
 
         pending = true;
         generateButton.disabled = true;
+        inputMode.disabled = true;
         description.disabled = true;
+        for (const field of templateFields) {
+            field.disabled = true;
+        }
         style.disabled = true;
         preview.hidden = true;
         status.textContent = 'プロンプトを生成しています。';
@@ -185,7 +237,11 @@ export const initializeIllustrationPromptGenerator = ({
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': csrfToken,
                 },
-                body: JSON.stringify({ description: value, promptStyle: style.value }),
+                body: JSON.stringify(
+                    usesTemplate
+                        ? { inputMode: 'template', template, promptStyle: style.value }
+                        : { description: value, promptStyle: style.value },
+                ),
                 signal: requestController.signal,
             });
             const body = await responseJson(response);
@@ -193,7 +249,7 @@ export const initializeIllustrationPromptGenerator = ({
                 return;
             }
             if (!response.ok || !isGenerationResult(body)) {
-                const fieldMessage = body?.errors?.description?.[0];
+                const fieldMessage = body?.errors?.description?.[0] ?? body?.errors?.template?.[0];
                 status.textContent =
                     typeof fieldMessage === 'string'
                         ? fieldMessage
@@ -216,7 +272,11 @@ export const initializeIllustrationPromptGenerator = ({
                 pending = false;
                 requestController = null;
                 generateButton.disabled = false;
+                inputMode.disabled = false;
                 description.disabled = false;
+                for (const field of templateFields) {
+                    field.disabled = false;
+                }
                 style.disabled = false;
             }
         }

@@ -21,6 +21,19 @@ const json = async (response) => {
     }
 };
 
+const clickedOutsideDialog = (event, dialog) => {
+    if (event.target !== dialog) {
+        return false;
+    }
+    const bounds = dialog.getBoundingClientRect();
+    return (
+        event.clientX < bounds.left ||
+        event.clientX > bounds.right ||
+        event.clientY < bounds.top ||
+        event.clientY > bounds.bottom
+    );
+};
+
 export const initializeIllustrationScenarioGenerator = ({
     page,
     documentObject,
@@ -200,11 +213,17 @@ export const initializeIllustrationScenarioGenerator = ({
             }),
         );
     };
-    open.addEventListener('click', () => dialog.showModal());
-    close.addEventListener('click', () => {
+    const requestClose = () => {
         if (!dirty || confirmAction('シナリオの編集・生成結果を破棄しますか？')) {
             controller?.abort();
             dialog.close();
+        }
+    };
+    open.addEventListener('click', () => dialog.showModal());
+    close.addEventListener('click', requestClose);
+    dialog.addEventListener('click', (event) => {
+        if (clickedOutsideDialog(event, dialog)) {
+            requestClose();
         }
     });
     planButton.addEventListener('click', async () => {
@@ -245,7 +264,8 @@ export const initializeIllustrationScenarioGenerator = ({
             edit.hidden = false;
             results.hidden = true;
             dirty = true;
-            status.textContent = 'シナリオ案を編集できます。';
+            status.textContent =
+                'シナリオ案を確認・編集し、「全場面の画像生成プロンプトを生成」を押してください。';
         } catch (error) {
             if (error?.name !== 'AbortError') {
                 status.textContent = 'シナリオ案の生成に失敗しました。';

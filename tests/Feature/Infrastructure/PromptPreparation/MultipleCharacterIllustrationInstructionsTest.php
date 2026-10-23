@@ -45,9 +45,23 @@ final class MultipleCharacterIllustrationInstructionsTest extends TestCase
     {
         $instruction = (new FileIllustrationScenarioInstructions())->forPlanning();
 
+        self::assertStringContainsString('natural Japanese', $instruction);
+        self::assertStringContainsString('grammatically correct person names', $instruction);
         self::assertStringNotContainsString('[Scene]', $instruction);
         self::assertStringNotContainsString('[Character A]', $instruction);
         self::assertStringNotContainsString('[Interactions]', $instruction);
+    }
+
+    #[DataProvider('scenarioPromptInstructions')]
+    public function test_シナリオ画像プロンプトの指示は形式に応じた英語出力を求める(
+        callable $loadInstruction,
+        string $format,
+    ): void {
+        $instruction = $loadInstruction();
+
+        self::assertStringContainsString('positive_prompt and negative_prompt in English only', $instruction);
+        self::assertStringContainsString($format, $instruction);
+        self::assertStringContainsString('Do not return Japanese scene descriptions as prompts', $instruction);
     }
 
     /** @return array<string, array{callable(): string, string, string}> */
@@ -86,4 +100,28 @@ final class MultipleCharacterIllustrationInstructionsTest extends TestCase
             ],
         ];
     }
+
+    /** @return array<string, array{callable(): string, string}> */
+    public static function scenarioPromptInstructions(): array
+    {
+        return [
+            'all scenes in Danbooru style' => [
+                static fn (): string => (new FileIllustrationScenarioInstructions())->forPromptStyle(PromptStyle::DanbooruTags),
+                'comma-separated Danbooru-style tags',
+            ],
+            'all scenes in natural-language style' => [
+                static fn (): string => (new FileIllustrationScenarioInstructions())->forPromptStyle(PromptStyle::NaturalLanguage),
+                'concise image-generation sentences',
+            ],
+            'one scene in Danbooru style' => [
+                static fn (): string => (new FileIllustrationScenarioInstructions())->forSceneRegeneration(PromptStyle::DanbooruTags),
+                'comma-separated Danbooru-style tags',
+            ],
+            'one scene in natural-language style' => [
+                static fn (): string => (new FileIllustrationScenarioInstructions())->forSceneRegeneration(PromptStyle::NaturalLanguage),
+                'concise image-generation sentences',
+            ],
+        ];
+    }
+
 }

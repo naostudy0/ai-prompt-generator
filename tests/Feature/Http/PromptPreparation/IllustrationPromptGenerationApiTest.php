@@ -41,6 +41,96 @@ final class IllustrationPromptGenerationApiTest extends TestCase
             ]);
     }
 
+    public function test_テンプレート入力を見出し付きで外部生成ポートへ渡す(): void
+    {
+        $received = [];
+        $this->bindSuccessFakes($received);
+
+        $this->postJson(route('illustration-prompts.generate'), [
+            'inputMode' => 'template',
+            'promptStyle' => 'natural_language',
+            'template' => [
+                'character' => '  黒髪の女性  ',
+                'action' => '  ',
+                'background' => '夕暮れの教室',
+                'constraints' => '女性1人のみ。',
+            ],
+        ])->assertOk()->assertJsonStructure([
+            'positivePrompt',
+            'negativePrompt',
+            'model',
+            'promptStyle',
+            'generationTimeMs',
+            'reusableTagGroups',
+        ]);
+
+        self::assertSame(<<<'TEXT'
+【人物】
+黒髪の女性
+
+【場所・背景】
+夕暮れの教室
+
+【必須条件】
+女性1人のみ。
+TEXT, $received['description']);
+        self::assertSame('natural_language', $received['instruction']);
+    }
+
+    public function test_必須条件だけのテンプレート入力を受け付ける(): void
+    {
+        $received = [];
+        $this->bindSuccessFakes($received);
+
+        $this->postJson(route('illustration-prompts.generate'), [
+            'inputMode' => 'template',
+            'template' => ['constraints' => '人物は女性1人のみ。'],
+        ])->assertOk();
+
+        self::assertSame("【必須条件】\n人物は女性1人のみ。", $received['description']);
+    }
+
+    public function test_テンプレート項目は2000文字まで受け付ける(): void
+    {
+        $received = [];
+        $this->bindSuccessFakes($received);
+        $character = str_repeat('あ', 2000);
+
+        $this->postJson(route('illustration-prompts.generate'), [
+            'inputMode' => 'template',
+            'template' => ['character' => $character],
+        ])->assertOk();
+
+        self::assertSame("【人物】\n{$character}", $received['description']);
+    }
+
+    public function test_テンプレートが全項目未入力なら外部生成ポートを呼ばない(): void
+    {
+        $called = false;
+        $capture = static function () use (&$called): void {
+            $called = true;
+        };
+        $this->app->instance(IllustrationPromptGenerator::class, new class ($capture) implements IllustrationPromptGenerator {
+            public function __construct(private readonly \Closure $capture)
+            {
+            }
+
+            public function generate(string $systemPrompt, string $description): GeneratedIllustrationPrompt
+            {
+                ($this->capture)();
+
+                throw new RuntimeException('must not be called');
+            }
+        });
+
+        $this->postJson(route('illustration-prompts.generate'), [
+            'inputMode' => 'template',
+            'template' => [],
+        ])->assertUnprocessable();
+
+        self::assertFalse($called);
+    }
+
     /** @param array<string, string> $payload */
     #[DataProvider('validInputs')]
     public function test_有効な説明とスタイルを受け付ける(array $payload, string $expectedDescription, string $expectedStyle): void
@@ -86,6 +176,21 @@ final class IllustrationPromptGenerationApiTest extends TestCase
             'too long' => [['description' => str_repeat('あ', 2001)]],
             'invalid style' => [['description' => '説明', 'promptStyle' => 'unknown']],
             'array style' => [['description' => '説明', 'promptStyle' => []]],
+            'invalid mode' => [['inputMode' => 'unknown', 'description' => '説明']],
+            'template missing' => [['inputMode' => 'template']],
+            'template empty' => [['inputMode' => 'template', 'template' => []]],
+            'template whitespace only' => [[
+                'inputMode' => 'template',
+                'template' => ['character' => " \t", 'constraints' => "　"],
+            ]],
+            'template field array' => [[
+                'inputMode' => 'template',
+                'template' => ['character' => ['人物']],
+            ]],
+            'template field too long' => [[
+                'inputMode' => 'template',
+                'template' => ['character' => str_repeat('あ', 2001)],
+            ]],
         ];
     }
 

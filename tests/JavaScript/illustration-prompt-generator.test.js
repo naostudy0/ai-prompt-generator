@@ -16,7 +16,18 @@ const fixture = () => {
         <button data-illustration-prompt-open>open</button>
         <dialog data-illustration-prompt-dialog>
             <button data-illustration-prompt-close>close</button>
-            <textarea data-illustration-prompt-description></textarea>
+            <select data-illustration-prompt-input-mode><option value="free">free</option><option value="template">template</option></select>
+            <section data-illustration-prompt-free-input>
+                <textarea data-illustration-prompt-description></textarea>
+            </section>
+            <section data-illustration-prompt-template-input hidden>
+                <textarea data-illustration-prompt-template="character"></textarea>
+                <textarea data-illustration-prompt-template="action"></textarea>
+                <textarea data-illustration-prompt-template="background"></textarea>
+                <textarea data-illustration-prompt-template="composition"></textarea>
+                <textarea data-illustration-prompt-template="atmosphere"></textarea>
+                <textarea data-illustration-prompt-template="constraints"></textarea>
+            </section>
             <select data-illustration-prompt-style><option value="danbooru_tags">tags</option><option value="natural_language">natural</option></select>
             <label><input type="checkbox" data-illustration-prompt-include-defaults checked>defaults</label>
             <button data-illustration-prompt-generate>generate</button>
@@ -45,6 +56,97 @@ const fixture = () => {
 
     return { dom, document, page: document.querySelector('main'), dialog };
 };
+
+test('テンプレート入力は入力済み項目だけを送信する', async () => {
+    const { document, page } = fixture();
+    const requests = [];
+    initializeIllustrationPromptGenerator({
+        page,
+        documentObject: document,
+        fetcher: async (url, options) => {
+            requests.push({ url, options });
+            return jsonResponse({
+                positivePrompt: 'positive',
+                negativePrompt: '',
+                model: 'model-a',
+                promptStyle: 'danbooru_tags',
+                generationTimeMs: 25,
+                reusableTagGroups: [{ label: '人物', tags: '1girl' }],
+            });
+        },
+        csrfToken: 'token',
+        applyPrompt: () => {},
+    });
+
+    const mode = document.querySelector('[data-illustration-prompt-input-mode]');
+    mode.value = 'template';
+    mode.dispatchEvent(new document.defaultView.Event('change'));
+    document.querySelector('[data-illustration-prompt-template="character"]').value =
+        '  黒髪の女性  ';
+    document.querySelector('[data-illustration-prompt-template="constraints"]').value =
+        '女性1人のみ。';
+    document.querySelector('[data-illustration-prompt-generate]').click();
+    await delay(0);
+
+    assert.equal(document.querySelector('[data-illustration-prompt-free-input]').hidden, true);
+    assert.equal(document.querySelector('[data-illustration-prompt-template-input]').hidden, false);
+    assert.deepEqual(JSON.parse(requests[0].options.body), {
+        inputMode: 'template',
+        promptStyle: 'danbooru_tags',
+        template: {
+            character: '黒髪の女性',
+            constraints: '女性1人のみ。',
+        },
+    });
+});
+
+test('テンプレートの全項目が空なら送信しない', () => {
+    const { document, page } = fixture();
+    let calls = 0;
+    initializeIllustrationPromptGenerator({
+        page,
+        documentObject: document,
+        fetcher: async () => {
+            calls += 1;
+        },
+        csrfToken: 'token',
+        applyPrompt: () => {},
+    });
+
+    const mode = document.querySelector('[data-illustration-prompt-input-mode]');
+    mode.value = 'template';
+    mode.dispatchEvent(new document.defaultView.Event('change'));
+    document.querySelector('[data-illustration-prompt-template="action"]').value = '  ';
+    document.querySelector('[data-illustration-prompt-generate]').click();
+
+    assert.equal(calls, 0);
+    assert.match(document.querySelector('[data-illustration-prompt-status]').textContent, /1項目/);
+});
+
+test('モーダル外のクリックで閉じ内部のクリックでは閉じない', () => {
+    const { dom, document, page, dialog } = fixture();
+    initializeIllustrationPromptGenerator({
+        page,
+        documentObject: document,
+        fetcher: async () => jsonResponse({}),
+        csrfToken: 'token',
+        applyPrompt: () => {},
+    });
+    dialog.getBoundingClientRect = () => ({ left: 100, top: 100, right: 500, bottom: 500 });
+    document.querySelector('[data-illustration-prompt-open]').click();
+
+    document
+        .querySelector('[data-illustration-prompt-description]')
+        .dispatchEvent(
+            new dom.window.MouseEvent('click', { bubbles: true, clientX: 200, clientY: 200 }),
+        );
+    assert.equal(dialog.hasAttribute('open'), true);
+
+    dialog.dispatchEvent(
+        new dom.window.MouseEvent('click', { bubbles: true, clientX: 50, clientY: 50 }),
+    );
+    assert.equal(dialog.hasAttribute('open'), false);
+});
 
 test('生成後は編集可能なプレビューを表示し明示的な反映だけで出力を変更する', async () => {
     const { document, page, dialog } = fixture();

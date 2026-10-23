@@ -16,6 +16,8 @@
 }
 
 .illustration-prompt-dialog__content,
+.illustration-prompt-dialog__input,
+.illustration-prompt-dialog__template,
 .illustration-prompt-dialog__preview,
 .illustration-prompt-dialog__defaults,
 .illustration-prompt-dialog__tag-groups {
@@ -57,6 +59,7 @@
 }
 
 .illustration-prompt-dialog__description,
+.illustration-prompt-dialog__template textarea,
 .illustration-prompt-dialog__preview > textarea {
     min-height: 8rem;
 }

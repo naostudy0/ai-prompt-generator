@@ -1,1 +1,1 @@
-Regenerate only the target scene as concise English prompts while preserving the surrounding scenario and unspecified continuity. Return only JSON.
+Regenerate only the target scene's positive_prompt and negative_prompt in English only, using concise image-generation sentences. Preserve the surrounding scenario and unspecified continuity. Do not return Japanese scene descriptions as prompts. Return only JSON.

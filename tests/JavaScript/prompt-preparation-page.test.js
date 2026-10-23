@@ -436,7 +436,16 @@ const addIllustrationPromptControls = (documentObject) => {
         'beforeend',
         `<button data-illustration-prompt-open></button>
         <dialog data-illustration-prompt-dialog><button data-illustration-prompt-close></button>
-        <textarea data-illustration-prompt-description></textarea>
+        <select data-illustration-prompt-input-mode><option value="free">free</option><option value="template">template</option></select>
+        <section data-illustration-prompt-free-input><textarea data-illustration-prompt-description></textarea></section>
+        <section data-illustration-prompt-template-input hidden>
+            <textarea data-illustration-prompt-template="character"></textarea>
+            <textarea data-illustration-prompt-template="action"></textarea>
+            <textarea data-illustration-prompt-template="background"></textarea>
+            <textarea data-illustration-prompt-template="composition"></textarea>
+            <textarea data-illustration-prompt-template="atmosphere"></textarea>
+            <textarea data-illustration-prompt-template="constraints"></textarea>
+        </section>
         <select data-illustration-prompt-style><option value="danbooru_tags">tags</option></select>
         <label><input type="checkbox" data-illustration-prompt-include-defaults checked>defaults</label>
         <button data-illustration-prompt-generate></button><p data-illustration-prompt-status></p>

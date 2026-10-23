@@ -71,16 +71,17 @@
                     <p role="status" aria-live="polite" data-scenario-status></p>
 
                     <section class="illustration-scenario-dialog__edit" data-scenario-edit hidden>
-                        <h3>流れと場面を編集</h3>
+                        <h3>1. シナリオ案（日本語）</h3>
+                        <p class="muted-text">これは場面構成の確認・編集用です。完成した画像生成プロンプトは次の操作で生成します。</p>
                         <label class="field-label" for="scenario-continuity">全場面で固定する要素</label>
                         <textarea id="scenario-continuity" class="text-input" maxlength="2000" data-scenario-continuity></textarea>
                         <div class="illustration-scenario-dialog__scenes" data-scenario-scenes></div>
                         <button type="button" class="secondary-button" data-scenario-add>場面を追加</button>
-                        <button type="button" class="primary-button" data-scenario-generate>全場面のプロンプトを生成</button>
+                        <button type="button" class="primary-button" data-scenario-generate>全場面の画像生成プロンプトを生成</button>
                     </section>
 
                     <section class="illustration-scenario-dialog__results" data-scenario-results hidden>
-                        <h3>生成結果</h3>
+                        <h3>2. 画像生成プロンプト（英語）</h3>
                         <p class="muted-text">場面ごとに確認・再生成し、既存の出力へ一つずつ反映できます。</p>
                         <div class="illustration-scenario-dialog__result-list" data-scenario-result-list></div>
                     </section>
@@ -93,8 +94,29 @@
                         <h2 id="illustration-prompt-heading">AIでプロンプトを作成</h2>
                         <button type="button" class="small-button" data-illustration-prompt-close>閉じる</button>
                     </div>
-                    <label class="field-label" for="illustration-prompt-description">イラストの指示</label>
-                    <textarea id="illustration-prompt-description" class="text-input illustration-prompt-dialog__description" maxlength="2000" data-illustration-prompt-description></textarea>
+                    <label class="field-label" for="illustration-prompt-input-mode">入力方法</label>
+                    <select id="illustration-prompt-input-mode" class="text-input" data-illustration-prompt-input-mode>
+                        <option value="free">自由入力</option>
+                        <option value="template">テンプレート入力</option>
+                    </select>
+                    <section class="illustration-prompt-dialog__input" data-illustration-prompt-free-input>
+                        <label class="field-label" for="illustration-prompt-description">イラストの指示</label>
+                        <textarea id="illustration-prompt-description" class="text-input illustration-prompt-dialog__description" maxlength="2000" data-illustration-prompt-description></textarea>
+                    </section>
+                    <section class="illustration-prompt-dialog__template" data-illustration-prompt-template-input hidden>
+                        <label class="field-label" for="illustration-prompt-character">人物</label>
+                        <textarea id="illustration-prompt-character" class="text-input" maxlength="2000" data-illustration-prompt-template="character"></textarea>
+                        <label class="field-label" for="illustration-prompt-action">動作・表情</label>
+                        <textarea id="illustration-prompt-action" class="text-input" maxlength="2000" data-illustration-prompt-template="action"></textarea>
+                        <label class="field-label" for="illustration-prompt-background">場所・背景</label>
+                        <textarea id="illustration-prompt-background" class="text-input" maxlength="2000" data-illustration-prompt-template="background"></textarea>
+                        <label class="field-label" for="illustration-prompt-composition">構図</label>
+                        <textarea id="illustration-prompt-composition" class="text-input" maxlength="2000" data-illustration-prompt-template="composition"></textarea>
+                        <label class="field-label" for="illustration-prompt-atmosphere">雰囲気</label>
+                        <textarea id="illustration-prompt-atmosphere" class="text-input" maxlength="2000" data-illustration-prompt-template="atmosphere"></textarea>
+                        <label class="field-label" for="illustration-prompt-constraints">必須条件</label>
+                        <textarea id="illustration-prompt-constraints" class="text-input" maxlength="2000" data-illustration-prompt-template="constraints"></textarea>
+                    </section>
                     <label class="field-label" for="illustration-prompt-style">プロンプト形式</label>
                     <select id="illustration-prompt-style" class="text-input" data-illustration-prompt-style>
                         <option value="danbooru_tags">Danbooruタグ</option>

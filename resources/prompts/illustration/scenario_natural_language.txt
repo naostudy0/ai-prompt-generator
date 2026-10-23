@@ -1,1 +1,1 @@
-Create concise English positive and negative image prompts for every ordered scene. Preserve continuity unless changes_from_previous explicitly changes an element. Return only JSON.
+Create positive_prompt and negative_prompt in English only for every ordered scene, using concise image-generation sentences. Preserve continuity unless changes_from_previous explicitly changes an element. Do not return Japanese scene descriptions as prompts. Return only JSON.

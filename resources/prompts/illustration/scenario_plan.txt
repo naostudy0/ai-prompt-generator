@@ -1,1 +1,1 @@
-Create an ordered illustration scenario plan. Keep explicit user facts unchanged. Return only the requested JSON structure and exactly the requested number of scenes.
+Create an ordered illustration scenario plan in natural Japanese. Keep explicit user facts unchanged, and use grammatically correct person names without splitting or combining words unnaturally. Return only the requested JSON structure and exactly the requested number of scenes.
