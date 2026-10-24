@@ -1305,6 +1305,62 @@ button:focus-visible {
     justify-content: flex-end;
 }
 
+.lora-visibility-identity {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    align-items: center;
+}
+
+.lora-visibility-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.7rem;
+    border: 1px solid;
+    border-radius: 999px;
+    padding: 0.15rem 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.lora-visibility-badge--visible {
+    border-color: #4b9d71;
+    color: #dff8e8;
+    background: #235b3c;
+}
+
+.lora-visibility-badge--hidden {
+    border-color: #777d91;
+    color: #eff1f6;
+    background: #3b3f50;
+}
+
+.lora-visibility-action {
+    justify-self: end;
+}
+
+.lora-visibility-action--show {
+    border-color: #6f94d7;
+    color: #f2f6ff;
+    background: #31568d;
+}
+
+.lora-visibility-action--hide {
+    border-color: #b87378;
+    color: #fff0f0;
+    background: #66343a;
+}
+
+.lora-visibility-action--show:hover:not(:disabled),
+.lora-visibility-action--hide:hover:not(:disabled) {
+    filter: brightness(1.12);
+}
+
+.lora-visibility-action:disabled {
+    opacity: 0.55;
+}
+
 .character-variant-send-selection {
     display: inline-flex;
     gap: 0.4rem;

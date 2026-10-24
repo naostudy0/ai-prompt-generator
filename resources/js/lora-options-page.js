@@ -363,12 +363,17 @@ export const initializeLoraOptionsPage = ({
             .forEach((lora) => {
                 const row = documentObject.createElement('div');
                 row.className = 'character-variant-row';
+                const identity = documentObject.createElement('div');
+                identity.className = 'lora-visibility-identity';
                 const label = documentObject.createElement('span');
-                label.textContent = `${lora.name}（${lora.isHidden ? '非表示' : '表示中'}）`;
+                label.textContent = lora.name;
+                const badge = documentObject.createElement('span');
+                badge.className = `lora-visibility-badge lora-visibility-badge--${lora.isHidden ? 'hidden' : 'visible'}`;
+                badge.textContent = lora.isHidden ? '非表示' : '表示中';
                 const button = documentObject.createElement('button');
                 button.type = 'button';
-                button.className = 'small-button';
-                button.textContent = lora.isHidden ? '再表示' : '非表示';
+                button.className = `small-button lora-visibility-action lora-visibility-action--${lora.isHidden ? 'show' : 'hide'}`;
+                button.textContent = lora.isHidden ? '表示する' : '非表示にする';
                 button.addEventListener('click', async () => {
                     button.disabled = true;
                     try {
@@ -400,7 +405,8 @@ export const initializeLoraOptionsPage = ({
                         button.disabled = false;
                     }
                 });
-                row.append(label, button);
+                identity.append(label, badge);
+                row.append(identity, button);
                 visibilityList.append(row);
             });
         visibilityStatus.textContent =

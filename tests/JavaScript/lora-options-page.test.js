@@ -144,6 +144,42 @@ test('選択中人物を管理から非表示にした成功後だけ選択を�
     assert.equal(controller.getSelectedLoraId(), null);
 });
 
+test('人物管理で表示状態をバッジにして次の操作を異なる文言と色で示す', async () => {
+    const documentObject = createDocument();
+    const loras = [
+        { ...createLora(1, 'Visible', 'visible.safetensors', 1), isHidden: false },
+        { ...createLora(2, 'Hidden', 'hidden.safetensors', 1), isHidden: true },
+    ];
+    initializeLoraOptionsPage({
+        page: documentObject.querySelector('main'),
+        documentObject,
+        fetcher: async (url) => ({
+            ok: true,
+            json: async () => ({
+                loras: url.includes('visibility=all') ? loras : [loras[0]],
+                triggers: [],
+                outfits: [],
+            }),
+        }),
+        csrfToken: 'csrf',
+        onLoadedChange: () => {},
+        notify: () => {},
+    });
+    await flushAsyncEvents();
+
+    documentObject.querySelector('[data-lora-visibility-manage]').click();
+    await flushAsyncEvents();
+
+    const rows = documentObject.querySelectorAll('[data-lora-visibility-list] > div');
+    assert.equal(rows[0].querySelector('.lora-visibility-badge--visible').textContent, '表示中');
+    assert.equal(
+        rows[0].querySelector('.lora-visibility-action--hide').textContent,
+        '非表示にする',
+    );
+    assert.equal(rows[1].querySelector('.lora-visibility-badge--hidden').textContent, '非表示');
+    assert.equal(rows[1].querySelector('.lora-visibility-action--show').textContent, '表示する');
+});
+
 test('31人物をページ分割し検索と系統変更後も現在の選択を保持する', async () => {
     const documentObject = createDocument();
     const loras = Array.from({ length: 31 }, (_, index) => ({
