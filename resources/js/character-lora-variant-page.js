@@ -407,16 +407,16 @@ export const initializeCharacterLoraVariantPage = ({
         render();
     });
     page.querySelector('[data-character-variant-select-all]')?.addEventListener('click', () => {
-        unchecked.clear();
+        for (const { lora, trigger } of allCandidates()) {
+            unchecked.delete(createCharacterLoraCandidateKey(lora, trigger));
+        }
         persist();
         render();
     });
     page.querySelector('[data-character-variant-clear-all]')?.addEventListener('click', () => {
-        unchecked = new Set(
-            allCandidates().map(({ lora, trigger }) =>
-                createCharacterLoraCandidateKey(lora, trigger),
-            ),
-        );
+        for (const { lora, trigger } of allCandidates()) {
+            unchecked.add(createCharacterLoraCandidateKey(lora, trigger));
+        }
         persist();
         render();
     });
@@ -468,7 +468,10 @@ export const initializeCharacterLoraVariantPage = ({
             ),
         );
         const resolved = resolveCharacterLoraVariantGroup(group.candidateKeys, availableKeys);
-        unchecked = new Set([...availableKeys].filter((key) => !resolved.selectedKeys.has(key)));
+        unchecked = new Set([
+            ...[...unchecked].filter((key) => !availableKeys.has(key)),
+            ...[...availableKeys].filter((key) => !resolved.selectedKeys.has(key)),
+        ]);
         const persisted = persist();
         render();
         if (!persisted) {
