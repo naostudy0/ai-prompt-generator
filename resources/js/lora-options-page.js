@@ -353,7 +353,9 @@ export const initializeLoraOptionsPage = ({
     };
 
     const renderManagedLoras = () => {
-        if (!(visibilityList instanceof view.HTMLElement)) return;
+        if (!(visibilityList instanceof view.HTMLElement)) {
+            return;
+        }
         const search = visibilitySearch?.value.trim().toLocaleLowerCase() ?? '';
         visibilityList.replaceChildren();
         state.managedLoras
@@ -384,8 +386,9 @@ export const initializeLoraOptionsPage = ({
                                 state.selectedOutfitId !== null &&
                                 state.outfits.find((item) => item.id === state.selectedOutfitId)
                                     ?.loraId === lora.id
-                            )
+                            ) {
                                 state.selectedOutfitId = null;
+                            }
                             notify('選択を解除しました。出力へ反映するには再表示してください。');
                         }
                         await loadOptions();
