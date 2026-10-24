@@ -10,8 +10,8 @@ final readonly class GetLoraPromptOptionsHandler
     {
     }
 
-    public function handle(): GetLoraPromptOptionsResult
+    public function handle(CharacterLoraVisibility $visibility = CharacterLoraVisibility::Visible): GetLoraPromptOptionsResult
     {
-        return $this->queryService->getAll();
+        return $this->queryService->getAll($visibility);
     }
 }

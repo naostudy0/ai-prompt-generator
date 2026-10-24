@@ -13,6 +13,48 @@ class LoraPromptOptionApiTest extends TestCase
     use RefreshDatabase;
     use CreatesGenerationSettings;
 
+    public function test_表示条件ごとに人物LoRAと所属する子だけを取得する(): void
+    {
+        $visibleId = $this->createLora('表示中', 'visible.safetensors', 1);
+        $hiddenId = $this->createLora('非表示', 'hidden.safetensors', 1);
+        foreach ([$visibleId, $hiddenId] as $loraId) {
+            DB::table('lora_triggers')->insert([
+                'lora_id' => $loraId,
+                'name' => "トリガー{$loraId}",
+                'content' => "trigger {$loraId},",
+            ]);
+            DB::table('outfits')->insert([
+                'lora_id' => $loraId,
+                'name' => "服装{$loraId}",
+                'content' => "outfit {$loraId},",
+            ]);
+        }
+        $this->patchJson(route('loras.visibility.update', ['lora' => $hiddenId]), [
+            'isHidden' => true,
+        ])->assertOk();
+
+        $visible = $this->getJson(route('lora-prompt-options.index'))->assertOk();
+        $hidden = $this->getJson(route('lora-prompt-options.index', ['visibility' => 'hidden']))->assertOk();
+        $all = $this->getJson(route('lora-prompt-options.index', ['visibility' => 'all']))->assertOk();
+
+        $this->assertSame([$visibleId], array_column($visible->json('loras'), 'id'));
+        $this->assertSame([false], array_column($visible->json('loras'), 'isHidden'));
+        $this->assertSame([$visibleId], array_column($visible->json('triggers'), 'loraId'));
+        $this->assertSame([$visibleId], array_column($visible->json('outfits'), 'loraId'));
+        $this->assertSame([$hiddenId], array_column($hidden->json('loras'), 'id'));
+        $this->assertSame([true], array_column($hidden->json('loras'), 'isHidden'));
+        $this->assertSame([$hiddenId], array_column($hidden->json('triggers'), 'loraId'));
+        $this->assertSame([$hiddenId], array_column($hidden->json('outfits'), 'loraId'));
+        $this->assertEqualsCanonicalizing([$visibleId, $hiddenId], array_column($all->json('loras'), 'id'));
+    }
+
+    public function test_定義されていない表示条件は選択肢を返さない(): void
+    {
+        $this->getJson(route('lora-prompt-options.index', ['visibility' => 'archived']))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('visibility');
+    }
+
     public function test_人物LoRAを非表示にして同じ値を再設定しても登録情報を保持する(): void
     {
         $loraId = $this->createLora('キャラクター', 'character.safetensors', 0.8);
@@ -120,6 +162,7 @@ class LoraPromptOptionApiTest extends TestCase
                     'name' => $loraName,
                     'fileName' => $fileName,
                     'recommendedStrength' => $strength,
+                    'isHidden' => false,
                     'tags' => $this->loraTags($fileName),
                 ]],
                 'triggers' => [[
