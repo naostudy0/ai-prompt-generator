@@ -24,6 +24,7 @@ final readonly class SaveLoraHandler
 
     public function handle(SaveLoraInput $input, LoraKind $kind): SaveLoraResult
     {
+        $isHidden = $input->id === null ? false : $this->repository->find($input->id, $kind)->isHidden;
         if ($kind === LoraKind::Character) {
             if ($input->modelFamilyId === null) {
                 throw new InvalidArgumentException('Character LoRA model family is required.');
@@ -43,6 +44,7 @@ final readonly class SaveLoraHandler
             checkpointOptionId: $kind === LoraKind::Character ? $input->checkpointOptionId : null,
             samplerOptionId: $kind === LoraKind::Character ? $input->samplerOptionId : null,
             schedulerOptionId: $kind === LoraKind::Character ? $input->schedulerOptionId : null,
+            isHidden: $isHidden,
         ));
 
         if ($saved->id === null) {

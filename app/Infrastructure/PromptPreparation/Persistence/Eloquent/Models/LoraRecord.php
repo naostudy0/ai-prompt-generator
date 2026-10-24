@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property int|null $checkpoint_option_id
  * @property int|null $sampler_option_id
  * @property int|null $scheduler_option_id
+ * @property bool $is_hidden
  */
 class LoraRecord extends Model
 {
@@ -22,5 +23,9 @@ class LoraRecord extends Model
     protected $fillable = [
         'name', 'file_name', 'recommended_strength_step', 'kind', 'model_family_id',
         'checkpoint_option_id', 'sampler_option_id', 'scheduler_option_id',
+        'is_hidden',
     ];
+
+    /** @var array<string, string> */
+    protected $casts = ['is_hidden' => 'boolean'];
 }

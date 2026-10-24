@@ -19,6 +19,7 @@ final readonly class Lora
         public ?int $checkpointOptionId = null,
         public ?int $samplerOptionId = null,
         public ?int $schedulerOptionId = null,
+        public bool $isHidden = false,
     ) {
         $trimmed = trim($name);
 
@@ -36,6 +37,9 @@ final readonly class Lora
             || ($kind === LoraKind::Clothing && $modelFamilyId !== null)) {
             throw new InvalidArgumentException('LoRA kind and model family are inconsistent.');
         }
+        if ($kind === LoraKind::Clothing && $isHidden) {
+            throw new InvalidArgumentException('Clothing LoRA cannot be hidden.');
+        }
         $settings = [$checkpointOptionId, $samplerOptionId, $schedulerOptionId];
         if (($kind === LoraKind::Character && in_array(null, $settings, true))
             || ($kind === LoraKind::Clothing && !empty(array_filter($settings, static fn (?int $id): bool => $id !== null)))) {
@@ -48,5 +52,21 @@ final readonly class Lora
     public function tag(LoraStrength $strength): LoraTag
     {
         return new LoraTag($this->fileName, $strength);
+    }
+
+    public function withVisibility(bool $isHidden): self
+    {
+        return new self(
+            id: $this->id,
+            name: $this->name,
+            fileName: $this->fileName,
+            recommendedStrength: $this->recommendedStrength,
+            kind: $this->kind,
+            modelFamilyId: $this->modelFamilyId,
+            checkpointOptionId: $this->checkpointOptionId,
+            samplerOptionId: $this->samplerOptionId,
+            schedulerOptionId: $this->schedulerOptionId,
+            isHidden: $isHidden,
+        );
     }
 }

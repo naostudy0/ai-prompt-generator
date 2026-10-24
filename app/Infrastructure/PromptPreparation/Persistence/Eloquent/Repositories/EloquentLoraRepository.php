@@ -32,11 +32,27 @@ final class EloquentLoraRepository implements LoraRepository
                 'checkpoint_option_id' => $lora->checkpointOptionId,
                 'sampler_option_id' => $lora->samplerOptionId,
                 'scheduler_option_id' => $lora->schedulerOptionId,
+                'is_hidden' => $lora->isHidden,
             ])->save();
         } catch (UniqueConstraintViolationException $exception) {
             throw new DuplicateLoraFileName(previous: $exception);
         }
 
+        return $this->toDomain($record);
+    }
+
+    public function find(int $id, LoraKind $kind): Lora
+    {
+        $record = LoraRecord::query()->findOrFail($id);
+        if ($record->kind !== $kind->value) {
+            throw new LoraKindMismatch('The LoRA kind does not match the requested operation.');
+        }
+
+        return $this->toDomain($record);
+    }
+
+    private function toDomain(LoraRecord $record): Lora
+    {
         return new Lora(
             id: $record->getKey(),
             name: $record->name,
@@ -47,6 +63,7 @@ final class EloquentLoraRepository implements LoraRepository
             checkpointOptionId: $record->checkpoint_option_id,
             samplerOptionId: $record->sampler_option_id,
             schedulerOptionId: $record->scheduler_option_id,
+            isHidden: $record->is_hidden,
         );
     }
 

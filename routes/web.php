@@ -14,6 +14,7 @@ use App\Http\Controllers\PromptPreparation\Queries\ListGenerationSettingOptionsC
 use App\Http\Controllers\PromptPreparation\Queries\ListModelFamiliesController;
 use App\Http\Controllers\PromptPreparation\Queries\ListOptionCategoriesController;
 use App\Http\Controllers\PromptPreparation\Writes\ChangeOptionPromptGroupCategoryController;
+use App\Http\Controllers\PromptPreparation\Writes\ChangeCharacterLoraVisibilityController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteClothingLoraController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteClothingLoraTriggerController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteComfyUiWorkflowController;
@@ -122,6 +123,8 @@ Route::delete(
 
 Route::post('/loras', SaveLoraController::class)->name('loras.store');
 Route::put('/loras/{lora}', SaveLoraController::class)->whereNumber('lora')->name('loras.update');
+Route::patch('/loras/{lora}/visibility', ChangeCharacterLoraVisibilityController::class)
+    ->whereNumber('lora')->name('loras.visibility.update');
 Route::delete('/loras/{lora}', DeleteLoraController::class)->whereNumber('lora')->name('loras.destroy');
 
 Route::post('/lora-triggers', SaveLoraTriggerController::class)->name('lora-triggers.store');

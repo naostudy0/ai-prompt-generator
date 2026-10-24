@@ -4,12 +4,33 @@ namespace Tests\Unit\Domain\PromptPreparation;
 
 use App\Domain\PromptPreparation\Models\Lora\Lora;
 use App\Domain\PromptPreparation\Models\Lora\LoraFileName;
+use App\Domain\PromptPreparation\Models\Lora\LoraKind;
 use App\Domain\PromptPreparation\Models\Lora\LoraStrength;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
 class LoraTest extends TestCase
 {
+    public function test_人物LoRAの表示状態を明示した値へ変更する(): void
+    {
+        $lora = new Lora(null, 'キャラクター', new LoraFileName('character.safetensors'), LoraStrength::fromNumber(1), checkpointOptionId: 1, samplerOptionId: 2, schedulerOptionId: 3);
+
+        $hidden = $lora->withVisibility(true);
+        $visible = $hidden->withVisibility(false);
+
+        $this->assertTrue($hidden->isHidden);
+        $this->assertFalse($visible->isHidden);
+    }
+
+    public function test_衣装LoRAは非表示にできない(): void
+    {
+        $lora = new Lora(null, '衣装', new LoraFileName('clothing.safetensors'), LoraStrength::fromNumber(1), LoraKind::Clothing, null);
+
+        $this->expectException(InvalidArgumentException::class);
+
+        $lora->withVisibility(true);
+    }
+
     public function test_登録名が空白だけのLoRAは作成できない(): void
     {
         $this->expectException(InvalidArgumentException::class);

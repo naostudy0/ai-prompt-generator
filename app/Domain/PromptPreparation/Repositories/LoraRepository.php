@@ -9,6 +9,8 @@ interface LoraRepository
 {
     public function save(Lora $lora): Lora;
 
+    public function find(int $id, LoraKind $kind): Lora;
+
     public function ensureKind(int $id, LoraKind $kind): void;
 
     public function delete(int $id, LoraKind $kind): void;

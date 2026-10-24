@@ -13,6 +13,69 @@ class LoraPromptOptionApiTest extends TestCase
     use RefreshDatabase;
     use CreatesGenerationSettings;
 
+    public function test_人物LoRAを非表示にして同じ値を再設定しても登録情報を保持する(): void
+    {
+        $loraId = $this->createLora('キャラクター', 'character.safetensors', 0.8);
+
+        $this->patchJson(route('loras.visibility.update', ['lora' => $loraId]), [
+            'isHidden' => true,
+        ])->assertOk()->assertExactJson(['id' => $loraId, 'isHidden' => true]);
+        $this->patchJson(route('loras.visibility.update', ['lora' => $loraId]), [
+            'isHidden' => true,
+        ])->assertOk()->assertExactJson(['id' => $loraId, 'isHidden' => true]);
+
+        $this->assertDatabaseHas('loras', [
+            'id' => $loraId,
+            'name' => 'キャラクター',
+            'file_name' => 'character.safetensors',
+            'recommended_strength_step' => 8,
+            'is_hidden' => true,
+        ]);
+    }
+
+    public function test_非表示人物LoRAを通常編集しても非表示状態を保持する(): void
+    {
+        $loraId = $this->createLora('変更前', 'before.safetensors', 1);
+        $this->patchJson(route('loras.visibility.update', ['lora' => $loraId]), [
+            'isHidden' => true,
+        ])->assertOk();
+
+        $this->putJson(route('loras.update', ['lora' => $loraId]), [
+            'modelFamilyId' => 1,
+            ...$this->generationSettings(),
+            'name' => '変更後',
+            'fileName' => 'after.safetensors',
+            'recommendedStrength' => 0.9,
+        ])->assertOk();
+
+        $this->assertDatabaseHas('loras', [
+            'id' => $loraId,
+            'name' => '変更後',
+            'is_hidden' => true,
+        ]);
+    }
+
+    public function test_表示状態はbooleanだけを受け付け存在しない人物と衣装LoRAを変更しない(): void
+    {
+        $clothingId = DB::table('loras')->insertGetId([
+            'name' => '衣装',
+            'file_name' => 'clothing.safetensors',
+            'recommended_strength_step' => 10,
+            'kind' => 'clothing',
+        ]);
+
+        $this->patchJson(route('loras.visibility.update', ['lora' => $clothingId]), [
+            'isHidden' => true,
+        ])->assertUnprocessable()->assertJsonValidationErrors('lora');
+        $this->patchJson(route('loras.visibility.update', ['lora' => 999]), [
+            'isHidden' => false,
+        ])->assertNotFound();
+        $this->patchJson(route('loras.visibility.update', ['lora' => $clothingId]), [
+            'isHidden' => 'true',
+        ])->assertUnprocessable()->assertJsonValidationErrors('isHidden');
+        $this->assertDatabaseHas('loras', ['id' => $clothingId, 'is_hidden' => false]);
+    }
+
     public function test_LoRAとトリガーと服装を登録して選択肢として取得する(): void
     {
         $loraName = 'キャラクターA';
