@@ -2,6 +2,7 @@ import {
     createCharacterLoraCandidateKey,
     createCharacterLoraVariant,
     getCharacterLoraCandidates,
+    reconcileCharacterLoraCandidateChecks,
 } from './character-lora-variant.js';
 import {
     findCharacterLoraVariantGroupIndex,
@@ -16,6 +17,7 @@ import { writePromptToClipboard } from './default-prompts.js';
 import { replaceModelFamilyDefault } from './model-family-default-variant.js';
 
 const storageKey = 'comfyui-character-variant-unchecked-v1';
+const knownCandidateStorageKey = 'comfyui-character-variant-known-v1';
 const groupStorageKey = 'comfyui-character-variant-groups-v1';
 
 export const initializeCharacterLoraVariantPage = ({
@@ -54,6 +56,7 @@ export const initializeCharacterLoraVariantPage = ({
     let snapshot = null;
     let currentPage = 1;
     let unchecked = new Set();
+    let knownCandidateKeys = new Set();
     let groups = [];
     let storageAvailable = true;
     const candidateResults = new Map();
@@ -61,6 +64,10 @@ export const initializeCharacterLoraVariantPage = ({
         const saved = JSON.parse(view.localStorage.getItem(storageKey) ?? '[]');
         if (Array.isArray(saved)) {
             unchecked = new Set(saved.filter((key) => typeof key === 'string'));
+        }
+        const savedKnown = JSON.parse(view.localStorage.getItem(knownCandidateStorageKey) ?? '[]');
+        if (Array.isArray(savedKnown)) {
+            knownCandidateKeys = new Set(savedKnown.filter((key) => typeof key === 'string'));
         }
     } catch {
         unchecked = new Set();
@@ -80,6 +87,10 @@ export const initializeCharacterLoraVariantPage = ({
     const persist = () => {
         try {
             view.localStorage.setItem(storageKey, JSON.stringify([...unchecked]));
+            view.localStorage.setItem(
+                knownCandidateStorageKey,
+                JSON.stringify([...knownCandidateKeys]),
+            );
             return true;
         } catch {
             setStatus('チェック状態をブラウザーへ保存できません。');
@@ -295,6 +306,7 @@ export const initializeCharacterLoraVariantPage = ({
                             'X-CSRF-TOKEN': csrfToken,
                         },
                         body: JSON.stringify({
+                            source: 'characterVariant',
                             modelFamilyId: lora.modelFamilyId ?? 1,
                             loraId: lora.id,
                             positive: createOutput('positive', lora, trigger),
@@ -338,7 +350,11 @@ export const initializeCharacterLoraVariantPage = ({
                 createCharacterLoraCandidateKey(lora, trigger),
             ),
         );
-        unchecked = new Set([...unchecked].filter((key) => validKeys.has(key)));
+        ({ unchecked, known: knownCandidateKeys } = reconcileCharacterLoraCandidateChecks(
+            unchecked,
+            knownCandidateKeys,
+            validKeys,
+        ));
         persist();
         if (search instanceof view.HTMLInputElement) {
             search.value = '';

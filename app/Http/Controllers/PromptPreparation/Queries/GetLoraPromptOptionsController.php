@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\PromptPreparation\Queries;
 
-use App\Application\PromptPreparation\Queries\GetLoraPromptOptions\GetLoraPromptOptionsHandler;
 use App\Application\PromptPreparation\Queries\GetLoraPromptOptions\CharacterLoraVisibility;
+use App\Application\PromptPreparation\Queries\GetLoraPromptOptions\GetLoraPromptOptionsHandler;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PromptPreparation\GetLoraPromptOptionsRequest;
 use Illuminate\Http\JsonResponse;

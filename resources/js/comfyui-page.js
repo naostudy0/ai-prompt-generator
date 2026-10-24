@@ -48,6 +48,7 @@ export const initializeComfyUiPage = ({
                     'X-CSRF-TOKEN': csrfToken,
                 },
                 body: JSON.stringify({
+                    source: 'output',
                     modelFamilyId: getModelFamilyId(),
                     loraId: getLoraId(),
                     positive: output('positive'),

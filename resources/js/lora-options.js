@@ -105,7 +105,11 @@ export const deleteLoraPromptOption = async (fetcher, url, csrfToken, id) => {
 export const changeCharacterLoraVisibility = async (fetcher, url, csrfToken, id, isHidden) => {
     const response = await fetcher(`${url}/${id}/visibility`, {
         method: 'PATCH',
-        headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken,
+        },
         body: JSON.stringify({ isHidden }),
     });
     await assertSuccessfulResponse(response);

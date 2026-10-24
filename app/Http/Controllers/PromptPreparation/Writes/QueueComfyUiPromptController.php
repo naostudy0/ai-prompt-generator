@@ -4,6 +4,7 @@ namespace App\Http\Controllers\PromptPreparation\Writes;
 
 use App\Application\PromptPreparation\Exceptions\ComfyUiQueueFailed;
 use App\Application\PromptPreparation\Exceptions\ComfyUiWorkflowNotConfigured;
+use App\Application\PromptPreparation\Exceptions\HiddenCharacterLora;
 use App\Application\PromptPreparation\Exceptions\InvalidComfyUiWorkflow;
 use App\Application\PromptPreparation\Exceptions\InvalidLoraGenerationSelection;
 use App\Application\PromptPreparation\Writes\QueueComfyUiPrompt\QueueComfyUiPromptHandler;
@@ -21,8 +22,9 @@ final class QueueComfyUiPromptController extends Controller
                 (string) $request->input('positive', ''),
                 (string) $request->input('negative', ''),
                 $request->filled('loraId') ? $request->integer('loraId') : null,
+                isCharacterVariant: $request->string('source')->toString() === 'characterVariant',
             );
-        } catch (ComfyUiWorkflowNotConfigured|InvalidComfyUiWorkflow|InvalidLoraGenerationSelection $exception) {
+        } catch (ComfyUiWorkflowNotConfigured|InvalidComfyUiWorkflow|InvalidLoraGenerationSelection|HiddenCharacterLora $exception) {
             return response()->json(['message' => $exception->getMessage()], 422);
         } catch (ComfyUiQueueFailed $exception) {
             return response()->json(['message' => $exception->getMessage(), 'resultUnknown' => $exception->resultUnknown], $exception->resultUnknown ? 504 : 503);

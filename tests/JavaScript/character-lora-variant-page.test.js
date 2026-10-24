@@ -312,6 +312,7 @@ test('一括送信のチェック状態を変えずに候補を一件だけComfy
     assert.equal(requests.length, 1);
     assert.equal(requests[0].url, '/comfyui/prompts');
     assert.deepEqual(JSON.parse(requests[0].options.body), {
+        source: 'characterVariant',
         modelFamilyId: 3,
         loraId: 2,
         positive: 'quality,\n\n<lora:test-character:0.8>,\n\nred hair,',

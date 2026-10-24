@@ -57,6 +57,7 @@ test('空のpositiveとnegativeを確認なしで現在の系統へ送信する'
 
     assert.equal(requests.length, 1);
     assert.deepEqual(JSON.parse(requests[0].options.body), {
+        source: 'output',
         modelFamilyId: 2,
         loraId: null,
         positive: '',
@@ -90,6 +91,7 @@ test('強度調整済みの出力をComfyUIへ送信する', async () => {
 
     assert.equal(request.url, '/comfyui/prompts');
     assert.deepEqual(JSON.parse(request.options.body), {
+        source: 'output',
         modelFamilyId: 1,
         loraId: null,
         positive: '(eyes closed:1.05),',

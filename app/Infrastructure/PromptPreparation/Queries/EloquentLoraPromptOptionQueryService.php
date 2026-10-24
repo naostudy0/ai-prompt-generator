@@ -3,8 +3,8 @@
 namespace App\Infrastructure\PromptPreparation\Queries;
 
 use App\Application\PromptPreparation\Ports\LoraPromptOptionQueryService;
-use App\Application\PromptPreparation\Queries\GetLoraPromptOptions\GetLoraPromptOptionsResult;
 use App\Application\PromptPreparation\Queries\GetLoraPromptOptions\CharacterLoraVisibility;
+use App\Application\PromptPreparation\Queries\GetLoraPromptOptions\GetLoraPromptOptionsResult;
 use App\Domain\PromptPreparation\Models\Lora\LoraFileName;
 use App\Domain\PromptPreparation\Models\Lora\LoraStrength;
 use App\Domain\PromptPreparation\Models\Lora\LoraTag;

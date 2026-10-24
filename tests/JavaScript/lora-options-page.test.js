@@ -113,12 +113,20 @@ test('選択中人物を管理から非表示にした成功後だけ選択を�
             hidden = true;
             return { ok: true, json: async () => ({ id: 1, isHidden: true }) };
         }
-        const loras = url.includes('visibility=all') ? [{ ...visible, isHidden: hidden }] : hidden ? [] : [visible];
+        const loras = url.includes('visibility=all')
+            ? [{ ...visible, isHidden: hidden }]
+            : hidden
+              ? []
+              : [visible];
         return { ok: true, json: async () => ({ loras, triggers: [], outfits: [] }) };
     };
     const controller = initializeLoraOptionsPage({
-        page: documentObject.querySelector('main'), documentObject, fetcher, csrfToken: 'csrf',
-        onLoadedChange: () => {}, notify: () => {},
+        page: documentObject.querySelector('main'),
+        documentObject,
+        fetcher,
+        csrfToken: 'csrf',
+        onLoadedChange: () => {},
+        notify: () => {},
     });
     await flushAsyncEvents();
     const selector = documentObject.querySelector('[data-lora-list]');
@@ -129,7 +137,10 @@ test('選択中人物を管理から非表示にした成功後だけ選択を�
     documentObject.querySelector('[data-lora-visibility-list] button').click();
     await flushAsyncEvents();
 
-    assert.equal(requests.some(({ options }) => options.method === 'PATCH'), true);
+    assert.equal(
+        requests.some(({ options }) => options.method === 'PATCH'),
+        true,
+    );
     assert.equal(controller.getSelectedLoraId(), null);
 });
 

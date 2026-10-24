@@ -356,40 +356,67 @@ export const initializeLoraOptionsPage = ({
         if (!(visibilityList instanceof view.HTMLElement)) return;
         const search = visibilitySearch?.value.trim().toLocaleLowerCase() ?? '';
         visibilityList.replaceChildren();
-        state.managedLoras.filter((lora) => search === '' || lora.name.toLocaleLowerCase().includes(search)).forEach((lora) => {
-            const row = documentObject.createElement('div');
-            row.className = 'character-variant-row';
-            const label = documentObject.createElement('span');
-            label.textContent = `${lora.name}（${lora.isHidden ? '非表示' : '表示中'}）`;
-            const button = documentObject.createElement('button');
-            button.type = 'button'; button.className = 'small-button';
-            button.textContent = lora.isHidden ? '再表示' : '非表示';
-            button.addEventListener('click', async () => {
-                button.disabled = true;
-                try {
-                    await changeCharacterLoraVisibility(fetcher, endpoints.lora, csrfToken, lora.id, !lora.isHidden);
-                    if (!lora.isHidden && state.selectedLoraId === lora.id) {
-                        state.selectedLoraId = null; state.selectedTriggerId = null;
-                        if (state.selectedOutfitId !== null && state.outfits.find((item) => item.id === state.selectedOutfitId)?.loraId === lora.id) state.selectedOutfitId = null;
-                        notify('選択を解除しました。出力へ反映するには再表示してください。');
+        state.managedLoras
+            .filter((lora) => search === '' || lora.name.toLocaleLowerCase().includes(search))
+            .forEach((lora) => {
+                const row = documentObject.createElement('div');
+                row.className = 'character-variant-row';
+                const label = documentObject.createElement('span');
+                label.textContent = `${lora.name}（${lora.isHidden ? '非表示' : '表示中'}）`;
+                const button = documentObject.createElement('button');
+                button.type = 'button';
+                button.className = 'small-button';
+                button.textContent = lora.isHidden ? '再表示' : '非表示';
+                button.addEventListener('click', async () => {
+                    button.disabled = true;
+                    try {
+                        await changeCharacterLoraVisibility(
+                            fetcher,
+                            endpoints.lora,
+                            csrfToken,
+                            lora.id,
+                            !lora.isHidden,
+                        );
+                        if (!lora.isHidden && state.selectedLoraId === lora.id) {
+                            state.selectedLoraId = null;
+                            state.selectedTriggerId = null;
+                            if (
+                                state.selectedOutfitId !== null &&
+                                state.outfits.find((item) => item.id === state.selectedOutfitId)
+                                    ?.loraId === lora.id
+                            )
+                                state.selectedOutfitId = null;
+                            notify('選択を解除しました。出力へ反映するには再表示してください。');
+                        }
+                        await loadOptions();
+                        await loadManagedLoras();
+                    } catch {
+                        visibilityStatus.textContent =
+                            '表示状態を保存できませんでした。再度お試しください。';
+                    } finally {
+                        button.disabled = false;
                     }
-                    await loadOptions();
-                    await loadManagedLoras();
-                } catch { visibilityStatus.textContent = '表示状態を保存できませんでした。再度お試しください。'; }
-                finally { button.disabled = false; }
+                });
+                row.append(label, button);
+                visibilityList.append(row);
             });
-            row.append(label, button); visibilityList.append(row);
-        });
-        visibilityStatus.textContent = state.managedLoras.length === 0 ? '該当する人物LoRAはありません。' : '';
+        visibilityStatus.textContent =
+            state.managedLoras.length === 0 ? '該当する人物LoRAはありません。' : '';
     };
 
     const loadManagedLoras = async () => {
         const visibility = visibilityFilter?.value ?? 'all';
         visibilityStatus.textContent = '読み込んでいます。';
         try {
-            const result = await requestLoraPromptOptions(fetcher, `${page.dataset.loraOptionsUrl}?visibility=${visibility}`);
-            state.managedLoras = result.loras; renderManagedLoras();
-        } catch { visibilityStatus.textContent = '人物LoRAを読み込めませんでした。'; }
+            const result = await requestLoraPromptOptions(
+                fetcher,
+                `${page.dataset.loraOptionsUrl}?visibility=${visibility}`,
+            );
+            state.managedLoras = result.loras;
+            renderManagedLoras();
+        } catch {
+            visibilityStatus.textContent = '人物LoRAを読み込めませんでした。';
+        }
     };
 
     const openOptionDialog = (type, item = null) => {
@@ -632,11 +659,14 @@ export const initializeLoraOptionsPage = ({
         closeDialogFromBackdrop(event, deleteDialog),
     );
     page.querySelector('[data-lora-visibility-manage]')?.addEventListener('click', () => {
-        showDialog(visibilityDialog); void loadManagedLoras();
+        showDialog(visibilityDialog);
+        void loadManagedLoras();
     });
     visibilityFilter?.addEventListener('change', () => void loadManagedLoras());
     visibilitySearch?.addEventListener('input', renderManagedLoras);
-    page.querySelector('[data-lora-visibility-close]')?.addEventListener('click', () => closeDialog(visibilityDialog));
+    page.querySelector('[data-lora-visibility-close]')?.addEventListener('click', () =>
+        closeDialog(visibilityDialog),
+    );
 
     void loadOptions();
 

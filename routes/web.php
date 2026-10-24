@@ -13,8 +13,8 @@ use App\Http\Controllers\PromptPreparation\Queries\ListFavoritePromptsController
 use App\Http\Controllers\PromptPreparation\Queries\ListGenerationSettingOptionsController;
 use App\Http\Controllers\PromptPreparation\Queries\ListModelFamiliesController;
 use App\Http\Controllers\PromptPreparation\Queries\ListOptionCategoriesController;
-use App\Http\Controllers\PromptPreparation\Writes\ChangeOptionPromptGroupCategoryController;
 use App\Http\Controllers\PromptPreparation\Writes\ChangeCharacterLoraVisibilityController;
+use App\Http\Controllers\PromptPreparation\Writes\ChangeOptionPromptGroupCategoryController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteClothingLoraController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteClothingLoraTriggerController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteComfyUiWorkflowController;

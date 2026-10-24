@@ -8,8 +8,27 @@ import {
     createCharacterLoraVariant,
     getCharacterLoraCandidates,
     locateCharacterLoraSourceMetadata,
+    reconcileCharacterLoraCandidateChecks,
     trackCharacterLoraSourceEdit,
 } from '../../resources/js/character-lora-variant.js';
+
+test('一度消えた既知候補は再表示しても未チェックのままにする', () => {
+    const hidden = reconcileCharacterLoraCandidateChecks(
+        new Set(),
+        new Set(['a', 'b']),
+        new Set(['b']),
+    );
+    assert.deepEqual([...hidden.unchecked], ['a']);
+
+    const restored = reconcileCharacterLoraCandidateChecks(
+        hidden.unchecked,
+        hidden.known,
+        new Set(['a', 'b', 'c']),
+    );
+    assert.equal(restored.unchecked.has('a'), true);
+    assert.equal(restored.unchecked.has('c'), false);
+    assert.equal(restored.known.has('c'), true);
+});
 
 test('人物LoRAと特定トリガーから候補キーを作る', () => {
     assert.equal(createCharacterLoraCandidateKey({ id: 12 }, { id: 41 }), 'lora:12:trigger:41');

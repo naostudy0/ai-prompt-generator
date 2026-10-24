@@ -11,6 +11,7 @@ final class QueueComfyUiPromptRequest extends FormRequest
         $this->merge([
             'positive' => $this->input('positive', ''),
             'negative' => $this->input('negative', ''),
+            'source' => $this->input('source', 'output'),
         ]);
     }
 
@@ -22,6 +23,7 @@ final class QueueComfyUiPromptRequest extends FormRequest
             'loraId' => ['nullable', 'integer', 'exists:loras,id'],
             'positive' => ['present', 'nullable', 'string', 'max:1000000'],
             'negative' => ['present', 'nullable', 'string', 'max:1000000'],
+            'source' => ['required', 'in:output,characterVariant'],
         ];
     }
 }

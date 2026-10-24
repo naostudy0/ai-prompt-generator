@@ -5,6 +5,22 @@ const sectionSeparator = '\n\n';
 export const createCharacterLoraCandidateKey = (lora, trigger) =>
     `lora:${lora.id}:trigger:${trigger?.id ?? 'none'}`;
 
+export const reconcileCharacterLoraCandidateChecks = (uncheckedKeys, knownKeys, currentKeys) => {
+    const unchecked = new Set(uncheckedKeys);
+    const known = new Set(knownKeys);
+    const current = new Set(currentKeys);
+    for (const key of known) {
+        if (!current.has(key)) {
+            unchecked.add(key);
+        }
+    }
+    for (const key of current) {
+        known.add(key);
+    }
+
+    return { unchecked, known };
+};
+
 export const createCharacterLoraSourceMetadata = (defaultPositive, lora, trigger) => {
     const insertionPoint = defaultPositive.length;
     const loraStart = defaultPositive === '' ? 0 : insertionPoint + sectionSeparator.length;

@@ -148,6 +148,32 @@ class ComfyUiApiTest extends TestCase
         $this->assertSame('tmp/キャラクター 1/キャラクター 1', $firstPrompt['43']['inputs']['string']);
     }
 
+    public function test_非表示人物は差し替え送信だけを拒否して一括送信の残りを続ける(): void
+    {
+        $this->seed();
+        $this->uploadWorkflow(1)->assertOk();
+        [$hiddenId, $visibleId] = $this->createCharacterLoras(2);
+        \DB::table('loras')->where('id', $hiddenId)->update(['is_hidden' => true]);
+        Http::fake(['http://comfy.test/prompt' => Http::response([
+            'prompt_id' => '11111111-1111-1111-1111-111111111111', 'number' => 1, 'node_errors' => [],
+        ])]);
+
+        $this->postJson(route('comfyui-prompts.store'), [
+            'source' => 'output', 'modelFamilyId' => 1, 'loraId' => $hiddenId,
+            'positive' => 'saved output', 'negative' => '',
+        ])->assertAccepted();
+        Http::fake(['http://comfy.test/prompt' => Http::response([
+            'prompt_id' => '22222222-2222-2222-2222-222222222222', 'number' => 2, 'node_errors' => [],
+        ])]);
+        $response = $this->postJson(route('comfyui-prompts.batch'), ['items' => [
+            ['candidateKey' => 'hidden', 'modelFamilyId' => 1, 'loraId' => $hiddenId, 'positive' => '', 'negative' => ''],
+            ['candidateKey' => 'visible', 'modelFamilyId' => 1, 'loraId' => $visibleId, 'positive' => '', 'negative' => ''],
+        ]])->assertOk();
+
+        $response->assertJsonPath('results.0.status', 'failed')->assertJsonPath('results.1.status', 'accepted');
+        Http::assertSentCount(1);
+    }
+
     public function test_一括送信は100件を超える要求を拒否する(): void
     {
         $items = collect(range(1, 101))->map(fn (int $id): array => [
