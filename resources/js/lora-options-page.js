@@ -667,6 +667,9 @@ export const initializeLoraOptionsPage = ({
     deleteDialog?.addEventListener('click', (event) =>
         closeDialogFromBackdrop(event, deleteDialog),
     );
+    visibilityDialog?.addEventListener('click', (event) =>
+        closeDialogFromBackdrop(event, visibilityDialog),
+    );
     page.querySelector('[data-lora-visibility-manage]')?.addEventListener('click', () => {
         showDialog(visibilityDialog);
         void loadManagedLoras();

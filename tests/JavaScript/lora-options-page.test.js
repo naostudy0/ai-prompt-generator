@@ -180,6 +180,43 @@ test('人物管理で表示状態をバッジにして次の操作を異なる�
     assert.equal(rows[1].querySelector('.lora-visibility-action--show').textContent, '表示する');
 });
 
+test('人物表示管理はモーダル内部のクリックで閉じず外側のクリックで閉じる', async () => {
+    const documentObject = createDocument();
+    initializeLoraOptionsPage({
+        page: documentObject.querySelector('main'),
+        documentObject,
+        fetcher: async () => ({
+            ok: true,
+            json: async () => ({ loras: [], triggers: [], outfits: [] }),
+        }),
+        csrfToken: 'csrf',
+        onLoadedChange: () => {},
+        notify: () => {},
+    });
+    await flushAsyncEvents();
+    const dialog = documentObject.querySelector('[data-lora-visibility-dialog]');
+    dialog.getBoundingClientRect = () => ({ left: 20, right: 80, top: 20, bottom: 80 });
+    documentObject.querySelector('[data-lora-visibility-manage]').click();
+
+    dialog.dispatchEvent(
+        new documentObject.defaultView.MouseEvent('click', {
+            bubbles: true,
+            clientX: 50,
+            clientY: 50,
+        }),
+    );
+    assert.equal(dialog.open, true);
+
+    dialog.dispatchEvent(
+        new documentObject.defaultView.MouseEvent('click', {
+            bubbles: true,
+            clientX: 10,
+            clientY: 10,
+        }),
+    );
+    assert.equal(dialog.open, false);
+});
+
 test('31人物をページ分割し検索と系統変更後も現在の選択を保持する', async () => {
     const documentObject = createDocument();
     const loras = Array.from({ length: 31 }, (_, index) => ({
