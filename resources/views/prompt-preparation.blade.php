@@ -241,7 +241,10 @@
                             <p class="category-label">positive</p>
                             <h3 id="lora-options-heading">LoRA</h3>
                         </div>
-                        <button class="small-button" type="button" aria-label="LoRAを追加" data-option-add="lora">追加</button>
+                        <div class="list-actions">
+                            <button class="small-button" type="button" data-lora-visibility-manage>非表示を管理</button>
+                            <button class="small-button" type="button" aria-label="LoRAを追加" data-option-add="lora">追加</button>
+                        </div>
                     </div>
 
                     <div class="option-load-state">
@@ -309,6 +312,18 @@
                         </div>
                     </div>
                 </section>
+                <dialog class="option-dialog" data-lora-visibility-dialog>
+                    <h2>人物LoRAの表示を管理</h2>
+                    <label class="field-label" for="lora-visibility-filter">表示状態</label>
+                    <select id="lora-visibility-filter" class="text-input" data-lora-visibility-filter>
+                        <option value="all">すべて</option><option value="visible">表示中</option><option value="hidden">非表示</option>
+                    </select>
+                    <label class="field-label" for="lora-visibility-search">人物LoRAを検索</label>
+                    <input id="lora-visibility-search" class="text-input" type="search" data-lora-visibility-search>
+                    <p data-lora-visibility-status role="status" aria-live="polite"></p>
+                    <div class="character-variant-list" data-lora-visibility-list></div>
+                    <button class="secondary-button" type="button" data-lora-visibility-close>閉じる</button>
+                </dialog>
 
                 <section class="lora-options" aria-labelledby="clothing-lora-heading" data-clothing-lora-options tabindex="-1">
                     <div class="subsection-heading">

@@ -5,6 +5,7 @@ const isLora = (value) =>
     Number.isInteger(value.id) &&
     typeof value.name === 'string' &&
     typeof value.fileName === 'string' &&
+    (value.isHidden === undefined || typeof value.isHidden === 'boolean') &&
     (value.modelFamilyId === undefined || Number.isInteger(value.modelFamilyId)) &&
     (value.checkpointOptionId === undefined || Number.isInteger(value.checkpointOptionId)) &&
     (value.samplerOptionId === undefined || Number.isInteger(value.samplerOptionId)) &&
@@ -99,6 +100,16 @@ export const deleteLoraPromptOption = async (fetcher, url, csrfToken, id) => {
         headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken },
     });
     await assertSuccessfulResponse(response);
+};
+
+export const changeCharacterLoraVisibility = async (fetcher, url, csrfToken, id, isHidden) => {
+    const response = await fetcher(`${url}/${id}/visibility`, {
+        method: 'PATCH',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+        body: JSON.stringify({ isHidden }),
+    });
+    await assertSuccessfulResponse(response);
+    return response.json();
 };
 
 export const filterLoras = (loras, searchText) => {

@@ -1,5 +1,6 @@
 import {
     createLoraPromptSections,
+    changeCharacterLoraVisibility,
     deleteLoraPromptOption,
     filterLoras,
     orderOutfits,
@@ -47,6 +48,11 @@ export const initializeLoraOptionsPage = ({
     const outfitList = root.querySelector('[data-outfit-list]');
     const outfitSearchInput = root.querySelector('[data-outfit-search]');
     const strengthSelect = root.querySelector('[data-lora-strength]');
+    const visibilityDialog = page.querySelector('[data-lora-visibility-dialog]');
+    const visibilityFilter = page.querySelector('[data-lora-visibility-filter]');
+    const visibilitySearch = page.querySelector('[data-lora-visibility-search]');
+    const visibilityList = page.querySelector('[data-lora-visibility-list]');
+    const visibilityStatus = page.querySelector('[data-lora-visibility-status]');
     const optionDialog = page.querySelector('[data-option-dialog]');
     const optionForm = page.querySelector('[data-option-form]');
     const deleteDialog = page.querySelector('[data-delete-dialog]');
@@ -65,6 +71,7 @@ export const initializeLoraOptionsPage = ({
         deletingType: null,
         deletingId: null,
         loraPage: 1,
+        managedLoras: [],
     };
 
     const endpoints = {
@@ -345,6 +352,46 @@ export const initializeLoraOptionsPage = ({
         }
     };
 
+    const renderManagedLoras = () => {
+        if (!(visibilityList instanceof view.HTMLElement)) return;
+        const search = visibilitySearch?.value.trim().toLocaleLowerCase() ?? '';
+        visibilityList.replaceChildren();
+        state.managedLoras.filter((lora) => search === '' || lora.name.toLocaleLowerCase().includes(search)).forEach((lora) => {
+            const row = documentObject.createElement('div');
+            row.className = 'character-variant-row';
+            const label = documentObject.createElement('span');
+            label.textContent = `${lora.name}（${lora.isHidden ? '非表示' : '表示中'}）`;
+            const button = documentObject.createElement('button');
+            button.type = 'button'; button.className = 'small-button';
+            button.textContent = lora.isHidden ? '再表示' : '非表示';
+            button.addEventListener('click', async () => {
+                button.disabled = true;
+                try {
+                    await changeCharacterLoraVisibility(fetcher, endpoints.lora, csrfToken, lora.id, !lora.isHidden);
+                    if (!lora.isHidden && state.selectedLoraId === lora.id) {
+                        state.selectedLoraId = null; state.selectedTriggerId = null;
+                        if (state.selectedOutfitId !== null && state.outfits.find((item) => item.id === state.selectedOutfitId)?.loraId === lora.id) state.selectedOutfitId = null;
+                        notify('選択を解除しました。出力へ反映するには再表示してください。');
+                    }
+                    await loadOptions();
+                    await loadManagedLoras();
+                } catch { visibilityStatus.textContent = '表示状態を保存できませんでした。再度お試しください。'; }
+                finally { button.disabled = false; }
+            });
+            row.append(label, button); visibilityList.append(row);
+        });
+        visibilityStatus.textContent = state.managedLoras.length === 0 ? '該当する人物LoRAはありません。' : '';
+    };
+
+    const loadManagedLoras = async () => {
+        const visibility = visibilityFilter?.value ?? 'all';
+        visibilityStatus.textContent = '読み込んでいます。';
+        try {
+            const result = await requestLoraPromptOptions(fetcher, `${page.dataset.loraOptionsUrl}?visibility=${visibility}`);
+            state.managedLoras = result.loras; renderManagedLoras();
+        } catch { visibilityStatus.textContent = '人物LoRAを読み込めませんでした。'; }
+    };
+
     const openOptionDialog = (type, item = null) => {
         state.editingType = type;
         page.querySelector('[data-option-dialog-title]').textContent =
@@ -584,6 +631,12 @@ export const initializeLoraOptionsPage = ({
     deleteDialog?.addEventListener('click', (event) =>
         closeDialogFromBackdrop(event, deleteDialog),
     );
+    page.querySelector('[data-lora-visibility-manage]')?.addEventListener('click', () => {
+        showDialog(visibilityDialog); void loadManagedLoras();
+    });
+    visibilityFilter?.addEventListener('change', () => void loadManagedLoras());
+    visibilitySearch?.addEventListener('input', renderManagedLoras);
+    page.querySelector('[data-lora-visibility-close]')?.addEventListener('click', () => closeDialog(visibilityDialog));
 
     void loadOptions();
 

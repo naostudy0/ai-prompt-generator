@@ -11,6 +11,7 @@ const createLora = (id, name, fileName, recommendedStrength) => ({
     name,
     fileName,
     recommendedStrength,
+    isHidden: false,
     tags: Array.from(
         { length: 11 },
         (_, step) => `<lora:${fileName}:${step === 10 ? '1' : (step / 10).toFixed(1)}>,`,
@@ -27,6 +28,7 @@ const createDocument = () => {
             data-outfits-url="/outfits"
         >
             <section data-lora-options>
+                <button data-lora-visibility-manage></button>
                 <p data-option-load-status></p>
                 <button data-option-retry hidden></button>
                 <input data-lora-search disabled>
@@ -49,6 +51,12 @@ const createDocument = () => {
                     )
                     .join('')}
             </section>
+            <dialog data-lora-visibility-dialog>
+                <select data-lora-visibility-filter><option value="all">all</option><option value="hidden">hidden</option></select>
+                <input data-lora-visibility-search>
+                <p data-lora-visibility-status></p><div data-lora-visibility-list></div>
+                <button data-lora-visibility-close></button>
+            </dialog>
             <div data-prompt-category="expression"></div>
             <dialog data-option-dialog>
                 <form data-option-form>
@@ -93,6 +101,37 @@ const flushAsyncEvents = async () => {
     await setImmediate();
     await setImmediate();
 };
+
+test('選択中人物を管理から非表示にした成功後だけ選択を解除する', async () => {
+    const documentObject = createDocument();
+    const visible = createLora(1, 'Alpha', 'alpha.safetensors', 1);
+    const requests = [];
+    let hidden = false;
+    const fetcher = async (url, options = {}) => {
+        requests.push({ url, options });
+        if (options.method === 'PATCH') {
+            hidden = true;
+            return { ok: true, json: async () => ({ id: 1, isHidden: true }) };
+        }
+        const loras = url.includes('visibility=all') ? [{ ...visible, isHidden: hidden }] : hidden ? [] : [visible];
+        return { ok: true, json: async () => ({ loras, triggers: [], outfits: [] }) };
+    };
+    const controller = initializeLoraOptionsPage({
+        page: documentObject.querySelector('main'), documentObject, fetcher, csrfToken: 'csrf',
+        onLoadedChange: () => {}, notify: () => {},
+    });
+    await flushAsyncEvents();
+    const selector = documentObject.querySelector('[data-lora-list]');
+    selector.value = '1';
+    selector.dispatchEvent(new documentObject.defaultView.Event('change'));
+    documentObject.querySelector('[data-lora-visibility-manage]').click();
+    await flushAsyncEvents();
+    documentObject.querySelector('[data-lora-visibility-list] button').click();
+    await flushAsyncEvents();
+
+    assert.equal(requests.some(({ options }) => options.method === 'PATCH'), true);
+    assert.equal(controller.getSelectedLoraId(), null);
+});
 
 test('31人物をページ分割し検索と系統変更後も現在の選択を保持する', async () => {
     const documentObject = createDocument();
