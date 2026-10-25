@@ -84,6 +84,27 @@ test('開閉時にフォーカスを戻し、閉じるとファイル参照と�
     assert.equal(document.activeElement, open);
 });
 
+test('モーダル本体の外側を押したときだけ閉じる', () => {
+    const { dom, document, page, dialog } = fixture();
+    initializeComfyUiImageRestoration({
+        page,
+        documentObject: document,
+        fetcher: async () => response(result),
+    });
+    dialog.getBoundingClientRect = () => ({ left: 100, top: 100, right: 500, bottom: 500 });
+    document.querySelector('[data-comfyui-image-restoration-open]').click();
+
+    dialog.dispatchEvent(
+        new dom.window.MouseEvent('click', { bubbles: true, clientX: 200, clientY: 200 }),
+    );
+    assert.equal(dialog.hasAttribute('open'), true);
+
+    dialog.dispatchEvent(
+        new dom.window.MouseEvent('click', { bubbles: true, clientX: 50, clientY: 50 }),
+    );
+    assert.equal(dialog.hasAttribute('open'), false);
+});
+
 test('PNGを送信し、解析中は多重送信を防いで結果を分類表示する', async () => {
     const { document, page } = fixture();
     let request;
