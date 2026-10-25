@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Application\PromptPreparation\Ports\ClothingLoraOptionQueryService;
+use App\Application\PromptPreparation\Ports\ComfyUiImageMetadataReader;
 use App\Application\PromptPreparation\Ports\ComfyUiWorkflowStore;
 use App\Application\PromptPreparation\Ports\DefaultPromptQueryService;
 use App\Application\PromptPreparation\Ports\FavoriteImageStorage;
@@ -34,6 +35,7 @@ use App\Infrastructure\PromptPreparation\External\IllustrationLlm\FileIllustrati
 use App\Infrastructure\PromptPreparation\External\IllustrationLlm\FileIllustrationScenarioInstructions;
 use App\Infrastructure\PromptPreparation\External\IllustrationLlm\OllamaIllustrationPromptGenerator;
 use App\Infrastructure\PromptPreparation\External\IllustrationLlm\OllamaIllustrationScenarioGenerator;
+use App\Infrastructure\PromptPreparation\Images\PngComfyUiImageMetadataReader;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentDefaultPromptRepository;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentFavoritePromptRepository;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentGenerationSettingOptionRepository;
@@ -83,6 +85,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(FavoritePromptQueryService::class, EloquentFavoritePromptQueryService::class);
         $this->app->bind(FavoriteImageStorage::class, LaravelFavoriteImageStorage::class);
         $this->app->bind(ComfyUiWorkflowStore::class, LaravelComfyUiWorkflowStore::class);
+        $this->app->bind(ComfyUiImageMetadataReader::class, PngComfyUiImageMetadataReader::class);
         $this->app->bind(ImageGenerationQueue::class, ComfyUiImageGenerationQueue::class);
         $this->app->bind(IllustrationPromptInstructions::class, FileIllustrationPromptInstructions::class);
         $this->app->bind(IllustrationPromptGenerator::class, OllamaIllustrationPromptGenerator::class);
