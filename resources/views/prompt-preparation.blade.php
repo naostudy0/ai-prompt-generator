@@ -30,6 +30,7 @@
             data-favorite-prompts-url="{{ $favoritePromptsUrl }}"
             data-comfy-ui-prompts-url="{{ $comfyUiPromptsUrl }}"
             data-comfy-ui-prompt-batch-url="{{ $comfyUiPromptBatchUrl }}"
+            data-comfy-ui-image-analysis-url="{{ $comfyUiImageAnalysisUrl }}"
             data-generation-setting-options-url="{{ $generationSettingOptionsUrl }}"
             data-illustration-prompt-generation-url="{{ $illustrationPromptGenerationUrl }}"
             data-illustration-prompt-tag-groups-url="{{ $illustrationPromptTagGroupsUrl }}"
@@ -48,7 +49,45 @@
                 <h1>プロンプトを組み立てる</h1>
                 <button class="secondary-button" type="button" data-illustration-prompt-open>AIでプロンプトを作成</button>
                 <button class="secondary-button" type="button" data-scenario-open>シナリオを作成</button>
+                <button class="secondary-button" type="button" data-comfyui-image-restoration-open>ComfyUI画像から復元</button>
             </header>
+
+            <dialog class="option-dialog comfyui-image-restoration" data-comfyui-image-restoration-dialog aria-labelledby="comfyui-image-restoration-heading">
+                <div class="comfyui-image-restoration__content">
+                    <div class="comfyui-image-restoration__header">
+                        <h2 id="comfyui-image-restoration-heading">ComfyUI画像から復元</h2>
+                        <button type="button" class="small-button" data-comfyui-image-restoration-close>閉じる</button>
+                    </div>
+                    <p class="muted-text">このアプリから送信した対応ワークフローのPNGだけを解析します。画像は保存しません。</p>
+                    <form data-comfyui-image-restoration-form>
+                        <label class="field-label" for="comfyui-image-restoration-file">PNG画像</label>
+                        <input id="comfyui-image-restoration-file" class="text-input" type="file" accept="image/png" required data-comfyui-image-restoration-file>
+                        <button type="submit" class="primary-button" data-comfyui-image-restoration-analyze>解析する</button>
+                    </form>
+                    <p role="status" aria-live="polite" data-comfyui-image-restoration-status></p>
+                    <section class="comfyui-image-restoration__preview" data-comfyui-image-restoration-preview hidden>
+                        <p data-comfyui-image-restoration-family></p>
+                        <label class="field-label" for="comfyui-image-restoration-positive">positive</label>
+                        <textarea id="comfyui-image-restoration-positive" class="text-input" rows="7" readonly data-comfyui-image-restoration-positive></textarea>
+                        <label class="field-label" for="comfyui-image-restoration-negative">negative</label>
+                        <textarea id="comfyui-image-restoration-negative" class="text-input" rows="5" readonly data-comfyui-image-restoration-negative></textarea>
+                        <p data-comfyui-image-restoration-summary></p>
+                        <ul class="comfyui-image-restoration__review" data-comfyui-image-restoration-review></ul>
+                        <section data-comfyui-image-restoration-save-section hidden>
+                            <h3>不足タグを登録</h3>
+                            <p class="muted-text">選択した候補を一つの通常オプションとして登録します。元の出力文面は変更しません。</p>
+                            <div data-comfyui-image-restoration-unmatched></div>
+                            <label class="field-label" for="comfyui-image-restoration-name">登録名</label>
+                            <input id="comfyui-image-restoration-name" class="text-input" maxlength="100" data-comfyui-image-restoration-name>
+                            <label class="field-label" for="comfyui-image-restoration-group">登録先</label>
+                            <select id="comfyui-image-restoration-group" class="text-input" data-comfyui-image-restoration-group></select>
+                            <button type="button" class="secondary-button" data-comfyui-image-restoration-save>選択した不足タグを登録</button>
+                            <p role="status" aria-live="polite" data-comfyui-image-restoration-save-status></p>
+                        </section>
+                        <button type="button" class="primary-button" data-comfyui-image-restoration-apply>この内容を反映</button>
+                    </section>
+                </div>
+            </dialog>
 
             <dialog class="option-dialog illustration-scenario-dialog" data-scenario-dialog aria-labelledby="illustration-scenario-heading">
                 <div class="illustration-scenario-dialog__content">

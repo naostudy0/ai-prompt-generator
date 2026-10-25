@@ -593,6 +593,35 @@ h1 {
     margin: 0;
 }
 
+.comfyui-image-restoration {
+    width: min(52rem, calc(100% - 2rem));
+}
+
+.comfyui-image-restoration__content,
+.comfyui-image-restoration__preview,
+[data-comfyui-image-restoration-form],
+[data-comfyui-image-restoration-save-section] {
+    display: grid;
+    gap: 0.85rem;
+}
+
+.comfyui-image-restoration__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.comfyui-image-restoration__review {
+    max-height: 12rem;
+    overflow-y: auto;
+}
+
+[data-comfyui-image-restoration-unmatched] {
+    display: grid;
+    gap: 0.5rem;
+}
+
 @media (max-width: 720px) {
     .management-page__header,
     .management-page__section-heading {

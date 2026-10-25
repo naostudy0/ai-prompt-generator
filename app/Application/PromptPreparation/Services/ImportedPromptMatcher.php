@@ -23,6 +23,7 @@ final class ImportedPromptMatcher
     ): ImportedPromptMatchResult {
         $positiveTokens = $this->tokens($positive);
         $negativeTokens = $this->tokens($negative);
+        /** @var array<string, bool> $consumed */
         $consumed = [];
         $review = ['partial' => [], 'conflicts' => [], 'unregistered' => [], 'loras' => []];
         $defaultSelection = [
@@ -31,6 +32,7 @@ final class ImportedPromptMatcher
         ];
 
         $optionIds = [];
+        $optionCandidates = [];
         foreach ($options->groups as $group) {
             $full = [];
             foreach ($group['options'] as $option) {
@@ -48,9 +50,23 @@ final class ImportedPromptMatcher
                 continue;
             }
             foreach ($full as $option) {
-                $optionIds[] = $option['id'];
-                $this->consumeFull($this->tokens($option['content']), $positiveTokens, $consumed);
+                $optionCandidates[] = $option;
             }
+        }
+        foreach ($optionCandidates as $index => $option) {
+            $tokens = $this->tokens($option['content']);
+            $overlaps = array_filter(
+                $optionCandidates,
+                fn (array $candidate, int $candidateIndex): bool => $candidateIndex !== $index
+                    && array_intersect($tokens, $this->tokens($candidate['content'])) !== [],
+                ARRAY_FILTER_USE_BOTH,
+            );
+            if ($overlaps !== []) {
+                $review['conflicts'][] = (new ImportedPromptReviewItem('conflict', $option['name'], $option['content'], $option['id']))->toArray();
+                continue;
+            }
+            $optionIds[] = $option['id'];
+            $this->consumeFull($tokens, $positiveTokens, $consumed);
         }
 
         $characterSelection = ['loraId' => null, 'strength' => 1, 'triggerId' => null, 'outfitId' => null];
@@ -84,6 +100,33 @@ final class ImportedPromptMatcher
                 $review['loras'][] = $this->loraReview('unknown_lora', $tag);
             }
         }
+
+        if ($characterSelection['loraId'] !== null) {
+            $characterSelection['triggerId'] = $this->matchOwnedPrompt(
+                $characters->triggers,
+                $characterSelection['loraId'],
+                $positiveTokens,
+                $consumed,
+                $review,
+            );
+            $characterSelection['outfitId'] = $this->matchOwnedPrompt(
+                $characters->outfits,
+                $characterSelection['loraId'],
+                $positiveTokens,
+                $consumed,
+                $review,
+            );
+        }
+        foreach ($clothingSelections as &$selection) {
+            $selection['triggerId'] = $this->matchOwnedPrompt(
+                $clothing->triggers,
+                $selection['loraId'],
+                $positiveTokens,
+                $consumed,
+                $review,
+            );
+        }
+        unset($selection);
 
         foreach ($positiveTokens as $token) {
             if (! isset($consumed[$token]) && ! str_starts_with($token, '<lora:')) {
@@ -132,13 +175,21 @@ final class ImportedPromptMatcher
         return array_values(array_unique($tokens));
     }
 
-    /** @param list<string> $required @param list<string> $available */
+    /**
+     * @param list<string> $required
+     * @param list<string> $available
+     */
     private function containsAll(array $required, array $available): bool
     {
         return $required !== [] && array_diff($required, $available) === [];
     }
 
-    /** @param list<string> $required @param list<string> $available @param array<string, bool> $consumed */
+    /**
+     * @param list<string> $required
+     * @param list<string> $available
+     * @param array<string, bool> $consumed
+     * @param-out array<string, bool> $consumed
+     */
     private function consumeFull(array $required, array $available, array &$consumed): bool
     {
         if (! $this->containsAll($required, $available)) {
@@ -159,7 +210,10 @@ final class ImportedPromptMatcher
         return array_map(static fn (array $match): array => ['raw' => $match[0], 'fileName' => $match[1], 'strength' => (float) $match[2]], $matches);
     }
 
-    /** @param list<array<string, mixed>> $items @return array<string, mixed>|null */
+    /**
+     * @param list<array{id: int, name: string, fileName: string, recommendedStrength: int|float, tags: list<string>}>|list<array{id: int, name: string, fileName: string, recommendedStrength: int|float, modelFamilyId: int, checkpointOptionId: int, samplerOptionId: int, schedulerOptionId: int, isHidden: bool, tags: list<string>}> $items
+     * @return array<string, mixed>|null
+     */
     private function findByFileName(array $items, string $fileName): ?array
     {
         $matches = array_values(array_filter($items, static fn (array $item): bool => $item['fileName'] === $fileName));
@@ -170,6 +224,43 @@ final class ImportedPromptMatcher
     private function supportedStrength(float $strength): bool
     {
         return $strength >= 0 && $strength <= 1 && abs($strength * 10 - round($strength * 10)) < 0.000001;
+    }
+
+    /**
+     * @param list<array{id: int, loraId: int, name: string, content: string}> $items
+     * @param list<string> $available
+     * @param array<string, bool> $consumed
+     * @param array{partial: list<array<string, mixed>>, conflicts: list<array<string, mixed>>, unregistered: list<array<string, mixed>>, loras: list<array<string, mixed>>} $review
+     */
+    private function matchOwnedPrompt(
+        array $items,
+        int $loraId,
+        array $available,
+        array &$consumed,
+        array &$review,
+    ): ?int {
+        $full = [];
+        foreach ($items as $item) {
+            if ($item['loraId'] !== $loraId) {
+                continue;
+            }
+            $tokens = $this->tokens($item['content']);
+            if ($this->containsAll($tokens, $available)) {
+                $full[] = $item;
+            } elseif (array_intersect($tokens, $available) !== []) {
+                $review['partial'][] = (new ImportedPromptReviewItem('partial', $item['name'], $item['content'], $item['id']))->toArray();
+            }
+        }
+        if (count($full) !== 1) {
+            foreach ($full as $item) {
+                $review['conflicts'][] = (new ImportedPromptReviewItem('conflict', $item['name'], $item['content'], $item['id']))->toArray();
+            }
+
+            return null;
+        }
+        $this->consumeFull($this->tokens($full[0]['content']), $available, $consumed);
+
+        return $full[0]['id'];
     }
 
     /** @param array{raw: string, fileName: string, strength: float} $tag

@@ -33,6 +33,7 @@ final class PromptPreparationPageController extends Controller
             'favoritePromptsUrl' => route('favorite-prompts.index'),
             'comfyUiPromptsUrl' => route('comfyui-prompts.store'),
             'comfyUiPromptBatchUrl' => route('comfyui-prompts.batch'),
+            'comfyUiImageAnalysisUrl' => route('comfyui-images.analyze'),
             'generationSettingOptionsUrl' => url('/generation-setting-options'),
             'illustrationPromptGenerationUrl' => route('illustration-prompts.generate'),
             'illustrationPromptTagGroupsUrl' => route('illustration-prompt-tag-groups.store'),

@@ -4,7 +4,12 @@ namespace App\Application\PromptPreparation\Queries\AnalyzeComfyUiImage;
 
 final readonly class AnalyzeComfyUiImageResult
 {
-    /** @param array<string, mixed> $selectionSnapshot @param array<string, mixed> $review @param list<array{id: int, name: string}> $optionGroups */
+    /**
+     * @param array{id: int, name: string} $modelFamily
+     * @param array<string, mixed> $selectionSnapshot
+     * @param array<string, list<array<string, mixed>>> $review
+     * @param list<array{id: int, name: string}> $optionGroups
+     */
     public function __construct(
         public array $modelFamily,
         public string $positivePrompt,

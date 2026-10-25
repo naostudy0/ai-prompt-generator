@@ -54,19 +54,19 @@ final class ComfyUiImageAnalysisApiTest extends TestCase
     private function workflow(string $positive, string $negative, int $seed): array
     {
         return [
-            '1' => ['inputs' => ['text' => $positive], 'class_type' => 'Text'],
-            '2' => ['inputs' => ['text' => $negative], 'class_type' => 'Text'],
-            '3' => ['inputs' => ['seed' => $seed, 'fixed' => 'same'], 'class_type' => 'Sampler'],
+            'node-1' => ['inputs' => ['text' => $positive], 'class_type' => 'Text'],
+            'node-2' => ['inputs' => ['text' => $negative], 'class_type' => 'Text'],
+            'node-3' => ['inputs' => ['seed' => $seed, 'fixed' => 'same'], 'class_type' => 'Sampler'],
         ];
     }
 
-    /** @return array<string, mixed> */
+    /** @return array{positive: array{nodeId: string, inputName: string}, negative: array{nodeId: string, inputName: string}, seed: array{nodeId: string, inputName: string}, checkpoint: list<array{nodeId: string, inputName: string}>, sampler: list<array{nodeId: string, inputName: string}>, scheduler: list<array{nodeId: string, inputName: string}>, outputFilenamePrefix: list<array{nodeId: string, inputName: string}>} */
     private function mappings(): array
     {
         return [
-            'positive' => ['nodeId' => '1', 'inputName' => 'text'],
-            'negative' => ['nodeId' => '2', 'inputName' => 'text'],
-            'seed' => ['nodeId' => '3', 'inputName' => 'seed'],
+            'positive' => ['nodeId' => 'node-1', 'inputName' => 'text'],
+            'negative' => ['nodeId' => 'node-2', 'inputName' => 'text'],
+            'seed' => ['nodeId' => 'node-3', 'inputName' => 'seed'],
             'checkpoint' => [], 'sampler' => [], 'scheduler' => [], 'outputFilenamePrefix' => [],
         ];
     }

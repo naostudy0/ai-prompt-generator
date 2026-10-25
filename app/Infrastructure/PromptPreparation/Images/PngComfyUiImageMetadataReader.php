@@ -28,7 +28,8 @@ final class PngComfyUiImageMetadataReader implements ComfyUiImageMetadataReader
             $prompt = null;
             while (! feof($stream)) {
                 $lengthBytes = $this->readBytes($stream, 4);
-                $length = unpack('Nlength', $lengthBytes)['length'];
+                $unpackedLength = unpack('Nlength', $lengthBytes);
+                $length = $unpackedLength === false ? null : $unpackedLength['length'];
                 if (! is_int($length) || $length > self::MAX_PROMPT_BYTES + 1024) {
                     throw new InvalidComfyUiImage('画像のメタデータが大きすぎます。');
                 }
@@ -78,7 +79,11 @@ final class PngComfyUiImageMetadataReader implements ComfyUiImageMetadataReader
     {
         $value = '';
         while (strlen($value) < $length && ! feof($stream)) {
-            $part = fread($stream, $length - strlen($value));
+            $remaining = $length - strlen($value);
+            if ($remaining < 1) {
+                break;
+            }
+            $part = fread($stream, $remaining);
             if ($part === false) {
                 break;
             }

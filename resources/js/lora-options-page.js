@@ -30,6 +30,7 @@ export const initializeLoraOptionsPage = ({
             getSelectedModelFamilyId: () => null,
             getSelectedLoraId: () => null,
             setModelFamilies: () => {},
+            hasSelectionIds: () => false,
             restoreSelection: () => false,
             reset: () => {},
         };
@@ -743,6 +744,29 @@ export const initializeLoraOptionsPage = ({
             triggerId: state.selectedTriggerId,
             outfitId: state.selectedOutfitId,
         }),
+        hasSelectionIds: (snapshot) => {
+            const lora = state.loras.find((item) => item.id === snapshot?.loraId) ?? null;
+            const strength = Number(snapshot?.strength ?? 1);
+            const validStrength =
+                Number.isFinite(strength) &&
+                strength >= 0 &&
+                strength <= 1 &&
+                Math.abs(strength * 10 - Math.round(strength * 10)) < Number.EPSILON;
+            const trigger = state.triggers.find(
+                (item) => item.id === snapshot?.triggerId && item.loraId === lora?.id,
+            );
+            const outfit = state.outfits.find((item) => item.id === snapshot?.outfitId);
+            return (
+                validStrength &&
+                (snapshot?.loraId === null || snapshot?.loraId === undefined || lora !== null) &&
+                (snapshot?.triggerId === null ||
+                    snapshot?.triggerId === undefined ||
+                    trigger !== undefined) &&
+                (snapshot?.outfitId === null ||
+                    snapshot?.outfitId === undefined ||
+                    outfit !== undefined)
+            );
+        },
         getVariantCandidates: () =>
             state.loaded
                 ? {

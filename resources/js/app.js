@@ -18,6 +18,7 @@ import { normalizePromptForComparison } from './prompt-text.js';
 import { initializeCharacterLoraVariantPage } from './character-lora-variant-page.js';
 import { initializeIllustrationPromptGenerator } from './illustration-prompt-generator.js';
 import { initializeIllustrationScenarioGenerator } from './illustration-scenario-generator.js';
+import { initializeComfyUiImageRestoration } from './comfyui-image-restoration.js';
 import { createGeneratedPromptApplication } from './generated-prompt-application.js';
 import {
     createCharacterLoraSourceMetadata,
@@ -65,6 +66,7 @@ export const initializePromptPreparationPage = ({
     const familyPrompts = new Map([[1, savedPrompts]]);
     let modelFamilies = [{ id: 1, name: 'Illustrious' }];
     let editFamilyId = 1;
+    let importedOutputActive = false;
     const selectedPrompts = { positive: true, negative: true };
     const hasSelections = {
         default: true,
@@ -528,6 +530,12 @@ export const initializePromptPreparationPage = ({
     };
 
     const displayPrompts = () => {
+        if (
+            importedOutputActive &&
+            !view.confirm('画像から復元した出力を、現在の選択内容で作り直しますか？')
+        ) {
+            return;
+        }
         const currentPrompts = familyPrompts.get(activeFamilyId());
         if (!currentPrompts) {
             setLoadStatus('選択中の系統の文面を読み込めませんでした。', true);
@@ -558,6 +566,7 @@ export const initializePromptPreparationPage = ({
             variantMetadata: nextVariantMetadata,
             variantFamily: nextVariantFamily,
         });
+        importedOutputActive = false;
 
         outputSection?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
     };
@@ -588,6 +597,7 @@ export const initializePromptPreparationPage = ({
     };
 
     const resetPrompts = () => {
+        importedOutputActive = false;
         variantSourceMetadata = null;
         variantFamilySource = null;
         previousPositiveOutput = '';
@@ -976,6 +986,86 @@ export const initializePromptPreparationPage = ({
         onLoadedChange: (loaded) => {
             promptCategoriesLoaded = loaded;
             updateActionAvailability();
+        },
+    });
+    initializeComfyUiImageRestoration({
+        page,
+        documentObject,
+        fetcher,
+        csrfToken,
+        confirmAction: (message) => view.confirm(message),
+        captureCurrentState: () => ({
+            hasOutput: outputElements.some(
+                (element) => element.querySelector('[data-output-content]')?.value !== '',
+            ),
+            hasSelections:
+                selectedPrompts.positive ||
+                selectedPrompts.negative ||
+                loraOptionsController.getSelectionSnapshot().loraId !== null ||
+                clothingLoraOptionsController.getSelectionSnapshot().length > 0 ||
+                promptCategoriesController.getSelectionSnapshot().length > 0,
+        }),
+        applyRestoration: (restoration) => {
+            const snapshot = restoration.selectionSnapshot;
+            const defaultsValid =
+                snapshot?.defaults &&
+                typeof snapshot.defaults.positive === 'boolean' &&
+                typeof snapshot.defaults.negative === 'boolean';
+            const familyExists = familyPrompts.has(restoration.modelFamily.id);
+            const loraFamily =
+                snapshot?.lora?.loraId === null || snapshot?.lora?.loraId === undefined
+                    ? restoration.modelFamily.id
+                    : loraOptionsController
+                          .getVariantCandidates()
+                          ?.loras.find((item) => item.id === snapshot.lora.loraId)?.modelFamilyId;
+            const valid =
+                defaultsValid &&
+                familyExists &&
+                loraFamily === restoration.modelFamily.id &&
+                loraOptionsController.hasSelectionIds(snapshot.lora) &&
+                clothingLoraOptionsController.hasSelectionIds(snapshot.clothingLoras) &&
+                promptCategoriesController.hasSelectionIds(snapshot.optionIds);
+            if (!valid) {
+                showToast('登録内容が変わったため復元できません。画像を再解析してください。');
+                return false;
+            }
+            selectedPrompts.positive = snapshot.defaults.positive;
+            selectedPrompts.negative = snapshot.defaults.negative;
+            promptElements.forEach((element) => {
+                if (isPolarity(element.dataset.defaultPrompt)) {
+                    updateSelection(element, element.dataset.defaultPrompt);
+                }
+            });
+            updateDefaultView();
+            loraOptionsController.restoreSelection(snapshot.lora);
+            clothingLoraOptionsController.restoreSelection(snapshot.clothingLoras);
+            promptCategoriesController.restoreSelection(snapshot.optionIds);
+            applyOutputPair({
+                positive: restoration.positivePrompt,
+                negative: restoration.negativePrompt,
+                variantMetadata: null,
+                variantFamily: {
+                    modelFamilyId: restoration.modelFamily.id,
+                    loraId: snapshot.lora?.loraId ?? null,
+                    defaults: { ...snapshot.defaults },
+                    defaultSections: createPromptOutputs(
+                        familyPrompts.get(restoration.modelFamily.id),
+                        snapshot.defaults,
+                    ),
+                },
+            });
+            importedOutputActive = true;
+            if (Object.values(restoration.review).flat().length > 0) {
+                showToast('確認が必要な項目があります。再生成すると未登録部分が失われます。');
+            }
+            outputSection?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+            updateActionAvailability();
+            return true;
+        },
+        reloadPromptOptions: async (savedId) => {
+            const currentIds = promptCategoriesController.getSelectionSnapshot();
+            await promptCategoriesController.reload();
+            promptCategoriesController.restoreSelection([...currentIds, savedId]);
         },
     });
     characterVariantController = initializeCharacterLoraVariantPage({

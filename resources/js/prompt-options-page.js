@@ -30,6 +30,7 @@ export const initializePromptOptionsPage = ({
         return {
             getSections: () => ({ optionGroups: [] }),
             getSelectionSnapshot: () => [],
+            hasSelectionIds: () => false,
             restoreSelection: () => false,
             reset: () => {},
             reorderGroup: () => {},
@@ -1139,6 +1140,23 @@ export const initializePromptOptionsPage = ({
         reload: () => load(),
         getSections: () => ({ optionGroups: createOptionSections(groups, selectedIds) }),
         getSelectionSnapshot: () => [...selectedIds],
+        hasSelectionIds: (snapshot) => {
+            const requested = Array.isArray(snapshot) ? snapshot : [];
+            const requestedSet = new Set(requested);
+            if (requestedSet.size !== requested.length) {
+                return false;
+            }
+            return (
+                requested.every((id) =>
+                    groups.some((group) => group.options.some((item) => item.id === id)),
+                ) &&
+                groups.every(
+                    (group) =>
+                        group.mode !== 'single' ||
+                        group.options.filter((item) => requestedSet.has(item.id)).length <= 1,
+                )
+            );
+        },
         restoreSelection: (snapshot) => {
             const requested = new Set(Array.isArray(snapshot) ? snapshot : []);
             const available = new Set(

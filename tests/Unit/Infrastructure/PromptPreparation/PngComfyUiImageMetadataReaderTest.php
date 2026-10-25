@@ -15,7 +15,7 @@ final class PngComfyUiImageMetadataReaderTest extends TestCase
     /** @return iterable<string, array{string}> */
     public static function supportedChunks(): iterable
     {
-        $json = '{"37":{"inputs":{"prompt":"fictional positive,"},"class_type":"Example"}}';
+        $json = '{"node-37":{"inputs":{"prompt":"fictional positive,"},"class_type":"Example"}}';
 
         yield 'tEXt' => [self::chunk('tEXt', "prompt\0".$json)];
         yield 'iTXt' => [self::chunk('iTXt', "prompt\0\0\0\0\0".$json)];
@@ -28,16 +28,16 @@ final class PngComfyUiImageMetadataReaderTest extends TestCase
     {
         $path = $this->temporaryPng($metadata);
 
-        $result = (new PngComfyUiImageMetadataReader)->read($path);
+        $result = (new PngComfyUiImageMetadataReader())->read($path);
 
-        self::assertSame('fictional positive,', $result->prompt['37']['inputs']['prompt']);
+        self::assertSame('fictional positive,', $result->prompt['node-37']['inputs']['prompt']);
     }
 
     public function test_promptがないPNGを拒否する(): void
     {
         $this->expectException(InvalidComfyUiImage::class);
 
-        (new PngComfyUiImageMetadataReader)->read($this->temporaryPng());
+        (new PngComfyUiImageMetadataReader())->read($this->temporaryPng());
     }
 
     public function test_promptが重複するPNGを拒否する(): void
@@ -45,7 +45,7 @@ final class PngComfyUiImageMetadataReaderTest extends TestCase
         $json = '{"1":{"inputs":{"text":"fictional"}}}';
         $this->expectException(InvalidComfyUiImage::class);
 
-        (new PngComfyUiImageMetadataReader)->read($this->temporaryPng(
+        (new PngComfyUiImageMetadataReader())->read($this->temporaryPng(
             self::chunk('tEXt', "prompt\0".$json).self::chunk('tEXt', "prompt\0".$json),
         ));
     }
@@ -56,14 +56,14 @@ final class PngComfyUiImageMetadataReaderTest extends TestCase
         $chunk[strlen($chunk) - 1] = chr(ord($chunk[strlen($chunk) - 1]) ^ 0xff);
         $this->expectException(InvalidComfyUiImage::class);
 
-        (new PngComfyUiImageMetadataReader)->read($this->temporaryPng($chunk));
+        (new PngComfyUiImageMetadataReader())->read($this->temporaryPng($chunk));
     }
 
     public function test_途中で切れたチャンクを拒否する(): void
     {
         $this->expectException(InvalidComfyUiImage::class);
 
-        (new PngComfyUiImageMetadataReader)->read($this->temporaryFile("\x89PNG\r\n\x1a\n".pack('N', 100).'tEXtshort'));
+        (new PngComfyUiImageMetadataReader())->read($this->temporaryFile("\x89PNG\r\n\x1a\n".pack('N', 100).'tEXtshort'));
     }
 
     public function test_展開後promptが5MiBを超える場合に拒否する(): void
@@ -71,7 +71,7 @@ final class PngComfyUiImageMetadataReaderTest extends TestCase
         $json = '{"value":"'.str_repeat('a', 5 * 1024 * 1024).'"}';
         $this->expectException(InvalidComfyUiImage::class);
 
-        (new PngComfyUiImageMetadataReader)->read($this->temporaryPng(
+        (new PngComfyUiImageMetadataReader())->read($this->temporaryPng(
             self::chunk('zTXt', "prompt\0\0".gzcompress($json)),
         ));
     }
@@ -81,7 +81,7 @@ final class PngComfyUiImageMetadataReaderTest extends TestCase
         $json = str_repeat('{"a":', 129).'1'.str_repeat('}', 129);
         $this->expectException(InvalidComfyUiImage::class);
 
-        (new PngComfyUiImageMetadataReader)->read($this->temporaryPng(self::chunk('tEXt', "prompt\0".$json)));
+        (new PngComfyUiImageMetadataReader())->read($this->temporaryPng(self::chunk('tEXt', "prompt\0".$json)));
     }
 
     private function temporaryPng(string $metadata = ''): string

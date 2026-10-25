@@ -24,6 +24,7 @@ export const initializeClothingLoraOptionsPage = ({
         return {
             getSelections: () => ({ clothingLoras: '', clothingLoraTriggers: '' }),
             getSelectionSnapshot: () => [],
+            hasSelectionIds: () => false,
             restoreSelection: () => false,
             reset: () => {},
         };
@@ -413,6 +414,31 @@ export const initializeClothingLoraOptionsPage = ({
                 strength: selection.strength,
                 triggerId: selection.triggerId,
             })),
+        hasSelectionIds: (snapshot) => {
+            const requested = Array.isArray(snapshot) ? snapshot : [];
+            const ids = new Set();
+            return requested.every((selected) => {
+                const lora = state.loras.find((item) => item.id === selected?.loraId);
+                const trigger = state.triggers.find(
+                    (item) => item.id === selected?.triggerId && item.loraId === lora?.id,
+                );
+                const strength = Number(selected?.strength);
+                const validStrength =
+                    Number.isFinite(strength) &&
+                    strength >= 0 &&
+                    strength <= 1 &&
+                    Math.abs(strength * 10 - Math.round(strength * 10)) < Number.EPSILON;
+                if (!lora || ids.has(lora.id) || !validStrength) {
+                    return false;
+                }
+                ids.add(lora.id);
+                return (
+                    selected.triggerId === null ||
+                    selected.triggerId === undefined ||
+                    trigger !== undefined
+                );
+            });
+        },
         restoreSelection: (snapshot) => {
             state.selections.clear();
             let complete = true;

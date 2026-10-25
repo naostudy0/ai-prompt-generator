@@ -47,6 +47,31 @@ final class ImportedPromptMatcherTest extends TestCase
         self::assertNotEmpty($result->review['conflicts']);
     }
 
+    public function test_同じタグを消費する別ブロックの項目は自動選択しない(): void
+    {
+        $groups = [];
+        foreach ([1 => '髪', 2 => '人物'] as $id => $name) {
+            $groups[] = [
+                'id' => $id, 'categoryId' => null, 'name' => $name, 'selectionMode' => 'multiple', 'position' => $id,
+                'systemManaged' => false,
+                'options' => [['id' => $id * 10, 'position' => 1, 'name' => $name, 'content' => 'long hair,']],
+            ];
+        }
+
+        $result = $this->matcher()->match(
+            'long hair,',
+            '',
+            1,
+            new GetDefaultPromptsResult('', ''),
+            $this->characters(),
+            $this->clothing(),
+            new GetPromptOptionsResult($groups),
+        );
+
+        self::assertSame([], $result->selectionSnapshot->optionIds);
+        self::assertSame([10, 20], array_column($result->review['conflicts'], 'registeredId'));
+    }
+
     public function test_丸括弧内のカンマを未登録候補として分割しない(): void
     {
         $result = $this->matcher()->match('(smile, open mouth:1.2), blue sky,', '', 1, new GetDefaultPromptsResult('', ''), $this->characters(), $this->clothing(), new GetPromptOptionsResult([]));
@@ -58,7 +83,12 @@ final class ImportedPromptMatcherTest extends TestCase
     {
         $result = $this->matcher()->match(
             '<lora:hero.safetensors:0.8>, <lora:hidden.safetensors:1>, <lora:dress.safetensors:0.85>,',
-            '', 1, new GetDefaultPromptsResult('', ''), $this->characters(), $this->clothing(), new GetPromptOptionsResult([]),
+            '',
+            1,
+            new GetDefaultPromptsResult('', ''),
+            $this->characters(),
+            $this->clothing(),
+            new GetPromptOptionsResult([]),
         );
 
         self::assertSame(1, $result->selectionSnapshot->lora['loraId']);
@@ -67,9 +97,62 @@ final class ImportedPromptMatcherTest extends TestCase
         self::assertSame(['hidden_lora', 'unsupported_lora_strength'], array_column($result->review['loras'], 'kind'));
     }
 
+    public function test_人物と衣装LoRAに所属する全文一致トリガーと服装を復元する(): void
+    {
+        $characters = new GetLoraPromptOptionsResult(
+            $this->characters()->loras,
+            [['id' => 21, 'loraId' => 1, 'name' => '人物トリガー', 'content' => 'hero trigger,']],
+            [['id' => 22, 'loraId' => 1, 'name' => '人物服装', 'content' => 'hero outfit,']],
+        );
+        $clothing = new GetClothingLoraOptionsResult(
+            $this->clothing()->loras,
+            [['id' => 31, 'loraId' => 3, 'name' => '衣装トリガー', 'content' => 'dress trigger,']],
+        );
+
+        $result = $this->matcher()->match(
+            '<lora:hero.safetensors:0.8>, hero trigger, hero outfit, <lora:dress.safetensors:1>, dress trigger,',
+            '',
+            1,
+            new GetDefaultPromptsResult('', ''),
+            $characters,
+            $clothing,
+            new GetPromptOptionsResult([]),
+        );
+
+        self::assertSame(21, $result->selectionSnapshot->lora['triggerId']);
+        self::assertSame(22, $result->selectionSnapshot->lora['outfitId']);
+        self::assertSame([['loraId' => 3, 'strength' => 1.0, 'triggerId' => 31]], $result->selectionSnapshot->clothingLoras);
+        self::assertSame([], $result->review['unregistered']);
+    }
+
+    public function test_同じ人物に全文一致するトリガーが複数あれば自動選択しない(): void
+    {
+        $characters = new GetLoraPromptOptionsResult(
+            $this->characters()->loras,
+            [
+                ['id' => 21, 'loraId' => 1, 'name' => 'A', 'content' => 'hero trigger,'],
+                ['id' => 22, 'loraId' => 1, 'name' => 'B', 'content' => 'hero trigger,'],
+            ],
+            [],
+        );
+
+        $result = $this->matcher()->match(
+            '<lora:hero.safetensors:1>, hero trigger,',
+            '',
+            1,
+            new GetDefaultPromptsResult('', ''),
+            $characters,
+            $this->clothing(),
+            new GetPromptOptionsResult([]),
+        );
+
+        self::assertNull($result->selectionSnapshot->lora['triggerId']);
+        self::assertSame(['conflict', 'conflict'], array_column($result->review['conflicts'], 'kind'));
+    }
+
     private function matcher(): ImportedPromptMatcher
     {
-        return new ImportedPromptMatcher;
+        return new ImportedPromptMatcher();
     }
 
     private function characters(): GetLoraPromptOptionsResult
