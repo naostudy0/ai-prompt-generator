@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\PromptPreparation\PromptOptionManagementPageController;
 use App\Http\Controllers\PromptPreparation\PromptPreparationPageController;
+use App\Http\Controllers\PromptPreparation\Queries\AnalyzeComfyUiImageController;
 use App\Http\Controllers\PromptPreparation\Queries\GetClothingLoraOptionsController;
 use App\Http\Controllers\PromptPreparation\Queries\GetComfyUiWorkflowController;
 use App\Http\Controllers\PromptPreparation\Queries\GetDefaultPromptsController;
@@ -91,6 +92,8 @@ Route::delete('/generation-setting-options/{option}', DeleteGenerationSettingOpt
 Route::post('/comfyui/prompts', QueueComfyUiPromptController::class)->name('comfyui-prompts.store');
 Route::post('/comfyui/prompts/batch', QueueComfyUiPromptBatchController::class)
     ->name('comfyui-prompts.batch');
+Route::post('/comfyui-images/analyze', AnalyzeComfyUiImageController::class)
+    ->name('comfyui-images.analyze');
 Route::post('/illustration-prompts/generate', GenerateIllustrationPromptController::class)
     ->name('illustration-prompts.generate');
 Route::post('/illustration-scenarios/plan', PlanIllustrationScenarioController::class)->name('illustration-scenarios.plan');
