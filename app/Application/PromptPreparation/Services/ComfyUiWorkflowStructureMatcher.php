@@ -98,6 +98,12 @@ final class ComfyUiWorkflowStructureMatcher
 
     private function canonical(mixed $value): mixed
     {
+        if (is_float($value) && is_finite($value)) {
+            $integer = (int) $value;
+            if ((float) $integer === $value) {
+                return $integer;
+            }
+        }
         if (! is_array($value)) {
             return $value;
         }

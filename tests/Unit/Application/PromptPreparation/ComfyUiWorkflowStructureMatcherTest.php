@@ -30,6 +30,18 @@ final class ComfyUiWorkflowStructureMatcherTest extends TestCase
         self::assertSame(3, $result->modelFamilyId);
     }
 
+    public function test_JSON送信で整数化された小数を同じ固定入力として照合する(): void
+    {
+        $image = $this->workflow();
+        $image['node-3']['inputs']['fixed'] = 1;
+        $registered = $this->workflow();
+        $registered['node-3']['inputs']['fixed'] = 1.0;
+
+        $result = (new ComfyUiWorkflowStructureMatcher())->match($image, [$this->candidate(5, $registered)]);
+
+        self::assertSame(5, $result->modelFamilyId);
+    }
+
     public function test_固定入力または接続が異なるワークフローを拒否する(): void
     {
         $image = $this->workflow();
