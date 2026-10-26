@@ -172,10 +172,16 @@ export const initializeComfyUiImageRestoration = ({
                     ...candidates.map((item, index) => {
                         const label = documentObject.createElement('label');
                         const check = documentObject.createElement('input');
+                        const content = documentObject.createElement('span');
+                        label.className = 'restoration-candidate';
                         check.type = 'checkbox';
                         check.value = String(index);
+                        check.className = 'restoration-candidate__check';
+                        check.setAttribute('aria-label', `${item.content}を登録候補として選択`);
                         check.dataset.comfyuiImageRestorationUnmatched = '';
-                        label.append(check, documentObject.createTextNode(item.content));
+                        content.className = 'restoration-candidate__content';
+                        content.textContent = item.content;
+                        label.append(check, content);
                         return label;
                     }),
                 );

@@ -209,6 +209,11 @@ test('APIのカテゴリ別確認項目を一つの一覧として表示する',
         document.querySelectorAll('[data-comfyui-image-restoration-unmatched] input').length,
         1,
     );
+    const candidate = document.querySelector('[data-comfyui-image-restoration-unmatched] input');
+    assert.equal(candidate.getAttribute('aria-label'), 'blue eyesを登録候補として選択');
+    assert.equal(candidate.parentElement.classList.contains('restoration-candidate'), true);
+    candidate.parentElement.click();
+    assert.equal(candidate.checked, true);
 });
 
 test('明示的な反映と必要な上書き確認までは画面状態を変更しない', async () => {
