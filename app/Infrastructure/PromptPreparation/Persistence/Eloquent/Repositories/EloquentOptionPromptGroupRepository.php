@@ -4,6 +4,7 @@ namespace App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories
 
 use App\Domain\PromptPreparation\Models\OptionPromptGroup;
 use App\Domain\PromptPreparation\Models\OptionSelectionMode;
+use App\Domain\PromptPreparation\Models\RandomGenerationRole;
 use App\Domain\PromptPreparation\Repositories\OptionPromptGroupRepository;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Models\OptionPromptGroupRecord;
 
@@ -45,6 +46,7 @@ final class EloquentOptionPromptGroupRepository implements OptionPromptGroupRepo
             'position' => $group->position,
             'option_category_id' => $group->categoryId,
             'system_key' => $group->systemKey,
+            'random_generation_role' => $group->randomGenerationRole?->value,
         ])->save();
 
         return $this->toDomain($record);
@@ -94,6 +96,9 @@ final class EloquentOptionPromptGroupRepository implements OptionPromptGroupRepo
             position: $record->position,
             categoryId: $record->option_category_id === null ? null : (int) $record->option_category_id,
             systemKey: $record->system_key,
+            randomGenerationRole: $record->random_generation_role === null
+                ? null
+                : RandomGenerationRole::from($record->random_generation_role),
         );
     }
 }

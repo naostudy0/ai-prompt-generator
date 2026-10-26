@@ -7,6 +7,7 @@ use App\Domain\PromptPreparation\Models\OptionPrompt;
 use App\Domain\PromptPreparation\Models\OptionPromptGroup;
 use App\Domain\PromptPreparation\Models\OptionSelectionMode;
 use App\Domain\PromptPreparation\Models\PromptText;
+use App\Domain\PromptPreparation\Models\RandomGenerationRole;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
@@ -54,6 +55,38 @@ class NamedPromptModelsTest extends TestCase
         self::assertSame(2, $changed->position);
         self::assertSame(3, $changed->categoryId);
         self::assertNull($group->categoryId);
+    }
+
+    public function test_場所候補の役割をカテゴリ変更後も保持する(): void
+    {
+        $group = new OptionPromptGroup(
+            1,
+            '背景',
+            OptionSelectionMode::Multiple,
+            2,
+            null,
+            null,
+            RandomGenerationRole::LocationSource,
+        );
+
+        $changed = $group->changeCategory(3);
+
+        self::assertSame(RandomGenerationRole::LocationSource, $changed->randomGenerationRole);
+    }
+
+    public function test_システム管理ブロックにはランダム生成の役割を設定できない(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        new OptionPromptGroup(
+            1,
+            'AIプロンプト',
+            OptionSelectionMode::Multiple,
+            1,
+            null,
+            'ai_prompt_suggestions',
+            RandomGenerationRole::LocationSource,
+        );
     }
 
     public function test_通常ブロックは利用者が管理できる(): void

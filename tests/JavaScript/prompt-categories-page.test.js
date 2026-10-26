@@ -11,7 +11,7 @@ const createDocument = () => {
       <form data-option-category-form><input data-option-category-id><input data-option-category-name><p data-option-category-status></p><button type="submit">保存</button><button type="button" data-option-category-cancel></button></form>
       <div data-option-category-management-list></div>
       <div data-option-management-groups></div>
-      <dialog data-option-group-dialog><form data-option-group-form><h2 data-option-group-dialog-title></h2><input data-option-group-name><select data-option-group-mode><option value="single">single</option><option value="multiple">multiple</option></select><p data-option-group-status></p><button data-option-group-save></button><button type="button" data-option-group-cancel></button></form></dialog>
+      <dialog data-option-group-dialog><form data-option-group-form><h2 data-option-group-dialog-title></h2><input data-option-group-name><select data-option-group-mode><option value="single">single</option><option value="multiple">multiple</option></select><select data-option-group-random-generation-role><option value="">なし</option><option value="location_source">場所候補</option></select><p data-option-group-status></p><button data-option-group-save></button><button type="button" data-option-group-cancel></button></form></dialog>
       <dialog data-category-dialog><form data-category-form><h2 data-category-dialog-title></h2><input data-category-id><input data-category-name><textarea data-category-content></textarea><p data-category-form-status></p><button data-category-save></button><button type="button" data-category-cancel></button></form></dialog>
       <dialog data-category-manage-dialog><h2 data-category-manage-title></h2><button data-category-manage-edit></button><button data-category-manage-delete></button><button data-category-manage-cancel></button></dialog>
       <dialog data-category-delete-dialog><form data-category-delete-form><p data-category-delete-message></p><p data-category-delete-status></p><button data-category-delete-confirm></button><button type="button" data-category-delete-cancel></button></form></dialog>
@@ -118,9 +118,15 @@ test('ブロック名と選択方式を指定して追加する', async () => {
     documentObject.querySelector('[data-option-group-add]').click();
     documentObject.querySelector('[data-option-group-name]').value = '画質';
     documentObject.querySelector('[data-option-group-mode]').value = 'single';
+    documentObject.querySelector('[data-option-group-random-generation-role]').value =
+        'location_source';
     documentObject.querySelector('[data-option-group-form]').requestSubmit();
     await flush();
-    assert.deepEqual(request, { name: '画質', selectionMode: 'single' });
+    assert.deepEqual(request, {
+        name: '画質',
+        selectionMode: 'single',
+        randomGenerationRole: 'location_source',
+    });
     assert.deepEqual(
         sidebarSnapshot.navigationItems.map((item) => [item.key, item.label]),
         [

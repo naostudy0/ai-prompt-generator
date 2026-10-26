@@ -40,6 +40,8 @@ final class PromptPreparationPageController extends Controller
             'illustrationScenarioPlanUrl' => route('illustration-scenarios.plan'),
             'illustrationScenarioPromptsUrl' => route('illustration-scenarios.prompts.generate'),
             'illustrationScenarioScenePromptUrl' => route('illustration-scenarios.scenes.prompt'),
+            'randomIllustrationIdeasUrl' => route('random-illustration-ideas.store'),
+            'randomIllustrationIdeasResolveUrl' => route('random-illustration-ideas.resolve'),
         ]);
     }
 }

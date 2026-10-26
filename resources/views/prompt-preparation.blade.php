@@ -37,6 +37,8 @@
             data-illustration-scenario-plan-url="{{ $illustrationScenarioPlanUrl }}"
             data-illustration-scenario-prompts-url="{{ $illustrationScenarioPromptsUrl }}"
             data-illustration-scenario-scene-prompt-url="{{ $illustrationScenarioScenePromptUrl }}"
+            data-random-illustration-ideas-url="{{ $randomIllustrationIdeasUrl }}"
+            data-random-illustration-ideas-resolve-url="{{ $randomIllustrationIdeasResolveUrl }}"
         >
             <nav class="prompt-sidebar section-navigation" aria-labelledby="section-navigation-heading">
                 <h2 id="section-navigation-heading">セクション</h2>
@@ -49,6 +51,7 @@
                 <h1>プロンプトを組み立てる</h1>
                 <button class="secondary-button" type="button" data-illustration-prompt-open>AIでプロンプトを作成</button>
                 <button class="secondary-button" type="button" data-scenario-open>シナリオを作成</button>
+                <button class="secondary-button" type="button" data-random-idea-open>ランダム案を作成</button>
                 <button class="secondary-button" type="button" data-comfyui-image-restoration-open>ComfyUI画像から復元</button>
             </header>
 
@@ -86,6 +89,28 @@
                         </section>
                         <button type="button" class="primary-button" data-comfyui-image-restoration-apply>この内容を反映</button>
                     </section>
+                </div>
+            </dialog>
+
+            <dialog class="option-dialog random-idea-dialog" data-random-idea-dialog aria-labelledby="random-idea-heading">
+                <div class="random-idea-dialog__content">
+                    <div class="illustration-prompt-dialog__header">
+                        <h2 id="random-idea-heading">整合性のあるランダム案</h2>
+                        <button type="button" class="small-button" data-random-idea-close>閉じる</button>
+                    </div>
+                    <p>現在選択している項目は固定条件として扱います。人物LoRAは未選択のままでも構いません。</p>
+                    <section data-random-idea-preview hidden>
+                        <h3>固定条件</h3><ul data-random-idea-fixed></ul>
+                        <h3>今回の場所の起点</h3><p data-random-idea-anchor></p>
+                        <label class="field-label" for="random-idea-description">完成するイラストの説明</label>
+                        <textarea id="random-idea-description" class="text-input random-idea-dialog__description" maxlength="2000" data-random-idea-description></textarea>
+                        <div data-random-idea-suggestions></div>
+                    </section>
+                    <p role="status" aria-live="polite" data-random-idea-status></p>
+                    <div class="editor-actions">
+                        <button type="button" class="secondary-button" data-random-idea-generate>別案を作る</button>
+                        <button type="button" class="primary-button" data-random-idea-resolve>解析して出力へ反映</button>
+                    </div>
                 </div>
             </dialog>
 
@@ -738,6 +763,11 @@
                     <select id="option-group-mode" class="text-input" data-option-group-mode>
                         <option value="multiple">複数選択</option>
                         <option value="single">1つ選択</option>
+                    </select>
+                    <label class="field-label" for="option-group-random-generation-role">ランダム生成での役割</label>
+                    <select id="option-group-random-generation-role" class="text-input" data-option-group-random-generation-role>
+                        <option value="">なし</option>
+                        <option value="location_source">場所候補</option>
                     </select>
                     <p class="editor-status" data-option-group-status role="status" aria-live="polite"></p>
                     <div class="editor-actions">

@@ -1905,3 +1905,16 @@ button:focus-visible {
         justify-self: end;
     }
 }
+.random-idea-dialog {
+    width: min(48rem, calc(100vw - 2rem));
+}
+
+.random-idea-dialog__content {
+    display: grid;
+    gap: 1rem;
+}
+
+.random-idea-dialog__description {
+    min-height: 12rem;
+    resize: vertical;
+}

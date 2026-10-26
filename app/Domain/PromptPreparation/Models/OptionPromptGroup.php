@@ -16,6 +16,7 @@ final readonly class OptionPromptGroup
         public int $position,
         public ?int $categoryId = null,
         public ?string $systemKey = null,
+        public ?RandomGenerationRole $randomGenerationRole = null,
     ) {
         $this->name = trim($name);
         if ($this->name === '') {
@@ -23,6 +24,9 @@ final readonly class OptionPromptGroup
         }
         if ($position < 1) {
             throw new InvalidArgumentException('Option prompt group position must be positive.');
+        }
+        if ($systemKey !== null && $randomGenerationRole !== null) {
+            throw new InvalidArgumentException('System-managed groups cannot have random generation roles.');
         }
     }
 
@@ -37,6 +41,7 @@ final readonly class OptionPromptGroup
             $this->position,
             $categoryId,
             $this->systemKey,
+            $this->randomGenerationRole,
         );
     }
 

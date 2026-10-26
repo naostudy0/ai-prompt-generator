@@ -14,6 +14,7 @@ const groupsResponse = {
             id: 1,
             name: '表情',
             selectionMode: 'multiple',
+            randomGenerationRole: 'location_source',
             position: 1,
             options: [
                 { id: 10, position: 1, name: '笑顔', content: 'smile, open mouth,' },
@@ -26,6 +27,14 @@ const groupsResponse = {
 test('名前と選択方式と順序を持つオプションブロックを取得する', async () => {
     const fetcher = async () => ({ ok: true, json: async () => groupsResponse });
     assert.deepEqual(await requestPromptOptions(fetcher, '/prompt-options'), groupsResponse.groups);
+});
+
+test('未定義のランダム生成役割を持つブロックを拒否する', async () => {
+    const response = JSON.parse(JSON.stringify(groupsResponse));
+    response.groups[0].randomGenerationRole = 'unknown';
+    const fetcher = async () => ({ ok: true, json: async () => response });
+
+    await assert.rejects(requestPromptOptions(fetcher, '/prompt-options'));
 });
 
 test('選択した項目をブロック単位で重複を除いて出力する', () => {
@@ -54,10 +63,19 @@ test('ブロック保存と項目移動を契約どおり送信する', async ()
     await saveOptionGroup(fetcher, '/groups', 'csrf', null, {
         name: '画質',
         selectionMode: 'single',
+        randomGenerationRole: 'location_source',
     });
     await moveOption(fetcher, '/options', 'csrf', 10, 2, 20);
     assert.deepEqual(requests, [
-        ['/groups', 'POST', { name: '画質', selectionMode: 'single' }],
+        [
+            '/groups',
+            'POST',
+            {
+                name: '画質',
+                selectionMode: 'single',
+                randomGenerationRole: 'location_source',
+            },
+        ],
         ['/options/10/position', 'PATCH', { targetGroupId: 2, beforeOptionId: 20 }],
     ]);
 });

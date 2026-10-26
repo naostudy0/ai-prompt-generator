@@ -5,6 +5,7 @@ namespace App\Http\Controllers\PromptPreparation\Writes;
 use App\Application\PromptPreparation\Writes\SaveOptionPromptGroup\SaveOptionPromptGroupHandler;
 use App\Domain\PromptPreparation\Exceptions\SystemManagedOptionPromptGroup;
 use App\Domain\PromptPreparation\Models\OptionSelectionMode;
+use App\Domain\PromptPreparation\Models\RandomGenerationRole;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,12 +18,16 @@ final class SaveOptionPromptGroupController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'selectionMode' => ['required', 'string', Rule::enum(OptionSelectionMode::class)],
+            'randomGenerationRole' => ['nullable', 'string', Rule::enum(RandomGenerationRole::class)],
         ]);
         try {
             $result = $handler->handle(
                 $group,
                 (string) $validated['name'],
                 OptionSelectionMode::from((string) $validated['selectionMode']),
+                isset($validated['randomGenerationRole'])
+                    ? RandomGenerationRole::from((string) $validated['randomGenerationRole'])
+                    : null,
             );
         } catch (SystemManagedOptionPromptGroup) {
             return response()->json(['message' => 'このブロックはシステム管理のため変更できません。'], 409);

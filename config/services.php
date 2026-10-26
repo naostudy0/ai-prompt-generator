@@ -15,6 +15,8 @@ return [
         'timeout' => (int) env('ILLUSTRATION_LLM_TIMEOUT_SECONDS', 120),
         'num_predict' => (int) env('ILLUSTRATION_LLM_NUM_PREDICT', 512),
         'scenario_num_predict' => (int) env('ILLUSTRATION_LLM_SCENARIO_NUM_PREDICT', 4096),
+        'random_input_budget' => (int) env('ILLUSTRATION_LLM_RANDOM_INPUT_BUDGET', 200000),
+        'random_reserved_bytes' => (int) env('ILLUSTRATION_LLM_RANDOM_RESERVED_BYTES', 20000),
     ],
 
     /*

@@ -414,6 +414,7 @@ const addCategoryControls = (documentObject) => {
         </section>
         <dialog data-option-group-dialog><form data-option-group-form><h2 data-option-group-dialog-title></h2>
             <input data-option-group-name><select data-option-group-mode><option value="single">single</option><option value="multiple">multiple</option></select>
+            <select data-option-group-random-generation-role><option value="">なし</option><option value="location_source">場所候補</option></select>
             <p data-option-group-status></p><button data-option-group-save></button><button type="button" data-option-group-cancel></button></form></dialog>
         <dialog data-category-dialog><form data-category-form><h2 data-category-dialog-title></h2>
             <input data-category-id><input data-category-name><textarea data-category-content></textarea>

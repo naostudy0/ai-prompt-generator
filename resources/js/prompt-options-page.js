@@ -520,6 +520,10 @@ export const initializePromptOptionsPage = ({
             const mode = documentObject.createElement('span');
             mode.className = 'selection-mode';
             mode.textContent = group.selectionMode === 'single' ? '1つ選択' : '複数選択';
+            const randomGenerationRole = documentObject.createElement('span');
+            randomGenerationRole.className = 'selection-mode';
+            randomGenerationRole.textContent = '場所候補';
+            randomGenerationRole.hidden = group.randomGenerationRole !== 'location_source';
             const systemManaged = documentObject.createElement('span');
             systemManaged.className = 'selection-mode';
             systemManaged.textContent = 'システム管理';
@@ -548,7 +552,7 @@ export const initializePromptOptionsPage = ({
                 button.addEventListener('click', action);
                 groupActions.append(button);
             }
-            heading.append(drag, title, mode, systemManaged, groupActions);
+            heading.append(drag, title, mode, randomGenerationRole, systemManaged, groupActions);
 
             const search = documentObject.createElement('input');
             search.type = 'search';
@@ -771,6 +775,8 @@ export const initializePromptOptionsPage = ({
             group === null ? 'オプションブロックを追加' : 'オプションブロックを編集';
         page.querySelector('[data-option-group-name]').value = group?.name ?? '';
         page.querySelector('[data-option-group-mode]').value = group?.selectionMode ?? 'multiple';
+        page.querySelector('[data-option-group-random-generation-role]').value =
+            group?.randomGenerationRole ?? '';
         page.querySelector('[data-option-group-status]').textContent = '';
         show(groupDialog);
     };
@@ -907,6 +913,9 @@ export const initializePromptOptionsPage = ({
         busy = true;
         const editedGroup = editingGroupId === null ? null : groupById(editingGroupId);
         const selectionMode = page.querySelector('[data-option-group-mode]').value;
+        const randomGenerationRole = page.querySelector(
+            '[data-option-group-random-generation-role]',
+        ).value;
         const releasesSelections =
             editedGroup?.selectionMode === 'multiple' &&
             selectionMode === 'single' &&
@@ -919,6 +928,7 @@ export const initializePromptOptionsPage = ({
             {
                 name: page.querySelector('[data-option-group-name]').value,
                 selectionMode,
+                randomGenerationRole: randomGenerationRole === '' ? null : randomGenerationRole,
             },
         )
             .then(async () => {
@@ -1152,7 +1162,7 @@ export const initializePromptOptionsPage = ({
                 ) &&
                 groups.every(
                     (group) =>
-                        group.mode !== 'single' ||
+                        group.selectionMode !== 'single' ||
                         group.options.filter((item) => requestedSet.has(item.id)).length <= 1,
                 )
             );
@@ -1166,6 +1176,25 @@ export const initializePromptOptionsPage = ({
             normalizeSingleSelections();
             render();
             return [...requested].every((id) => selectedIds.has(id));
+        },
+        getSavableGroups: () =>
+            groups
+                .filter((group) => !group.systemManaged)
+                .map((group) => ({ id: group.id, name: group.name })),
+        savePositiveSuggestion: async (groupId, suggestion) => {
+            const currentIds = [...selectedIds];
+            const saved = await saveOption(
+                fetcher,
+                page.dataset.promptOptionsUrl,
+                csrfToken,
+                null,
+                { groupId, name: suggestion.label, content: suggestion.tags },
+            );
+            await load();
+            selectedIds = new Set([...currentIds, saved.id]);
+            normalizeSingleSelections([saved.id]);
+            render();
+            return saved.id;
         },
         reset: () => {
             selectedIds.clear();

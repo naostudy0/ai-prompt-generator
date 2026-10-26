@@ -20,6 +20,8 @@ import { initializeIllustrationPromptGenerator } from './illustration-prompt-gen
 import { initializeIllustrationScenarioGenerator } from './illustration-scenario-generator.js';
 import { initializeComfyUiImageRestoration } from './comfyui-image-restoration.js';
 import { createGeneratedPromptApplication } from './generated-prompt-application.js';
+import { initializeRandomIllustrationIdea } from './random-illustration-idea.js';
+import { createRandomIllustrationApplication } from './random-illustration-application.js';
 import {
     createCharacterLoraSourceMetadata,
     locateCharacterLoraSourceMetadata,
@@ -571,6 +573,24 @@ export const initializePromptPreparationPage = ({
         outputSection?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
     };
 
+    const buildCurrentOutputPair = () => {
+        const currentPrompts = familyPrompts.get(activeFamilyId()) ?? {
+            positive: '',
+            negative: '',
+        };
+        const outputs = createPromptOutputs(currentPrompts, selectedPrompts);
+        const lora = loraOptionsController.getSelections();
+        const clothingLora = clothingLoraOptionsController.getSelections();
+        outputs.positive = createPositivePromptOutput(
+            outputs.positive,
+            createPositivePromptSections(
+                { ...lora, ...clothingLora },
+                promptCategoriesController.getSections(),
+            ),
+        );
+        return { outputs, lora, currentPrompts };
+    };
+
     const applyOutputPair = ({ positive, negative, variantMetadata, variantFamily }) => {
         for (const polarity of ['positive', 'negative']) {
             const outputElement = getOutputElement(polarity);
@@ -987,6 +1007,48 @@ export const initializePromptPreparationPage = ({
             promptCategoriesLoaded = loaded;
             updateActionAvailability();
         },
+    });
+    const applyRandomIdea = createRandomIllustrationApplication({
+        hasOptionIds: (ids) => promptCategoriesController.hasSelectionIds(ids),
+        restoreOptions: (ids) => promptCategoriesController.restoreSelection(ids),
+        buildOutputPair: () => buildCurrentOutputPair().outputs,
+        applyOutputPair: (outputs) => {
+            const { lora, currentPrompts } = buildCurrentOutputPair();
+            applyOutputPair({
+                positive: outputs.positive,
+                negative: outputs.negative,
+                variantMetadata: createCharacterLoraSourceMetadata(
+                    createPromptOutputs(currentPrompts, selectedPrompts).positive,
+                    lora.lora,
+                    lora.trigger,
+                ),
+                variantFamily: {
+                    modelFamilyId: activeFamilyId(),
+                    loraId: loraOptionsController.getSelectedLoraId?.() ?? null,
+                    defaults: { ...selectedPrompts },
+                    defaultSections: createPromptOutputs(currentPrompts, selectedPrompts),
+                },
+            });
+            outputSection?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+        },
+    });
+    initializeRandomIllustrationIdea({
+        page,
+        documentObject,
+        fetcher,
+        csrfToken,
+        captureFixedSelections: () => ({
+            positiveDefault: selectedPrompts.positive,
+            negativeDefault: selectedPrompts.negative,
+            modelFamilyId: activeFamilyId(),
+            character: loraOptionsController.getSelectionSnapshot(),
+            clothingLoras: clothingLoraOptionsController.getSelectionSnapshot(),
+            optionIds: promptCategoriesController.getSelectionSnapshot(),
+        }),
+        applyResolved: applyRandomIdea,
+        getSavableGroups: () => promptCategoriesController.getSavableGroups(),
+        savePositiveSuggestion: (groupId, suggestion) =>
+            promptCategoriesController.savePositiveSuggestion(groupId, suggestion),
     });
     initializeComfyUiImageRestoration({
         page,

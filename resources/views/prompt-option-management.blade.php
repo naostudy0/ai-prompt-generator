@@ -92,6 +92,11 @@
                         <option value="multiple">複数選択</option>
                         <option value="single">1つ選択</option>
                     </select>
+                    <label class="field-label" for="managed-option-group-random-generation-role">ランダム生成での役割</label>
+                    <select id="managed-option-group-random-generation-role" class="text-input" data-option-group-random-generation-role>
+                        <option value="">なし</option>
+                        <option value="location_source">場所候補</option>
+                    </select>
                     <p class="editor-status" data-option-group-status role="status" aria-live="polite"></p>
                     <div class="editor-actions">
                         <button class="primary-button" type="submit">保存</button>

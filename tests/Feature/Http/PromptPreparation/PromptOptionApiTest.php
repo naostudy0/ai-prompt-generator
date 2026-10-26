@@ -23,13 +23,32 @@ class PromptOptionApiTest extends TestCase
     public function test_名前と選択方式を指定してブロックを追加し編集する(): void
     {
         $created = $this->postJson(route('prompt-option-groups.store'), [
-            'name' => '画質', 'selectionMode' => 'multiple',
+            'name' => '画質', 'selectionMode' => 'multiple', 'randomGenerationRole' => null,
         ])->assertCreated()->json();
 
         self::assertSame(7, $created['position']);
+        self::assertNull($created['randomGenerationRole']);
         $this->putJson(route('prompt-option-groups.update', ['group' => $created['id']]), [
-            'name' => '表現', 'selectionMode' => 'single',
-        ])->assertOk()->assertJson(['name' => '表現', 'selectionMode' => 'single']);
+            'name' => '表現',
+            'selectionMode' => 'single',
+            'randomGenerationRole' => 'location_source',
+        ])->assertOk()->assertJson([
+            'name' => '表現',
+            'selectionMode' => 'single',
+            'randomGenerationRole' => 'location_source',
+        ]);
+
+        $this->getJson(route('prompt-options.index'))
+            ->assertJsonPath('groups.6.randomGenerationRole', 'location_source');
+    }
+
+    public function test_不正なランダム生成役割を保存できない(): void
+    {
+        $this->postJson(route('prompt-option-groups.store'), [
+            'name' => '背景',
+            'selectionMode' => 'multiple',
+            'randomGenerationRole' => 'unknown',
+        ])->assertUnprocessable()->assertJsonValidationErrors(['randomGenerationRole']);
     }
 
     public function test_項目を整形して登録し編集して削除する(): void

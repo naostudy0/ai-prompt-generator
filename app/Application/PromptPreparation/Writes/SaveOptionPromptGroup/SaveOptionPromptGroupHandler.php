@@ -5,6 +5,7 @@ namespace App\Application\PromptPreparation\Writes\SaveOptionPromptGroup;
 use App\Application\Shared\TransactionManager;
 use App\Domain\PromptPreparation\Models\OptionPromptGroup;
 use App\Domain\PromptPreparation\Models\OptionSelectionMode;
+use App\Domain\PromptPreparation\Models\RandomGenerationRole;
 use App\Domain\PromptPreparation\Repositories\OptionPromptGroupRepository;
 use LogicException;
 
@@ -16,10 +17,19 @@ final readonly class SaveOptionPromptGroupHandler
     ) {
     }
 
-    /** @return array{id: int, categoryId: ?int, name: string, selectionMode: string, position: int, options: array{}} */
-    public function handle(?int $id, string $name, OptionSelectionMode $selectionMode): array
-    {
-        $group = $this->transactions->run(function () use ($id, $name, $selectionMode): OptionPromptGroup {
+    /** @return array{id: int, categoryId: ?int, name: string, selectionMode: string, position: int, randomGenerationRole: ?string, options: array{}} */
+    public function handle(
+        ?int $id,
+        string $name,
+        OptionSelectionMode $selectionMode,
+        ?RandomGenerationRole $randomGenerationRole = null,
+    ): array {
+        $group = $this->transactions->run(function () use (
+            $id,
+            $name,
+            $selectionMode,
+            $randomGenerationRole,
+        ): OptionPromptGroup {
             $current = $id === null ? null : $this->repository->getForUpdate($id);
             $current?->assertUserManageable();
             $position = $current === null ? $this->repository->nextPosition() : $current->position;
@@ -31,6 +41,7 @@ final readonly class SaveOptionPromptGroupHandler
                 $position,
                 $current?->categoryId,
                 null,
+                $randomGenerationRole,
             ));
         });
         if ($group->id === null) {
@@ -43,6 +54,7 @@ final readonly class SaveOptionPromptGroupHandler
             'name' => $group->name,
             'selectionMode' => $group->selectionMode->value,
             'position' => $group->position,
+            'randomGenerationRole' => $group->randomGenerationRole?->value,
             'options' => [],
         ];
     }

@@ -28,6 +28,7 @@ use App\Http\Controllers\PromptPreparation\Writes\DeleteOptionCategoryController
 use App\Http\Controllers\PromptPreparation\Writes\DeleteOptionPromptController;
 use App\Http\Controllers\PromptPreparation\Writes\DeleteOutfitPromptController;
 use App\Http\Controllers\PromptPreparation\Writes\GenerateIllustrationPromptController;
+use App\Http\Controllers\PromptPreparation\Writes\GenerateRandomIllustrationIdeaController;
 use App\Http\Controllers\PromptPreparation\Writes\GenerateScenarioPromptsController;
 use App\Http\Controllers\PromptPreparation\Writes\MoveOptionCategoryController;
 use App\Http\Controllers\PromptPreparation\Writes\MoveOptionPromptController;
@@ -36,6 +37,7 @@ use App\Http\Controllers\PromptPreparation\Writes\PlanIllustrationScenarioContro
 use App\Http\Controllers\PromptPreparation\Writes\QueueComfyUiPromptBatchController;
 use App\Http\Controllers\PromptPreparation\Writes\QueueComfyUiPromptController;
 use App\Http\Controllers\PromptPreparation\Writes\RegenerateScenarioScenePromptController;
+use App\Http\Controllers\PromptPreparation\Writes\ResolveRandomIllustrationIdeaController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveClothingLoraController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveClothingLoraTriggerController;
 use App\Http\Controllers\PromptPreparation\Writes\SaveComfyUiWorkflowController;
@@ -101,6 +103,10 @@ Route::post('/illustration-scenarios/prompts', GenerateScenarioPromptsController
 Route::post('/illustration-scenarios/scenes/prompt', RegenerateScenarioScenePromptController::class)->name('illustration-scenarios.scenes.prompt');
 Route::post('/illustration-prompt-tag-groups', SaveIllustrationPromptTagGroupsController::class)
     ->name('illustration-prompt-tag-groups.store');
+Route::post('/random-illustration-ideas', GenerateRandomIllustrationIdeaController::class)
+    ->name('random-illustration-ideas.store');
+Route::post('/random-illustration-ideas/resolve', ResolveRandomIllustrationIdeaController::class)
+    ->name('random-illustration-ideas.resolve');
 
 Route::get('/lora-prompt-options', GetLoraPromptOptionsController::class)
     ->name('lora-prompt-options.index');

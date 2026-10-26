@@ -10,11 +10,19 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $position
  * @property int|null $option_category_id
  * @property string|null $system_key
+ * @property string|null $random_generation_role
  */
 class OptionPromptGroupRecord extends Model
 {
     protected $table = 'option_prompt_groups';
 
     /** @var list<string> */
-    protected $fillable = ['option_category_id', 'name', 'selection_mode', 'position', 'system_key'];
+    protected $fillable = [
+        'option_category_id',
+        'name',
+        'selection_mode',
+        'position',
+        'system_key',
+        'random_generation_role',
+    ];
 }

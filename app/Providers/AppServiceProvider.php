@@ -18,6 +18,11 @@ use App\Application\PromptPreparation\Ports\LoraPromptOptionQueryService;
 use App\Application\PromptPreparation\Ports\ModelFamilyQueryService;
 use App\Application\PromptPreparation\Ports\OptionCategoryQueryService;
 use App\Application\PromptPreparation\Ports\OptionPromptQueryService;
+use App\Application\PromptPreparation\Ports\RandomIllustrationIdeaGenerator;
+use App\Application\PromptPreparation\Ports\RandomIllustrationIdeaResolver;
+use App\Application\PromptPreparation\Ports\RandomIllustrationInstructions;
+use App\Application\PromptPreparation\Ports\RandomIllustrationSelectionQueryService;
+use App\Application\PromptPreparation\Ports\RandomSource;
 use App\Application\PromptPreparation\Ports\ScenarioIllustrationPromptGenerator;
 use App\Application\Shared\TransactionManager;
 use App\Domain\PromptPreparation\Repositories\DefaultPromptRepository;
@@ -33,8 +38,10 @@ use App\Domain\PromptPreparation\Repositories\OutfitPromptRepository;
 use App\Infrastructure\PromptPreparation\External\ComfyUi\ComfyUiImageGenerationQueue;
 use App\Infrastructure\PromptPreparation\External\IllustrationLlm\FileIllustrationPromptInstructions;
 use App\Infrastructure\PromptPreparation\External\IllustrationLlm\FileIllustrationScenarioInstructions;
+use App\Infrastructure\PromptPreparation\External\IllustrationLlm\FileRandomIllustrationInstructions;
 use App\Infrastructure\PromptPreparation\External\IllustrationLlm\OllamaIllustrationPromptGenerator;
 use App\Infrastructure\PromptPreparation\External\IllustrationLlm\OllamaIllustrationScenarioGenerator;
+use App\Infrastructure\PromptPreparation\External\IllustrationLlm\OllamaRandomIllustrationService;
 use App\Infrastructure\PromptPreparation\Images\PngComfyUiImageMetadataReader;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentDefaultPromptRepository;
 use App\Infrastructure\PromptPreparation\Persistence\Eloquent\Repositories\EloquentFavoritePromptRepository;
@@ -54,9 +61,11 @@ use App\Infrastructure\PromptPreparation\Queries\EloquentLoraPromptOptionQuerySe
 use App\Infrastructure\PromptPreparation\Queries\EloquentModelFamilyQueryService;
 use App\Infrastructure\PromptPreparation\Queries\EloquentOptionCategoryQueryService;
 use App\Infrastructure\PromptPreparation\Queries\EloquentOptionPromptQueryService;
+use App\Infrastructure\PromptPreparation\Queries\EloquentRandomIllustrationSelectionQueryService;
 use App\Infrastructure\PromptPreparation\Storage\LaravelComfyUiWorkflowStore;
 use App\Infrastructure\PromptPreparation\Storage\LaravelFavoriteImageStorage;
 use App\Infrastructure\Shared\LaravelTransactionManager;
+use App\Infrastructure\Shared\PhpRandomSource;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -94,6 +103,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(ScenarioIllustrationPromptGenerator::class, OllamaIllustrationScenarioGenerator::class);
         $this->app->bind(LoraGenerationSettingsProvider::class, EloquentLoraGenerationSettingsProvider::class);
         $this->app->bind(GenerationSettingOptionRepository::class, EloquentGenerationSettingOptionRepository::class);
+        $this->app->bind(RandomIllustrationSelectionQueryService::class, EloquentRandomIllustrationSelectionQueryService::class);
+        $this->app->bind(RandomSource::class, PhpRandomSource::class);
+        $this->app->bind(RandomIllustrationInstructions::class, FileRandomIllustrationInstructions::class);
+        $this->app->bind(RandomIllustrationIdeaGenerator::class, OllamaRandomIllustrationService::class);
+        $this->app->bind(RandomIllustrationIdeaResolver::class, OllamaRandomIllustrationService::class);
     }
 
     /**

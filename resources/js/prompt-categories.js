@@ -34,6 +34,9 @@ export const requestPromptOptions = async (fetcher, url) => {
                 typeof group.name === 'string' &&
                 group.name.trim() !== '' &&
                 ['single', 'multiple'].includes(group.selectionMode) &&
+                (group.randomGenerationRole === undefined ||
+                    group.randomGenerationRole === null ||
+                    group.randomGenerationRole === 'location_source') &&
                 Array.isArray(group.options) &&
                 group.options.every(isOption),
         )
