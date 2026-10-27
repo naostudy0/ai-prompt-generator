@@ -82,7 +82,10 @@ final class OllamaRandomIllustrationService implements RandomIllustrationIdeaGen
         try {
             $response = Http::acceptJson()->asJson()->connectTimeout((int) config('services.illustration_llm.connect_timeout'))->timeout((int) config('services.illustration_llm.timeout'))->withoutRedirecting()->post(rtrim((string) config('services.illustration_llm.base_url'), '/').'/api/chat', [
                 'model' => $model, 'stream' => false, 'think' => false,
-                'options' => ['num_predict' => (int) config('services.illustration_llm.num_predict')],
+                'options' => [
+                    'num_predict' => (int) config('services.illustration_llm.num_predict'),
+                    'temperature' => 0,
+                ],
                 'messages' => [['role' => 'system', 'content' => $systemPrompt], ['role' => 'user', 'content' => json_encode($userData, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE)]],
                 'format' => $schema,
             ]);
