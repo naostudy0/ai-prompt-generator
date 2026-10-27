@@ -113,6 +113,8 @@ InfrastructureにOllama Chat API互換アダプターを置き、`POST /api/chat
 - `ILLUSTRATION_LLM_TIMEOUT_SECONDS`
 - `ILLUSTRATION_LLM_NUM_PREDICT`
 
+同期HTTPを中継するNginxのFastCGI応答待機時間は、外部LLMの既定応答タイムアウト120秒より長い180秒とする。これにより、外部LLMのタイムアウトをLaravelが503へ変換して返す前に、Nginxが504で接続を打ち切らないようにする。`ILLUSTRATION_LLM_TIMEOUT_SECONDS`を180秒以上へ変更する場合は、Nginxの待機時間もそれより長い値へ合わせる。
+
 ベースURLはサーバー側で固定し、リクエストから接続先を受け取らない。認証情報が将来必要になる場合は、別の設計を経てサーバー側設定からアダプターに与える。
 
 System Promptは次の専用資材とし、PHPコード内の長文リテラルにしない。
