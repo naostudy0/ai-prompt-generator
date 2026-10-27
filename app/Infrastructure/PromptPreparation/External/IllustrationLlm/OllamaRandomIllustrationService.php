@@ -38,14 +38,14 @@ final class OllamaRandomIllustrationService implements RandomIllustrationIdeaGen
         [$content, $model, $elapsed] = $this->request($instructions, ['description' => $description, 'fixed_selections' => $fixed, 'registered_candidates' => $candidates], [
             'type' => 'object',
             'properties' => [
-                'resolved_description' => ['type' => 'string'],
+                'resolved_description' => ['type' => 'string', 'maxLength' => 2000],
                 'selected_option_ids' => ['type' => 'array', 'items' => ['type' => 'integer']],
-                'transient_suggestions' => ['type' => 'array', 'maxItems' => 10, 'items' => ['type' => 'object', 'properties' => ['polarity' => ['type' => 'string', 'enum' => ['positive', 'negative']], 'label' => ['type' => 'string'], 'tags' => ['type' => 'string']], 'required' => ['polarity', 'label', 'tags'], 'additionalProperties' => false]],
-                'adjustments' => ['type' => 'array', 'items' => ['type' => 'string']],
+                'transient_suggestions' => ['type' => 'array', 'maxItems' => 10, 'items' => ['type' => 'object', 'properties' => ['polarity' => ['type' => 'string', 'enum' => ['positive', 'negative']], 'label' => ['type' => 'string', 'maxLength' => 100], 'tags' => ['type' => 'string', 'maxLength' => 500]], 'required' => ['polarity', 'label', 'tags'], 'additionalProperties' => false]],
+                'adjustments' => ['type' => 'array', 'maxItems' => 10, 'items' => ['type' => 'string', 'maxLength' => 500]],
             ],
             'required' => ['resolved_description', 'selected_option_ids', 'transient_suggestions', 'adjustments'], 'additionalProperties' => false,
         ]);
-        if (! $this->hasExactKeys($content, ['resolved_description', 'selected_option_ids', 'transient_suggestions', 'adjustments']) || ! is_string($content['resolved_description']) || trim($content['resolved_description']) === '' || ! is_array($content['selected_option_ids']) || ! is_array($content['transient_suggestions']) || ! is_array($content['adjustments'])) {
+        if (! $this->hasExactKeys($content, ['resolved_description', 'selected_option_ids', 'transient_suggestions', 'adjustments']) || ! is_string($content['resolved_description']) || trim($content['resolved_description']) === '' || mb_strlen(trim($content['resolved_description'])) > 2000 || ! is_array($content['selected_option_ids']) || ! is_array($content['transient_suggestions']) || ! is_array($content['adjustments'])) {
             throw new InvalidIllustrationPromptResponse('外部LLMの応答形式が不正です。');
         }
         $ids = [];
@@ -57,12 +57,12 @@ final class OllamaRandomIllustrationService implements RandomIllustrationIdeaGen
         }
         $suggestions = [];
         foreach ($content['transient_suggestions'] as $value) {
-            if (! is_array($value) || ! $this->hasExactKeys($value, ['polarity', 'label', 'tags']) || ! in_array($value['polarity'] ?? null, ['positive', 'negative'], true) || ! is_string($value['label'] ?? null) || mb_strlen(trim($value['label'])) < 1 || mb_strlen(trim($value['label'])) > 100 || ! is_string($value['tags'] ?? null) || preg_match('/[^,\s]/u', $value['tags']) !== 1) {
+            if (! is_array($value) || ! $this->hasExactKeys($value, ['polarity', 'label', 'tags']) || ! in_array($value['polarity'] ?? null, ['positive', 'negative'], true) || ! is_string($value['label'] ?? null) || mb_strlen(trim($value['label'])) < 1 || mb_strlen(trim($value['label'])) > 100 || ! is_string($value['tags'] ?? null) || mb_strlen(trim($value['tags'])) > 500 || preg_match('/[^,\s]/u', $value['tags']) !== 1) {
                 throw new InvalidIllustrationPromptResponse('外部LLMの一時候補が不正です。');
             }
             $suggestions[] = new TransientPromptSuggestion($value['polarity'], trim($value['label']), trim($value['tags']));
         }
-        if (!array_is_list($content['adjustments']) || !array_is_list($content['selected_option_ids']) || !array_is_list($content['transient_suggestions']) || !collect($content['adjustments'])->every('is_string')) {
+        if (!array_is_list($content['adjustments']) || count($content['adjustments']) > 10 || !array_is_list($content['selected_option_ids']) || !array_is_list($content['transient_suggestions']) || !collect($content['adjustments'])->every(static fn (mixed $adjustment): bool => is_string($adjustment) && mb_strlen(trim($adjustment)) <= 500)) {
             throw new InvalidIllustrationPromptResponse('外部LLMの調整内容が不正です。');
         }
 
