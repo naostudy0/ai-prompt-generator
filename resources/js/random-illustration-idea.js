@@ -8,9 +8,18 @@ const requestJson = async (fetcher, url, csrfToken, body) => {
         },
         body: JSON.stringify(body),
     });
-    const result = await response.json();
+    let result = null;
+    try {
+        result = await response.json();
+    } catch {
+        // Reverse proxies and framework error pages may return HTML instead of JSON.
+    }
     if (!response.ok) {
-        throw new Error(result?.message ?? 'ランダム案を作成できませんでした。');
+        const status = Number.isInteger(response.status) ? `（HTTP ${response.status}）` : '';
+        throw new Error(result?.message ?? `ランダム案を作成できませんでした${status}。`);
+    }
+    if (result === null || typeof result !== 'object' || Array.isArray(result)) {
+        throw new Error('ランダム案のサーバー応答形式が不正です。');
     }
     return result;
 };
