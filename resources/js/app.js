@@ -99,6 +99,7 @@ export const initializePromptPreparationPage = ({
         getSelections: () => ({ lora: '', trigger: '', outfit: '' }),
         getSelectionSnapshot: () => ({}),
         getVariantCandidates: () => null,
+        getCharacterLoraApplication: () => null,
         restoreSelection: () => false,
         reset: () => {},
     };
@@ -1216,6 +1217,8 @@ export const initializePromptPreparationPage = ({
         fetcher,
         csrfToken,
         notify: showToast,
+        confirmAction: (message) => view.confirm(message),
+        getCharacterLoraApplication: () => loraOptionsController.getCharacterLoraApplication(),
         capture: () => ({
             positivePrompt:
                 getOutputElement('positive')?.querySelector('[data-output-content]')?.value ?? '',

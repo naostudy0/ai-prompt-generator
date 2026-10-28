@@ -417,6 +417,38 @@ test('LoRAを切り替えても他のLoRAに属する服装の選択を維持す
     assert.equal(controller.getSelections().outfit, 'blue dress,');
 });
 
+test('一括適用用の人物LoRA選択を変更不能なコピーとして返す', async () => {
+    const documentObject = createDocument();
+    const catalog = {
+        loras: [{ ...createLora(1, 'Alpha', 'alpha.safetensors', 0.8), modelFamilyId: 2 }],
+        triggers: [{ id: 11, loraId: 1, name: '標準', content: 'alpha,' }],
+        outfits: [],
+    };
+    const controller = initializeLoraOptionsPage({
+        page: documentObject.querySelector('main'),
+        documentObject,
+        fetcher: async () => ({ ok: true, json: async () => catalog }),
+        csrfToken: 'csrf',
+        onLoadedChange: () => {},
+        notify: () => {},
+    });
+    assert.equal(controller.getCharacterLoraApplication(), null);
+    await flushAsyncEvents();
+    const loraList = documentObject.querySelector('[data-lora-list]');
+    loraList.value = '1';
+    loraList.dispatchEvent(new documentObject.defaultView.Event('change'));
+    documentObject.querySelector('[data-lora-strength]').value = '0.8';
+    const application = controller.getCharacterLoraApplication();
+    assert.equal(application.selection.loraId, 1);
+    assert.equal(application.selection.strength, 0.8);
+    assert.equal(application.selection.triggerId, 11);
+    assert.equal(application.selectedSections.lora, '<lora:alpha.safetensors:0.8>,');
+    assert.equal(application.selectedSections.trigger, 'alpha,');
+    assert.equal(application.options.loras[0].modelFamilyId, 2);
+    application.options.loras[0].name = 'Changed';
+    assert.equal(controller.getCharacterLoraApplication().options.loras[0].name, 'Alpha');
+});
+
 test('トリガー追加時は非表示のLoRA生成設定を入力検証の対象外にする', async () => {
     const documentObject = createDocument();
     const catalog = {

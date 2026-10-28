@@ -27,6 +27,7 @@ export const initializeLoraOptionsPage = ({
             getSelections: () => ({ lora: '', trigger: '', outfit: '' }),
             getSelectionSnapshot: () => ({}),
             getVariantCandidates: () => null,
+            getCharacterLoraApplication: () => null,
             getSelectedModelFamilyId: () => null,
             getSelectedLoraId: () => null,
             setModelFamilies: () => {},
@@ -744,6 +745,32 @@ export const initializeLoraOptionsPage = ({
             triggerId: state.selectedTriggerId,
             outfitId: state.selectedOutfitId,
         }),
+        getCharacterLoraApplication: () => {
+            const lora = selectedItem('lora');
+            if (!state.loaded || lora === null) {
+                return null;
+            }
+            const trigger = selectedItem('trigger');
+            const strength = Number(strengthSelect?.value ?? 1);
+            const loraSection =
+                createLoraPromptSections({ lora, strength, trigger: null, outfit: null })[0] ?? '';
+            return {
+                options: {
+                    loras: state.loras.map((item) => ({ ...item })),
+                    triggers: state.triggers.map((item) => ({ ...item })),
+                },
+                selection: {
+                    loraId: lora.id,
+                    strength,
+                    triggerId: trigger?.id ?? null,
+                },
+                selectedSections: {
+                    lora: loraSection,
+                    trigger: trigger?.content ?? '',
+                },
+                summary: `${lora.name} / ${trigger?.name ?? 'トリガーなし'} / 強度${strength}`,
+            };
+        },
         hasSelectionIds: (snapshot) => {
             const lora = state.loras.find((item) => item.id === snapshot?.loraId) ?? null;
             const strength = Number(snapshot?.strength ?? 1);

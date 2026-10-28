@@ -118,16 +118,18 @@ class ComfyUiApiTest extends TestCase
             ->push(['prompt_id' => '11111111-1111-1111-1111-111111111111', 'number' => 1, 'node_errors' => []])
             ->push(['error' => ['message' => 'invalid']], 400)
             ->push(['prompt_id' => '33333333-3333-3333-3333-333333333333', 'number' => 3, 'node_errors' => []]);
-        $items = collect(range(1, 3))->map(fn (int $id): array => [
-            'candidateKey' => "candidate-{$id}", 'modelFamilyId' => 1,
-            'loraId' => $loraIds[$id - 1],
-            'positive' => "positive {$id}", 'negative' => '',
+        $items = collect(range(12, 14))->map(fn (int $favoriteId, int $index): array => [
+            'candidateKey' => "favorite:{$favoriteId}", 'modelFamilyId' => 1,
+            'loraId' => $loraIds[$index],
+            'positive' => "positive {$favoriteId}", 'negative' => '',
         ])->all();
 
         $this->postJson(route('comfyui-prompts.batch'), ['items' => $items])
             ->assertOk()
             ->assertJsonPath('results.0.status', 'accepted')
+            ->assertJsonPath('results.0.candidateKey', 'favorite:12')
             ->assertJsonPath('results.1.status', 'failed')
+            ->assertJsonPath('results.1.candidateKey', 'favorite:13')
             ->assertJsonPath('results.2.status', 'accepted');
         Http::assertSentCount(3);
         $seeds = collect(Http::recorded())->map(
@@ -183,6 +185,18 @@ class ComfyUiApiTest extends TestCase
         ])->all();
 
         $this->postJson(route('comfyui-prompts.batch'), ['items' => $items])->assertUnprocessable();
+    }
+
+    public function test_一括送信は重複したお気に入り候補キーを拒否する(): void
+    {
+        $item = [
+            'candidateKey' => 'favorite:12', 'modelFamilyId' => 1, 'loraId' => 1,
+            'positive' => '', 'negative' => '',
+        ];
+
+        $this->postJson(route('comfyui-prompts.batch'), ['items' => [$item, $item]])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('items.0.candidateKey');
     }
 
     public function test_系統が一致しない人物LoRAは失敗し一括送信の残りを続ける(): void
