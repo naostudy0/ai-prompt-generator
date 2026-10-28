@@ -203,6 +203,55 @@ export const createCharacterLoraVariant = (positive, original, candidate, trigge
     return `${positive.slice(0, tagIndex)}${replacement}${positive.slice(tagEnd)}`;
 };
 
+export const createStrictCharacterLoraVariant = (
+    positive,
+    original,
+    replacementTag,
+    replacementTrigger,
+) => {
+    const located = locateCharacterLoraSourceMetadata(positive, original);
+    const replacement = [replacementTag, replacementTrigger]
+        .filter((section) => section !== '')
+        .join(sectionSeparator);
+
+    if (original.lora === '') {
+        const insertionPoint = located.insertionPoint;
+        if (insertionPoint === 0) {
+            return `${replacement}${positive === '' ? '' : sectionSeparator + positive}`;
+        }
+        return `${positive.slice(0, insertionPoint)}${sectionSeparator}${replacement}${positive.slice(insertionPoint)}`;
+    }
+
+    if (
+        located.loraRange === null ||
+        positive.slice(located.loraRange.start, located.loraRange.end) !== original.lora
+    ) {
+        throw new Error('元の人物LoRAタグを一意に特定できません。');
+    }
+
+    if (original.trigger !== '') {
+        if (
+            located.triggerRange === null ||
+            positive.slice(located.triggerRange.start, located.triggerRange.end) !== original.trigger
+        ) {
+            throw new Error('元の人物LoRAトリガーを一意に特定できません。');
+        }
+        const removeSeparator =
+            replacementTrigger === '' &&
+            positive.slice(
+                located.triggerRange.start - sectionSeparator.length,
+                located.triggerRange.start,
+            ) === sectionSeparator;
+        const triggerStart = removeSeparator
+            ? located.triggerRange.start - sectionSeparator.length
+            : located.triggerRange.start;
+        const withTrigger = `${positive.slice(0, triggerStart)}${replacementTrigger}${positive.slice(located.triggerRange.end)}`;
+        return `${withTrigger.slice(0, located.loraRange.start)}${replacementTag}${withTrigger.slice(located.loraRange.end)}`;
+    }
+
+    return `${positive.slice(0, located.loraRange.start)}${replacement}${positive.slice(located.loraRange.end)}`;
+};
+
 export const getCharacterLoraCandidates = (options, searchText) =>
     filterLoras(options.loras, searchText).flatMap((lora) => {
         const triggers = options.triggers.filter((item) => item.loraId === lora.id);

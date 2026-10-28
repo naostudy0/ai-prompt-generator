@@ -6,11 +6,93 @@ import {
     createCharacterLoraCandidateKey,
     createCharacterLoraSourceMetadata,
     createCharacterLoraVariant,
+    createStrictCharacterLoraVariant,
     getCharacterLoraCandidates,
     locateCharacterLoraSourceMetadata,
     reconcileCharacterLoraCandidateChecks,
     trackCharacterLoraSourceEdit,
 } from '../../resources/js/character-lora-variant.js';
+
+test('厳格な差し替えは人物LoRAと保存済みトリガーだけを置換する', () => {
+    const positive =
+        'masterpiece,\n\n<lora:original.safetensors:1>,\n\nbrown hair,\n\n<lora:dress:1>,\n\npark,';
+    const metadata = createCharacterLoraSourceMetadata(
+        'masterpiece,',
+        '<lora:original.safetensors:1>,',
+        'brown hair,',
+    );
+
+    assert.equal(
+        createStrictCharacterLoraVariant(
+            positive,
+            metadata,
+            '<lora:selected.safetensors:0.7>,',
+            'silver hair,',
+        ),
+        'masterpiece,\n\n<lora:selected.safetensors:0.7>,\n\nsilver hair,\n\n<lora:dress:1>,\n\npark,',
+    );
+    assert.equal(
+        createStrictCharacterLoraVariant(
+            positive,
+            metadata,
+            '<lora:selected.safetensors:0.7>,',
+            '',
+        ),
+        'masterpiece,\n\n<lora:selected.safetensors:0.7>,\n\n<lora:dress:1>,\n\npark,',
+    );
+});
+
+test('厳格な差し替えは保存済み人物部分を一意に特定できなければ拒否する', () => {
+    const metadata = createCharacterLoraSourceMetadata(
+        'masterpiece,',
+        '<lora:original.safetensors:1>,',
+        'brown hair,',
+    );
+
+    assert.throws(
+        () =>
+            createStrictCharacterLoraVariant(
+                'masterpiece,\n\n<lora:original.safetensors:1>,\n\nsmile,',
+                metadata,
+                '<lora:selected:1>,',
+                'silver hair,',
+            ),
+        /元の人物LoRAトリガー/,
+    );
+    assert.throws(
+        () =>
+            createStrictCharacterLoraVariant(
+                'masterpiece,\n\n<lora:original.safetensors:1>,\n\nbrown hair,\n\nbrown hair,',
+                metadata,
+                '<lora:selected:1>,',
+                'silver hair,',
+            ),
+        /元の人物LoRAトリガー/,
+    );
+    assert.throws(
+        () =>
+            createStrictCharacterLoraVariant(
+                'masterpiece,\n\n<lora:edited.safetensors:1>,\n\nbrown hair,',
+                metadata,
+                '<lora:selected:1>,',
+                'silver hair,',
+            ),
+        /元の人物LoRAタグ/,
+    );
+});
+
+test('厳格な挿入はデフォルトの直後へ人物LoRAを追加する', () => {
+    const positive = 'masterpiece,\n\n<lora:dress:1>,\n\npark,';
+    assert.equal(
+        createStrictCharacterLoraVariant(
+            positive,
+            createCharacterLoraSourceMetadata('masterpiece,', '', ''),
+            '<lora:selected:0.7>,',
+            'silver hair,',
+        ),
+        'masterpiece,\n\n<lora:selected:0.7>,\n\nsilver hair,\n\n<lora:dress:1>,\n\npark,',
+    );
+});
 
 test('一度消えた既知候補は再表示しても未チェックのままにする', () => {
     const hidden = reconcileCharacterLoraCandidateChecks(
