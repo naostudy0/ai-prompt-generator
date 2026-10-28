@@ -1541,6 +1541,36 @@ button:focus-visible {
     background: #1a211c;
 }
 
+.favorite-card--selected {
+    border-color: #b7d98b;
+    box-shadow: 0 0 0 1px #b7d98b;
+}
+
+.favorite-card__check {
+    display: block;
+    margin-bottom: 0.6rem;
+    color: #d6dfd8;
+}
+
+.favorite-group-controls,
+.favorite-batch-controls {
+    margin-top: 1rem;
+    border: 1px solid #35423a;
+    border-radius: 0.8rem;
+    padding: 0.8rem;
+}
+
+.favorite-group-controls .text-input {
+    margin-bottom: 0.65rem;
+}
+
+.favorite-card__result {
+    min-height: 1.3rem;
+    margin-top: 0.65rem;
+    color: #b7d98b;
+    font-size: 0.82rem;
+}
+
 .favorite-card img,
 .favorite-card__placeholder {
     width: 100%;

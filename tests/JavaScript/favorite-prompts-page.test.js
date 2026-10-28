@@ -16,7 +16,13 @@ const createDocument = () => {
             <button type="submit" data-favorite-submit></button><button type="button" data-favorite-save-copy></button>
             <button type="button" data-favorite-form-cancel></button>
         </form></dialog>
-        <dialog data-favorite-list-dialog><p data-favorite-list-status></p><div data-favorite-list></div>
+        <dialog data-favorite-list-dialog><p data-favorite-list-status></p>
+            <fieldset data-favorite-group-controls><input data-favorite-group-name><select data-favorite-group-list></select>
+                <button data-favorite-group-save></button><button data-favorite-group-load></button><button data-favorite-group-delete></button>
+            </fieldset>
+            <button data-favorite-select-all></button><button data-favorite-clear-all></button>
+            <span data-favorite-selected-count></span><span data-favorite-lora-summary></span>
+            <button data-favorite-batch-send></button><div data-favorite-list></div>
             <button data-favorite-list-retry hidden></button>
             <button data-favorite-list-close></button></dialog>
     </main>`);
@@ -28,6 +34,139 @@ const createDocument = () => {
     };
     return dom.window.document;
 };
+
+const favorite = (id, name = `お気に入り${id}`) => ({
+    id,
+    name,
+    displayName: name,
+    imageUrl: null,
+    createdAt: '2026-09-19T12:00:00+09:00',
+    selectionSummary: [],
+});
+
+test('チェック状態と名前付きグループを保存して呼び出す', async () => {
+    const documentObject = createDocument();
+    const storage = new Map();
+    const confirmMessages = [];
+    initializeFavoritePromptsPage({
+        page: documentObject.querySelector('main'),
+        documentObject,
+        fetcher: async () => ({
+            ok: true,
+            status: 200,
+            json: async () => ({ favorites: [favorite(1), favorite(2)] }),
+        }),
+        csrfToken: 'token',
+        capture: () => ({}),
+        restore: () => ({}),
+        notify: () => {},
+        storage: {
+            getItem: (key) => storage.get(key) ?? null,
+            setItem: (key, value) => storage.set(key, value),
+        },
+        confirmAction: (message) => {
+            confirmMessages.push(message);
+            return true;
+        },
+        getCharacterLoraApplication: () => null,
+    });
+    documentObject.querySelector('[data-favorite-open]').click();
+    await setImmediate();
+    const checks = documentObject.querySelectorAll('[data-favorite-check]');
+    assert.equal(checks.length, 2);
+    assert.equal(checks[0].checked, false);
+    checks[0].click();
+    documentObject.querySelector('[data-favorite-group-name]').value = '主役';
+    documentObject.querySelector('[data-favorite-group-save]').click();
+    assert.match(storage.get('favorite-prompt-checks-v1'), /favorite:1/);
+    assert.match(storage.get('favorite-prompt-groups-v1'), /主役/);
+    documentObject.querySelector('[data-favorite-clear-all]').click();
+    documentObject.querySelector('[data-favorite-group-load]').click();
+    assert.equal(checks[0].checked, true);
+    assert.equal(
+        documentObject.querySelector('[data-favorite-selected-count]').textContent,
+        '1件選択',
+    );
+    documentObject.querySelector('[data-favorite-group-name]').value = '主役';
+    documentObject.querySelector('[data-favorite-group-save]').click();
+    assert.match(confirmMessages[0], /上書き/);
+});
+
+test('選択したお気に入りを準備して一度だけ一括送信する', async () => {
+    const documentObject = createDocument();
+    const requests = [];
+    const listFavorite = favorite(7, '夕方');
+    const fetcher = async (url, options = {}) => {
+        requests.push({ url, options });
+        if (url === '/favorite-prompts/7')
+            return {
+                ok: true,
+                status: 200,
+                json: async () => ({
+                    ...listFavorite,
+                    positivePrompt: 'old',
+                    negativePrompt: 'bad',
+                    selectionSnapshot: {
+                        lora: { loraId: null },
+                        defaultSections: { positive: '' },
+                    },
+                }),
+            };
+        if (url === '/batch')
+            return {
+                ok: true,
+                status: 200,
+                json: async () => ({
+                    results: [{ candidateKey: 'favorite:7', status: 'accepted', promptId: 'p-7' }],
+                }),
+            };
+        return { ok: true, status: 200, json: async () => ({ favorites: [listFavorite] }) };
+    };
+    const page = documentObject.querySelector('main');
+    page.dataset.comfyUiPromptBatchUrl = '/batch';
+    initializeFavoritePromptsPage({
+        page,
+        documentObject,
+        fetcher,
+        csrfToken: 'token',
+        capture: () => ({}),
+        restore: () => ({}),
+        notify: () => {},
+        storage: { getItem: () => null, setItem: () => {} },
+        confirmAction: () => true,
+        getCharacterLoraApplication: () => ({
+            options: {
+                loras: [{ id: 3, modelFamilyId: 2, fileName: 'new.safetensors' }],
+                triggers: [],
+            },
+            selection: { loraId: 3, strength: 1, triggerId: null },
+            selectedSections: { lora: '<lora:new:1>', trigger: '' },
+            summary: '新人物 / トリガーなし / 強度1',
+        }),
+    });
+    documentObject.querySelector('[data-favorite-open]').click();
+    await setImmediate();
+    documentObject.querySelector('[data-favorite-check]').click();
+    documentObject.querySelector('[data-favorite-batch-send]').click();
+    await setImmediate();
+    await setImmediate();
+    const batch = requests.find((item) => item.url === '/batch');
+    assert.deepEqual(JSON.parse(batch.options.body), {
+        items: [
+            {
+                candidateKey: 'favorite:7',
+                modelFamilyId: 2,
+                loraId: 3,
+                positive: '<lora:new:1>\n\nold',
+                negative: 'bad',
+            },
+        ],
+    });
+    assert.match(
+        documentObject.querySelector('[data-favorite-result]').textContent,
+        /送信済み.*p-7/,
+    );
+});
 
 test('現在の完成プロンプトと選択状態をお気に入りとして保存する', async () => {
     const documentObject = createDocument();

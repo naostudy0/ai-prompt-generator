@@ -545,6 +545,27 @@
                 </div>
                 <p class="editor-status" data-favorite-list-status role="status" aria-live="polite"></p>
                 <button class="secondary-button" type="button" data-favorite-list-retry hidden>再読み込み</button>
+                <fieldset class="favorite-group-controls" data-favorite-group-controls>
+                    <legend>一括送信するお気に入りグループ</legend>
+                    <label class="field-label" for="favorite-group-name">グループ名</label>
+                    <input id="favorite-group-name" class="text-input" maxlength="100" data-favorite-group-name>
+                    <label class="field-label" for="favorite-group-list">保存済みグループ</label>
+                    <select id="favorite-group-list" class="text-input" data-favorite-group-list></select>
+                    <div class="editor-actions">
+                        <button class="secondary-button" type="button" data-favorite-group-save>現在のチェックを保存</button>
+                        <button class="secondary-button" type="button" data-favorite-group-load>呼び出す</button>
+                        <button class="danger-button" type="button" data-favorite-group-delete>削除</button>
+                    </div>
+                </fieldset>
+                <div class="favorite-batch-controls">
+                    <div class="editor-actions">
+                        <button class="secondary-button" type="button" data-favorite-select-all>すべて選択</button>
+                        <button class="secondary-button" type="button" data-favorite-clear-all>すべて解除</button>
+                        <span data-favorite-selected-count>0件選択</span>
+                    </div>
+                    <p data-favorite-lora-summary>現在選択中の人物LoRAを、チェックしたお気に入りへ適用します。</p>
+                    <button class="primary-button" type="button" data-favorite-batch-send disabled>選択したお気に入りをComfyUIへ送信</button>
+                </div>
                 <div class="favorite-grid" data-favorite-list></div>
             </dialog>
 
