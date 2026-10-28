@@ -76,6 +76,7 @@ test('チェック状態と名前付きグループを保存して呼び出す',
     assert.equal(checks.length, 2);
     assert.equal(checks[0].checked, false);
     checks[0].click();
+    assert.equal(documentObject.querySelector('[data-favorite-batch-send]').disabled, true);
     documentObject.querySelector('[data-favorite-group-name]').value = '主役';
     documentObject.querySelector('[data-favorite-group-save]').click();
     assert.match(storage.get('favorite-prompt-checks-v1'), /favorite:1/);
@@ -98,7 +99,7 @@ test('選択したお気に入りを準備して一度だけ一括送信する',
     const listFavorite = favorite(7, '夕方');
     const fetcher = async (url, options = {}) => {
         requests.push({ url, options });
-        if (url === '/favorite-prompts/7')
+        if (url === '/favorite-prompts/7') {
             return {
                 ok: true,
                 status: 200,
@@ -112,7 +113,8 @@ test('選択したお気に入りを準備して一度だけ一括送信する',
                     },
                 }),
             };
-        if (url === '/batch')
+        }
+        if (url === '/batch') {
             return {
                 ok: true,
                 status: 200,
@@ -120,6 +122,7 @@ test('選択したお気に入りを準備して一度だけ一括送信する',
                     results: [{ candidateKey: 'favorite:7', status: 'accepted', promptId: 'p-7' }],
                 }),
             };
+        }
         return { ok: true, status: 200, json: async () => ({ favorites: [listFavorite] }) };
     };
     const page = documentObject.querySelector('main');

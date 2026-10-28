@@ -9,8 +9,9 @@ const originalLora = {
     fileName: 'original.safetensors',
     recommendedStrength: 1,
     modelFamilyId: 1,
-    tags: Array.from({ length: 11 }, (_, step) =>
-        `<lora:original.safetensors:${step === 10 ? '1' : (step / 10).toFixed(1)}>,`,
+    tags: Array.from(
+        { length: 11 },
+        (_, step) => `<lora:original.safetensors:${step === 10 ? '1' : (step / 10).toFixed(1)}>,`,
     ),
 };
 const selectedLora = {
@@ -19,8 +20,9 @@ const selectedLora = {
     fileName: 'selected.safetensors',
     recommendedStrength: 0.8,
     modelFamilyId: 4,
-    tags: Array.from({ length: 11 }, (_, step) =>
-        `<lora:selected.safetensors:${step === 10 ? '1' : (step / 10).toFixed(1)}>,`,
+    tags: Array.from(
+        { length: 11 },
+        (_, step) => `<lora:selected.safetensors:${step === 10 ? '1' : (step / 10).toFixed(1)}>,`,
     ),
 };
 const originalTrigger = { id: 11, loraId: 1, name: '元標準', content: 'brown hair,' };

@@ -54,11 +54,7 @@ test('不正なグループ保存値を使用しない', () => {
 
 test('グループ名と候補キーを正規化する', () => {
     assert.deepEqual(
-        prepareFavoritePromptGroup('  屋外  ', [
-            'favorite:12',
-            'favorite:3',
-            'favorite:12',
-        ]),
+        prepareFavoritePromptGroup('  屋外  ', ['favorite:12', 'favorite:3', 'favorite:12']),
         { name: '屋外', favoriteKeys: ['favorite:12', 'favorite:3'] },
     );
     assert.throws(() => prepareFavoritePromptGroup('   ', []), /グループ名/);

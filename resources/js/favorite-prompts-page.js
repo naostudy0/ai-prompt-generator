@@ -63,7 +63,7 @@ export const initializeFavoritePromptsPage = ({
     let saving = false;
     let processing = false;
     let favorites = [];
-    let results = new Map();
+    const results = new Map();
     let checkedKeys;
     let groups;
     try {
@@ -108,7 +108,9 @@ export const initializeFavoritePromptsPage = ({
         }
     };
     const renderGroups = () => {
-        if (!groupList) return;
+        if (!groupList) {
+            return;
+        }
         groupList.replaceChildren();
         groups.forEach((group, index) => {
             const option = documentObject.createElement('option');
@@ -124,8 +126,13 @@ export const initializeFavoritePromptsPage = ({
                 .closest('.favorite-card')
                 ?.classList.toggle('favorite-card--selected', checkbox.checked);
         });
-        if (selectedCount) selectedCount.textContent = `${checkedKeys.size}件選択`;
-        if (batchButton) batchButton.disabled = processing || checkedKeys.size === 0;
+        if (selectedCount) {
+            selectedCount.textContent = `${checkedKeys.size}件選択`;
+        }
+        if (batchButton) {
+            batchButton.disabled =
+                processing || checkedKeys.size === 0 || getCharacterLoraApplication() === null;
+        }
         writeChecks();
     };
     const setProcessing = (value) => {
@@ -355,9 +362,12 @@ export const initializeFavoritePromptsPage = ({
         try {
             const group = prepareFavoritePromptGroup(groupName?.value ?? '', checkedKeys);
             const index = findFavoritePromptGroupIndex(groups, group.name);
-            if (index >= 0 && !confirmAction?.(`「${groups[index].name}」を上書きしますか？`))
+            if (index >= 0 && !confirmAction?.(`「${groups[index].name}」を上書きしますか？`)) {
                 return;
-            if (writeGroups(replaceFavoritePromptGroup(groups, group, index))) renderGroups();
+            }
+            if (writeGroups(replaceFavoritePromptGroup(groups, group, index))) {
+                renderGroups();
+            }
         } catch (error) {
             listStatus.textContent =
                 error instanceof Error ? error.message : 'グループを保存できませんでした。';
@@ -365,7 +375,9 @@ export const initializeFavoritePromptsPage = ({
     });
     page.querySelector('[data-favorite-group-load]')?.addEventListener('click', () => {
         const group = groups[Number(groupList?.value ?? -1)];
-        if (!group) return;
+        if (!group) {
+            return;
+        }
         const available = new Set(
             favorites.map((favorite) => createFavoritePromptKey(favorite.id)),
         );
@@ -379,8 +391,12 @@ export const initializeFavoritePromptsPage = ({
     });
     page.querySelector('[data-favorite-group-delete]')?.addEventListener('click', () => {
         const index = Number(groupList?.value ?? -1);
-        if (!groups[index] || !confirmAction?.(`「${groups[index].name}」を削除しますか？`)) return;
-        if (writeGroups(removeFavoritePromptGroup(groups, index))) renderGroups();
+        if (!groups[index] || !confirmAction?.(`「${groups[index].name}」を削除しますか？`)) {
+            return;
+        }
+        if (writeGroups(removeFavoritePromptGroup(groups, index))) {
+            renderGroups();
+        }
     });
     batchButton?.addEventListener('click', async () => {
         const application = getCharacterLoraApplication();
@@ -430,8 +446,9 @@ export const initializeFavoritePromptsPage = ({
                 !confirmAction?.(
                     `${summary}\n${items.length}件を送信し、${failures.length}件を除外します。`,
                 )
-            )
+            ) {
                 return;
+            }
             const response = await fetcher(page.dataset.comfyUiPromptBatchUrl, {
                 method: 'POST',
                 headers: {
@@ -442,8 +459,9 @@ export const initializeFavoritePromptsPage = ({
                 body: JSON.stringify({ items }),
             });
             const body = await response.json();
-            if (!response.ok || !Array.isArray(body.results))
+            if (!response.ok || !Array.isArray(body.results)) {
                 throw new Error('一括送信結果を確認できませんでした。');
+            }
             body.results.forEach((result) =>
                 results.set(
                     result.candidateKey,

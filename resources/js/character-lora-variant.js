@@ -232,7 +232,8 @@ export const createStrictCharacterLoraVariant = (
     if (original.trigger !== '') {
         if (
             located.triggerRange === null ||
-            positive.slice(located.triggerRange.start, located.triggerRange.end) !== original.trigger
+            positive.slice(located.triggerRange.start, located.triggerRange.end) !==
+                original.trigger
         ) {
             throw new Error('元の人物LoRAトリガーを一意に特定できません。');
         }
