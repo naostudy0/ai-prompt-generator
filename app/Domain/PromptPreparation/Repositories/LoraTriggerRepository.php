@@ -7,6 +7,8 @@ use App\Domain\PromptPreparation\Models\Lora\LoraTrigger;
 
 interface LoraTriggerRepository
 {
+    public function get(int $id, LoraKind $kind): LoraTrigger;
+
     public function save(LoraTrigger $trigger, LoraKind $kind): LoraTrigger;
 
     public function delete(int $id, LoraKind $kind): void;

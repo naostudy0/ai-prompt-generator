@@ -45,6 +45,7 @@ final class EloquentOptionPromptRepository implements OptionPromptRepository
             'option_prompt_group_id' => $record->exists ? $record->option_prompt_group_id : $prompt->groupId,
             'name' => $prompt->name,
             'content' => $prompt->content->value,
+            'negative_content' => $prompt->negativeContent->value,
             'position' => $prompt->position,
         ])->save();
 
@@ -59,6 +60,7 @@ final class EloquentOptionPromptRepository implements OptionPromptRepository
             name: $record->name,
             content: PromptText::fromInput($record->content),
             position: $record->position,
+            negativeContent: PromptText::fromInput($record->negative_content),
         );
     }
 

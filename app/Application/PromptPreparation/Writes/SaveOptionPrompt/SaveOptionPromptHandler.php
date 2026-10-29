@@ -35,6 +35,9 @@ final readonly class SaveOptionPromptHandler
                 position: $existing === null
                     ? $this->repository->nextPosition($resolvedGroupId)
                     : $existing->position,
+                negativeContent: PromptText::fromInput($input->hasNegativeContent
+                    ? ($input->negativeContent ?? '')
+                    : ($existing?->negativeContent->value ?? '')),
             ));
         });
 
@@ -43,6 +46,7 @@ final readonly class SaveOptionPromptHandler
         }
 
         return ['id' => $saved->id, 'groupId' => $saved->groupId, 'position' => $saved->position, 'name' => $saved->name,
-            'content' => $saved->content->value, 'formatSucceeded' => $saved->content->formatSucceeded];
+            'content' => $saved->content->value, 'negativeContent' => $saved->negativeContent->value,
+            'formatSucceeded' => $saved->content->formatSucceeded];
     }
 }

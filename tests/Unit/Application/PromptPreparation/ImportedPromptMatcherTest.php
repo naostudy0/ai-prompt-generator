@@ -34,9 +34,9 @@ final class ImportedPromptMatcherTest extends TestCase
             'id' => 1, 'categoryId' => null, 'name' => '表情', 'selectionMode' => 'single', 'position' => 1,
             'systemManaged' => false,
             'options' => [
-                ['id' => 10, 'position' => 1, 'name' => 'A', 'content' => 'blue eyes,'],
-                ['id' => 11, 'position' => 2, 'name' => 'B', 'content' => 'blue eyes,'],
-                ['id' => 12, 'position' => 3, 'name' => 'C', 'content' => 'blue eyes, long hair,'],
+                ['id' => 10, 'position' => 1, 'name' => 'A', 'content' => 'blue eyes,', 'negativeContent' => ''],
+                ['id' => 11, 'position' => 2, 'name' => 'B', 'content' => 'blue eyes,', 'negativeContent' => ''],
+                ['id' => 12, 'position' => 3, 'name' => 'C', 'content' => 'blue eyes, long hair,', 'negativeContent' => ''],
             ],
         ]]);
 
@@ -54,7 +54,7 @@ final class ImportedPromptMatcherTest extends TestCase
             $groups[] = [
                 'id' => $id, 'categoryId' => null, 'name' => $name, 'selectionMode' => 'multiple', 'position' => $id,
                 'systemManaged' => false,
-                'options' => [['id' => $id * 10, 'position' => 1, 'name' => $name, 'content' => 'long hair,']],
+                'options' => [['id' => $id * 10, 'position' => 1, 'name' => $name, 'content' => 'long hair,', 'negativeContent' => '']],
             ];
         }
 
@@ -101,12 +101,12 @@ final class ImportedPromptMatcherTest extends TestCase
     {
         $characters = new GetLoraPromptOptionsResult(
             $this->characters()->loras,
-            [['id' => 21, 'loraId' => 1, 'name' => '人物トリガー', 'content' => 'hero trigger,']],
-            [['id' => 22, 'loraId' => 1, 'name' => '人物服装', 'content' => 'hero outfit,']],
+            [['id' => 21, 'loraId' => 1, 'name' => '人物トリガー', 'content' => 'hero trigger,', 'negativeContent' => '']],
+            [['id' => 22, 'loraId' => 1, 'name' => '人物服装', 'content' => 'hero outfit,', 'negativeContent' => '']],
         );
         $clothing = new GetClothingLoraOptionsResult(
             $this->clothing()->loras,
-            [['id' => 31, 'loraId' => 3, 'name' => '衣装トリガー', 'content' => 'dress trigger,']],
+            [['id' => 31, 'loraId' => 3, 'name' => '衣装トリガー', 'content' => 'dress trigger,', 'negativeContent' => '']],
         );
 
         $result = $this->matcher()->match(
@@ -130,8 +130,8 @@ final class ImportedPromptMatcherTest extends TestCase
         $characters = new GetLoraPromptOptionsResult(
             $this->characters()->loras,
             [
-                ['id' => 21, 'loraId' => 1, 'name' => 'A', 'content' => 'hero trigger,'],
-                ['id' => 22, 'loraId' => 1, 'name' => 'B', 'content' => 'hero trigger,'],
+                ['id' => 21, 'loraId' => 1, 'name' => 'A', 'content' => 'hero trigger,', 'negativeContent' => ''],
+                ['id' => 22, 'loraId' => 1, 'name' => 'B', 'content' => 'hero trigger,', 'negativeContent' => ''],
             ],
             [],
         );
@@ -175,7 +175,7 @@ final class ImportedPromptMatcherTest extends TestCase
         return new GetPromptOptionsResult([[
             'id' => 1, 'categoryId' => null, 'name' => '髪', 'selectionMode' => 'multiple', 'position' => 1,
             'systemManaged' => false,
-            'options' => [['id' => 10, 'position' => 1, 'name' => 'Long', 'content' => 'blue eyes, long hair,']],
+            'options' => [['id' => 10, 'position' => 1, 'name' => 'Long', 'content' => 'blue eyes, long hair,', 'negativeContent' => '']],
         ]]);
     }
 }

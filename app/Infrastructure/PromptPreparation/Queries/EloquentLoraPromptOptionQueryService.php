@@ -58,24 +58,27 @@ final class EloquentLoraPromptOptionQueryService implements LoraPromptOptionQuer
                 'lora_triggers.lora_id',
                 'lora_triggers.name',
                 'lora_triggers.content',
+                'lora_triggers.negative_content',
             ])
             ->map(fn (object $row): array => [
                 'id' => (int) $row->id,
                 'loraId' => (int) $row->lora_id,
                 'name' => (string) $row->name,
                 'content' => (string) $row->content,
+                'negativeContent' => (string) $row->negative_content,
             ])->all());
 
         $outfits = array_values(DB::table('outfits')
             ->whereIn('lora_id', $loraIds)
             ->orderBy('name')
             ->orderBy('id')
-            ->get(['id', 'lora_id', 'name', 'content'])
+            ->get(['id', 'lora_id', 'name', 'content', 'negative_content'])
             ->map(fn (object $row): array => [
                 'id' => (int) $row->id,
                 'loraId' => (int) $row->lora_id,
                 'name' => (string) $row->name,
                 'content' => (string) $row->content,
+                'negativeContent' => (string) $row->negative_content,
             ])->all());
 
         return new GetLoraPromptOptionsResult($loras, $triggers, $outfits);

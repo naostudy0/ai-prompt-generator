@@ -20,11 +20,15 @@ final readonly class SaveOutfitPromptHandler
     public function handle(SaveOutfitPromptInput $input): SaveOutfitPromptResult
     {
         $this->loraRepository->ensureKind($input->loraId, LoraKind::Character);
+        $existing = $input->id === null ? null : $this->repository->get($input->id);
         $saved = $this->repository->save(new OutfitPrompt(
             id: $input->id,
             loraId: $input->loraId,
             name: $input->name,
             content: PromptText::fromInput($input->content),
+            negativeContent: PromptText::fromInput($input->hasNegativeContent
+                ? ($input->negativeContent ?? '')
+                : ($existing?->negativeContent->value ?? '')),
         ));
 
         if ($saved->id === null) {
@@ -36,6 +40,7 @@ final readonly class SaveOutfitPromptHandler
             loraId: $saved->loraId,
             name: $saved->name,
             content: $saved->content->value,
+            negativeContent: $saved->negativeContent->value,
             formatSucceeded: $saved->content->formatSucceeded,
         );
     }

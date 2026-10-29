@@ -22,7 +22,11 @@ export const initializeClothingLoraOptionsPage = ({
     if (!view || !(root instanceof view.HTMLElement)) {
         onLoadedChange(true);
         return {
-            getSelections: () => ({ clothingLoras: '', clothingLoraTriggers: '' }),
+            getSelections: () => ({
+                clothingLoras: '',
+                clothingLoraTriggers: '',
+                clothingLoraTriggerNegatives: [],
+            }),
             getSelectionSnapshot: () => [],
             hasSelectionIds: () => false,
             restoreSelection: () => false,
@@ -126,6 +130,10 @@ export const initializeClothingLoraOptionsPage = ({
             item?.recommendedStrength ?? 1,
         );
         page.querySelector('[data-clothing-option-content]').value = item?.content ?? '';
+        const negativeContent = page.querySelector('[data-clothing-option-negative-content]');
+        if (negativeContent) {
+            negativeContent.value = item?.negativeContent ?? '';
+        }
         page.querySelector('[data-clothing-lora-fields]').hidden = type !== 'lora';
         page.querySelector('[data-clothing-trigger-fields]').hidden = type !== 'trigger';
         page.querySelector('[data-clothing-option-status]').textContent = '';
@@ -316,6 +324,9 @@ export const initializeClothingLoraOptionsPage = ({
                       loraId: state.editingLoraId,
                       name: page.querySelector('[data-clothing-trigger-name]').value,
                       content: page.querySelector('[data-clothing-option-content]').value,
+                      negativeContent:
+                          page.querySelector('[data-clothing-option-negative-content]')?.value ??
+                          '',
                   };
         formStatus.textContent = '保存しています。';
         state.busy = true;
@@ -406,6 +417,14 @@ export const initializeClothingLoraOptionsPage = ({
             return {
                 clothingLoras: sections.loras,
                 clothingLoraTriggers: sections.triggers,
+                clothingLoraTriggerNegatives: state.loras
+                    .filter((lora) => state.selections.has(lora.id))
+                    .map((lora) => {
+                        const triggerId = state.selections.get(lora.id)?.triggerId;
+                        return state.triggers.find((trigger) => trigger.id === triggerId)
+                            ?.negativeContent;
+                    })
+                    .filter((content) => typeof content === 'string' && content !== ''),
             };
         },
         getSelectionSnapshot: () =>

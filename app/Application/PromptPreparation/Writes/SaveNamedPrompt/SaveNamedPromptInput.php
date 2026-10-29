@@ -8,6 +8,8 @@ final readonly class SaveNamedPromptInput
         public ?int $id,
         public string $name,
         public string $content,
+        public ?string $negativeContent = null,
+        public bool $hasNegativeContent = false,
     ) {
     }
 }

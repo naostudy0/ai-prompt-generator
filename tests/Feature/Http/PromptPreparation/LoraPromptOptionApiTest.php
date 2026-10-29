@@ -170,14 +170,33 @@ class LoraPromptOptionApiTest extends TestCase
                     'loraId' => $loraId,
                     'name' => $triggerName,
                     'content' => $triggerContent,
+                    'negativeContent' => '',
                 ]],
                 'outfits' => [[
                     'id' => $outfitResponse->json('id'),
                     'loraId' => $loraId,
                     'name' => $outfitName,
                     'content' => $outfitContent,
+                    'negativeContent' => '',
                 ]],
             ]);
+    }
+
+    public function test_服装のnegativeを保存し人物トリガーのnegativeは拒否する(): void
+    {
+        $loraId = $this->createLora('人物', 'person.safetensors', 1);
+        $outfit = $this->postJson(route('outfits.store'), [
+            'loraId' => $loraId, 'name' => '制服', 'content' => 'uniform', 'negativeContent' => 'casual clothes',
+        ])->assertCreated()->assertJsonPath('negativeContent', 'casual clothes,');
+        $this->getJson(route('lora-prompt-options.index'))
+            ->assertJsonPath('outfits.0.negativeContent', 'casual clothes,');
+
+        $this->putJson(route('outfits.update', ['outfit' => $outfit->json('id')]), [
+            'loraId' => $loraId, 'name' => '制服', 'content' => 'school uniform',
+        ])->assertOk()->assertJsonPath('negativeContent', 'casual clothes,');
+        $this->postJson(route('lora-triggers.store'), [
+            'loraId' => $loraId, 'name' => '標準', 'content' => 'person', 'negativeContent' => 'other person',
+        ])->assertUnprocessable()->assertJsonValidationErrors('negativeContent');
     }
 
     public function test_LoRAの登録内容と推奨強度を編集する(): void

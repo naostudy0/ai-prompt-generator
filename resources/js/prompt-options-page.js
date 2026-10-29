@@ -1,5 +1,6 @@
 import {
     createOptionSections,
+    createOptionNegativeSections,
     changeOptionGroupCategory,
     deleteOptionCategory,
     deleteOption,
@@ -28,7 +29,7 @@ export const initializePromptOptionsPage = ({
     if (!view || !(root instanceof view.HTMLElement)) {
         onLoadedChange(true);
         return {
-            getSections: () => ({ optionGroups: [] }),
+            getSections: () => ({ optionGroups: [], negativeOptionGroups: [] }),
             getSelectionSnapshot: () => [],
             hasSelectionIds: () => false,
             restoreSelection: () => false,
@@ -795,6 +796,10 @@ export const initializePromptOptionsPage = ({
         page.querySelector('[data-category-id]').value = option?.id ?? '';
         page.querySelector('[data-category-name]').value = option?.name ?? '';
         page.querySelector('[data-category-content]').value = option?.content ?? '';
+        const negativeContent = page.querySelector('[data-category-negative-content]');
+        if (negativeContent) {
+            negativeContent.value = option?.negativeContent ?? '';
+        }
         page.querySelector('[data-category-form-status]').textContent = '';
         show(itemDialog);
     };
@@ -962,6 +967,7 @@ export const initializePromptOptionsPage = ({
         void saveOption(fetcher, page.dataset.promptOptionsUrl, csrfToken, editingItemId, {
             name: page.querySelector('[data-category-name]').value,
             content: page.querySelector('[data-category-content]').value,
+            negativeContent: page.querySelector('[data-category-negative-content]')?.value ?? '',
             ...(editingItemId === null ? { groupId: itemGroupId } : {}),
         })
             .then(async (savedOption) => {
@@ -1148,7 +1154,10 @@ export const initializePromptOptionsPage = ({
             void assignCategory(id, categoryId);
         },
         reload: () => load(),
-        getSections: () => ({ optionGroups: createOptionSections(groups, selectedIds) }),
+        getSections: () => ({
+            optionGroups: createOptionSections(groups, selectedIds),
+            negativeOptionGroups: createOptionNegativeSections(groups, selectedIds),
+        }),
         getSelectionSnapshot: () => [...selectedIds],
         hasSelectionIds: (snapshot) => {
             const requested = Array.isArray(snapshot) ? snapshot : [];

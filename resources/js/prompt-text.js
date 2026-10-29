@@ -68,3 +68,13 @@ export const normalizePromptForComparison = (content) => {
     }
     return [...new Set(elements)].join('\n');
 };
+
+export const createLinkedNegativePrompt = (
+    defaultContent,
+    [clothing = [], outfits = [], options = []],
+) => {
+    const optionSections = mergeUniquePromptGroups([options]);
+    return [defaultContent, ...clothing, ...outfits, ...optionSections]
+        .filter((content) => content !== '')
+        .join('\n\n');
+};

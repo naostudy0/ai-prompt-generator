@@ -15,12 +15,17 @@ final class SaveLoraTriggerController extends Controller
 {
     public function __invoke(SaveLoraTriggerRequest $request, SaveLoraTriggerHandler $handler, ?int $trigger = null): JsonResponse
     {
+        if ($request->filled('negativeContent')) {
+            throw ValidationException::withMessages(['negativeContent' => ['人物LoRAのトリガーにはnegativeを設定できません。']]);
+        }
         try {
             $result = $handler->handle(new SaveLoraTriggerInput(
                 id: $trigger,
                 loraId: $request->integer('loraId'),
                 name: $request->string('name')->toString(),
                 content: $request->string('content')->toString(),
+                negativeContent: '',
+                hasNegativeContent: true,
             ), LoraKind::Character);
         } catch (LoraKindMismatch) {
             throw ValidationException::withMessages([

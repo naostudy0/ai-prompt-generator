@@ -71,13 +71,18 @@ test('複数選択と単一選択をブロック設定に従って出力する',
     badges[3].click();
     assert.deepEqual(controller.getSections(), {
         optionGroups: ['smile, open mouth,', 'looking away,'],
+        negativeOptionGroups: [],
     });
     controller.reset();
-    assert.deepEqual(controller.getSections(), { optionGroups: [] });
+    assert.deepEqual(controller.getSections(), {
+        optionGroups: [],
+        negativeOptionGroups: [],
+    });
     assert.equal(controller.restoreSelection([10, 21, 999]), false);
     assert.deepEqual(controller.getSelectionSnapshot(), [10, 21]);
     assert.deepEqual(controller.getSections(), {
         optionGroups: ['smile,', 'looking away,'],
+        negativeOptionGroups: [],
     });
 });
 
@@ -367,7 +372,10 @@ test('制作画面でセクションにタグを追加してそのまま選択�
     await new Promise((resolve) => documentObject.defaultView.setTimeout(resolve, 60));
 
     assert.deepEqual(controller.getSelectionSnapshot(), [12]);
-    assert.deepEqual(controller.getSections(), { optionGroups: ['angry,'] });
+    assert.deepEqual(controller.getSections(), {
+        optionGroups: ['angry,'],
+        negativeOptionGroups: [],
+    });
     assert.equal(documentObject.documentElement.scrollTop, 900);
 });
 

@@ -46,12 +46,14 @@ final class EloquentClothingLoraOptionQueryService implements ClothingLoraOption
                 'lora_triggers.lora_id',
                 'lora_triggers.name',
                 'lora_triggers.content',
+                'lora_triggers.negative_content',
             ])
             ->map(fn (object $row): array => [
                 'id' => (int) $row->id,
                 'loraId' => (int) $row->lora_id,
                 'name' => (string) $row->name,
                 'content' => (string) $row->content,
+                'negativeContent' => (string) $row->negative_content,
             ])->all());
 
         return new GetClothingLoraOptionsResult($loras, $triggers);

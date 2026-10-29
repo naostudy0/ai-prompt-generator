@@ -18,6 +18,7 @@ final class SaveClothingLoraTriggerRequest extends FormRequest
             ],
             'name' => ['required', 'string', 'regex:/\S/u'],
             'content' => ['required', 'string', 'regex:/[^,\s]/u'],
+            'negativeContent' => ['sometimes', 'nullable', 'string'],
         ];
     }
 }

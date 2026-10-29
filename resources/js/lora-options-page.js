@@ -24,7 +24,7 @@ export const initializeLoraOptionsPage = ({
     if (!view || !(root instanceof view.HTMLElement)) {
         onLoadedChange(true);
         return {
-            getSelections: () => ({ lora: '', trigger: '', outfit: '' }),
+            getSelections: () => ({ lora: '', trigger: '', outfit: '', outfitNegative: [] }),
             getSelectionSnapshot: () => ({}),
             getVariantCandidates: () => null,
             getCharacterLoraApplication: () => null,
@@ -457,6 +457,16 @@ export const initializeLoraOptionsPage = ({
         });
         renderGenerationSettingFields(item);
         page.querySelector('[data-option-content]').value = item?.content ?? '';
+        const negativeContent = page.querySelector('[data-option-negative-content]');
+        if (negativeContent) {
+            negativeContent.value = item?.negativeContent ?? '';
+            negativeContent.disabled = type === 'trigger';
+            negativeContent.hidden = type === 'trigger';
+        }
+        const negativeContentLabel = page.querySelector('[data-negative-content-label]');
+        if (negativeContentLabel) {
+            negativeContentLabel.hidden = type === 'trigger';
+        }
         page.querySelector('[data-option-form-status]').textContent = '';
         page.querySelector('[data-lora-field]').hidden = type !== 'lora';
         page.querySelector('[data-strength-field]').hidden = type !== 'lora';
@@ -507,7 +517,12 @@ export const initializeLoraOptionsPage = ({
             values = { loraId: state.selectedLoraId, name, content };
         } else {
             const loraId = page.querySelector('[data-option-lora]').value;
-            values = { loraId: Number(loraId), name, content };
+            values = {
+                loraId: Number(loraId),
+                name,
+                content,
+                negativeContent: page.querySelector('[data-option-negative-content]')?.value ?? '',
+            };
         }
 
         status.textContent = '保存しています。';
@@ -737,6 +752,11 @@ export const initializeLoraOptionsPage = ({
                 lora: loraSections[0] ?? '',
                 trigger: selectedItem('trigger')?.content ?? '',
                 outfit: selectedItem('outfit')?.content ?? '',
+                outfitNegative:
+                    selectedItem('outfit')?.negativeContent === undefined ||
+                    selectedItem('outfit')?.negativeContent === ''
+                        ? []
+                        : [selectedItem('outfit').negativeContent],
             };
         },
         getSelectionSnapshot: () => ({

@@ -67,6 +67,8 @@
                     <input id="managed-option-name" class="text-input" data-category-name>
                     <label class="field-label" for="managed-option-content">文面</label>
                     <textarea id="managed-option-content" rows="6" data-category-content></textarea>
+                    <label class="field-label" for="managed-option-negative-content">この項目を選んだときのnegative（任意）</label>
+                    <textarea id="managed-option-negative-content" rows="4" data-category-negative-content></textarea>
                     <p class="editor-status" data-category-form-status role="status" aria-live="polite"></p>
                     <div class="editor-actions">
                         <button class="primary-button" type="submit" data-category-save>保存</button>

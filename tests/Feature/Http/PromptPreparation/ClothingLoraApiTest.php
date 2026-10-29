@@ -47,6 +47,22 @@ class ClothingLoraApiTest extends TestCase
             ->assertJsonPath('loras.0.name', '人物');
     }
 
+    public function test_衣装LoRAトリガーのnegativeを保存して空に戻せる(): void
+    {
+        $lora = $this->postJson(route('clothing-loras.store'), [
+            'name' => 'ドレス', 'fileName' => 'dress.safetensors', 'recommendedStrength' => 1,
+        ])->assertCreated();
+        $trigger = $this->postJson(route('clothing-lora-triggers.store'), [
+            'loraId' => $lora->json('id'), 'name' => '標準', 'content' => 'dress', 'negativeContent' => "pants\nshirt",
+        ])->assertCreated()->assertJsonPath('negativeContent', 'pants, shirt,');
+        $this->getJson(route('clothing-lora-options.index'))
+            ->assertJsonPath('triggers.0.negativeContent', 'pants, shirt,');
+
+        $this->putJson(route('clothing-lora-triggers.update', ['clothingLoraTrigger' => $trigger->json('id')]), [
+            'loraId' => $lora->json('id'), 'name' => '標準', 'content' => 'dress', 'negativeContent' => '',
+        ])->assertOk()->assertJsonPath('negativeContent', '');
+    }
+
     public function test_人物LoRAと衣装LoRAを通して同じファイル名は登録できない(): void
     {
         $fileName = 'same.safetensors';

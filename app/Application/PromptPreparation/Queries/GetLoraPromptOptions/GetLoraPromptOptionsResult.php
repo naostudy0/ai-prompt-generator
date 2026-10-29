@@ -6,8 +6,8 @@ final readonly class GetLoraPromptOptionsResult
 {
     /**
      * @param list<array{id: int, name: string, fileName: string, recommendedStrength: int|float, modelFamilyId: int, checkpointOptionId: int, samplerOptionId: int, schedulerOptionId: int, isHidden: bool, tags: list<string>}> $loras
-     * @param list<array{id: int, loraId: int, name: string, content: string}> $triggers
-     * @param list<array{id: int, loraId: int, name: string, content: string}> $outfits
+     * @param list<array{id: int, loraId: int, name: string, content: string, negativeContent: string}> $triggers
+     * @param list<array{id: int, loraId: int, name: string, content: string, negativeContent: string}> $outfits
      */
     public function __construct(
         public array $loras,

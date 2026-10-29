@@ -9,6 +9,8 @@ final readonly class SaveOutfitPromptInput
         public int $loraId,
         public string $name,
         public string $content,
+        public ?string $negativeContent = null,
+        public bool $hasNegativeContent = false,
     ) {
     }
 }

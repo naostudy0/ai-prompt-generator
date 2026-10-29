@@ -7,7 +7,8 @@ const isOption = (value) =>
     typeof value.name === 'string' &&
     value.name.trim() !== '' &&
     typeof value.content === 'string' &&
-    value.content.replace(/[\s,]/gu, '') !== '';
+    value.content.replace(/[\s,]/gu, '') !== '' &&
+    (value.negativeContent === undefined || typeof value.negativeContent === 'string');
 
 const assertResponse = (response) => {
     if (!response.ok) {
@@ -152,6 +153,17 @@ export const createOptionSections = (groups, selectedIds) =>
                 .map((option) => option.content),
         ),
     );
+
+export const createOptionNegativeSections = (groups, selectedIds) =>
+    mergeUniquePromptGroups([
+        groups.flatMap((group) =>
+            group.options
+                .filter(
+                    (option) => selectedIds.has(option.id) && (option.negativeContent ?? '') !== '',
+                )
+                .map((option) => option.negativeContent ?? ''),
+        ),
+    ]);
 
 export { mergeUniquePromptGroups } from './prompt-text.js';
 import { mergeUniquePromptGroups } from './prompt-text.js';

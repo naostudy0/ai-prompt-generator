@@ -18,11 +18,17 @@ final readonly class SaveLoraTriggerHandler
         SaveLoraTriggerInput $input,
         LoraKind $kind,
     ): SaveLoraTriggerResult {
+        $existing = $input->id === null ? null : $this->repository->get($input->id, $kind);
         $saved = $this->repository->save(new LoraTrigger(
             id: $input->id,
             loraId: $input->loraId,
             name: $input->name,
             content: PromptText::fromInput($input->content),
+            negativeContent: PromptText::fromInput($kind === LoraKind::Character
+                ? ''
+                : ($input->hasNegativeContent
+                    ? ($input->negativeContent ?? '')
+                    : ($existing?->negativeContent->value ?? ''))),
         ), $kind);
 
         if ($saved->id === null) {
@@ -34,6 +40,7 @@ final readonly class SaveLoraTriggerHandler
             loraId: $saved->loraId,
             name: $saved->name,
             content: $saved->content->value,
+            negativeContent: $saved->negativeContent->value,
             formatSucceeded: $saved->content->formatSucceeded,
         );
     }

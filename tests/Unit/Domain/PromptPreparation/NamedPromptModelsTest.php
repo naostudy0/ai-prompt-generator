@@ -3,9 +3,11 @@
 namespace Tests\Unit\Domain\PromptPreparation;
 
 use App\Domain\PromptPreparation\Exceptions\SystemManagedOptionPromptGroup;
+use App\Domain\PromptPreparation\Models\Lora\LoraTrigger;
 use App\Domain\PromptPreparation\Models\OptionPrompt;
 use App\Domain\PromptPreparation\Models\OptionPromptGroup;
 use App\Domain\PromptPreparation\Models\OptionSelectionMode;
+use App\Domain\PromptPreparation\Models\OutfitPrompt;
 use App\Domain\PromptPreparation\Models\PromptText;
 use App\Domain\PromptPreparation\Models\RandomGenerationRole;
 use InvalidArgumentException;
@@ -15,7 +17,7 @@ class NamedPromptModelsTest extends TestCase
 {
     public function test_登録名の前後空白を除いてオプションを作成する(): void
     {
-        $model = new OptionPrompt(12, 1, '  登録名  ', PromptText::fromInput('prompt'), 1);
+        $model = new OptionPrompt(12, 1, '  登録名  ', PromptText::fromInput('prompt'), 1, PromptText::fromInput(''));
 
         self::assertSame('登録名', $model->name);
         self::assertSame('prompt,', $model->content->value);
@@ -25,14 +27,26 @@ class NamedPromptModelsTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
 
-        new OptionPrompt(null, 1, '  ', PromptText::fromInput('prompt'), 1);
+        new OptionPrompt(null, 1, '  ', PromptText::fromInput('prompt'), 1, PromptText::fromInput(''));
     }
 
     public function test_空の文面ではオプションを作成できない(): void
     {
         $this->expectException(InvalidArgumentException::class);
 
-        new OptionPrompt(null, 1, '登録名', PromptText::fromInput(''), 1);
+        new OptionPrompt(null, 1, '登録名', PromptText::fromInput(''), 1, PromptText::fromInput(''));
+    }
+
+    public function test_選択項目の任意negativeを整形して空も保持する(): void
+    {
+        $option = new OptionPrompt(1, 1, '笑顔', PromptText::fromInput('smile'), 1, PromptText::fromInput("bad hands\nextra fingers"));
+        $outfit = new OutfitPrompt(1, 1, '制服', PromptText::fromInput('uniform'), PromptText::fromInput('casual clothes'));
+        $trigger = new LoraTrigger(1, 1, '標準', PromptText::fromInput('dress'), PromptText::fromInput('pants'));
+
+        self::assertSame('bad hands, extra fingers,', $option->negativeContent->value);
+        self::assertSame('casual clothes,', $outfit->negativeContent->value);
+        self::assertSame('pants,', $trigger->negativeContent->value);
+        self::assertSame('', PromptText::fromInput(' , ')->value);
     }
 
     public function test_名前と選択方式を指定してオプションブロックを作成する(): void

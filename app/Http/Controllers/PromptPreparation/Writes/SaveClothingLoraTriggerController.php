@@ -24,6 +24,8 @@ final class SaveClothingLoraTriggerController extends Controller
                 loraId: $request->integer('loraId'),
                 name: $request->string('name')->toString(),
                 content: $request->string('content')->toString(),
+                negativeContent: $request->input('negativeContent'),
+                hasNegativeContent: $request->exists('negativeContent'),
             ), LoraKind::Clothing);
         } catch (LoraKindMismatch) {
             throw ValidationException::withMessages([

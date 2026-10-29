@@ -14,6 +14,7 @@ final readonly class OptionPrompt
         string $name,
         public PromptText $content,
         public int $position,
+        public PromptText $negativeContent,
     ) {
         $this->name = trim($name);
 

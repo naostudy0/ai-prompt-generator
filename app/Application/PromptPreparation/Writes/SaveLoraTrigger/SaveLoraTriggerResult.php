@@ -9,6 +9,7 @@ final readonly class SaveLoraTriggerResult
         public int $loraId,
         public string $name,
         public string $content,
+        public string $negativeContent,
         public bool $formatSucceeded,
     ) {
     }

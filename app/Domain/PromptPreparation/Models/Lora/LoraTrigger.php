@@ -14,6 +14,7 @@ final readonly class LoraTrigger
         public int $loraId,
         string $name,
         public PromptText $content,
+        public PromptText $negativeContent,
     ) {
         $trimmed = trim($name);
 

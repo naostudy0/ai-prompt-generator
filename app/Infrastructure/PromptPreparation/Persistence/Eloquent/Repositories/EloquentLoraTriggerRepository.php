@@ -13,6 +13,16 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 final class EloquentLoraTriggerRepository implements LoraTriggerRepository
 {
+    public function get(int $id, LoraKind $kind): LoraTrigger
+    {
+        $record = LoraTriggerRecord::query()->findOrFail($id);
+        if ($record->lora()->firstOrFail()->kind !== $kind->value) {
+            throw new LoraKindMismatch('The LoRA trigger kind does not match the requested operation.');
+        }
+
+        return $this->toDomain($record);
+    }
+
     public function save(LoraTrigger $trigger, LoraKind $kind): LoraTrigger
     {
         $parent = LoraRecord::query()->findOrFail($trigger->loraId);
@@ -30,13 +40,20 @@ final class EloquentLoraTriggerRepository implements LoraTriggerRepository
             'lora_id' => $trigger->loraId,
             'name' => $trigger->name,
             'content' => $trigger->content->value,
+            'negative_content' => $trigger->negativeContent->value,
         ])->save();
 
+        return $this->toDomain($record);
+    }
+
+    private function toDomain(LoraTriggerRecord $record): LoraTrigger
+    {
         return new LoraTrigger(
             id: $record->getKey(),
             loraId: $record->lora_id,
             name: $record->name,
             content: PromptText::fromInput($record->content),
+            negativeContent: PromptText::fromInput($record->negative_content),
         );
     }
 

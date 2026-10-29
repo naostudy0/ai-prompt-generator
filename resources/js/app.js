@@ -14,7 +14,7 @@ import { initializePromptSidebars } from './prompt-sidebars.js';
 import { initializePromptClips } from './prompt-clips.js';
 import { adjustPromptWeight } from './prompt-weight-adjustment.js';
 import { initializeFavoritePromptsPage } from './favorite-prompts-page.js';
-import { normalizePromptForComparison } from './prompt-text.js';
+import { createLinkedNegativePrompt, normalizePromptForComparison } from './prompt-text.js';
 import { initializeCharacterLoraVariantPage } from './character-lora-variant-page.js';
 import { initializeIllustrationPromptGenerator } from './illustration-prompt-generator.js';
 import { initializeIllustrationScenarioGenerator } from './illustration-scenario-generator.js';
@@ -96,7 +96,7 @@ export const initializePromptPreparationPage = ({
     let previousPositiveOutput = '';
     let characterVariantController = { updateAvailability: () => {} };
     let loraOptionsController = {
-        getSelections: () => ({ lora: '', trigger: '', outfit: '' }),
+        getSelections: () => ({ lora: '', trigger: '', outfit: '', outfitNegative: [] }),
         getSelectionSnapshot: () => ({}),
         getVariantCandidates: () => null,
         getCharacterLoraApplication: () => null,
@@ -104,7 +104,11 @@ export const initializePromptPreparationPage = ({
         reset: () => {},
     };
     let clothingLoraOptionsController = {
-        getSelections: () => ({ clothingLoras: '', clothingLoraTriggers: '' }),
+        getSelections: () => ({
+            clothingLoras: '',
+            clothingLoraTriggers: '',
+            clothingLoraTriggerNegatives: [],
+        }),
         getSelectionSnapshot: () => [],
         restoreSelection: () => false,
         reset: () => {},
@@ -552,6 +556,11 @@ export const initializePromptPreparationPage = ({
             outputs.positive,
             createPositivePromptSections({ ...lora, ...clothingLora }, categories),
         );
+        outputs.negative = createLinkedNegativePrompt(outputs.negative, [
+            clothingLora.clothingLoraTriggerNegatives,
+            lora.outfitNegative,
+            categories.negativeOptionGroups,
+        ]);
         const nextVariantMetadata = createCharacterLoraSourceMetadata(
             createPromptOutputs(currentPrompts, selectedPrompts).positive,
             lora.lora,
@@ -589,6 +598,12 @@ export const initializePromptPreparationPage = ({
                 promptCategoriesController.getSections(),
             ),
         );
+        const categories = promptCategoriesController.getSections();
+        outputs.negative = createLinkedNegativePrompt(outputs.negative, [
+            clothingLora.clothingLoraTriggerNegatives,
+            lora.outfitNegative,
+            categories.negativeOptionGroups,
+        ]);
         return { outputs, lora, currentPrompts };
     };
 

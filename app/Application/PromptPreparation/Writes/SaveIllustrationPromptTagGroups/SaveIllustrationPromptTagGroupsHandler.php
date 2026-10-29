@@ -61,6 +61,7 @@ final readonly class SaveIllustrationPromptTagGroupsHandler
                     $candidate->label,
                     PromptText::fromInput($candidate->tags),
                     $position++,
+                    PromptText::fromInput(''),
                 ));
                 $savedCount++;
             }

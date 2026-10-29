@@ -62,8 +62,8 @@ final class SaveIllustrationPromptTagGroupsHandlerTest extends TestCase
             'ai_prompt_suggestions',
         ));
         $prompts = new InMemoryOptionPromptRepository([
-            new OptionPrompt(10, 8, '既存', PromptText::fromInput('classroom, sunset'), 1),
-            new OptionPrompt(11, 99, '移動済み', PromptText::fromInput('long hair, black hair'), 1),
+            new OptionPrompt(10, 8, '既存', PromptText::fromInput('classroom, sunset'), 1, PromptText::fromInput('')),
+            new OptionPrompt(11, 99, '移動済み', PromptText::fromInput('long hair, black hair'), 1, PromptText::fromInput('')),
         ]);
         $handler = new SaveIllustrationPromptTagGroupsHandler(
             $groups,
@@ -179,6 +179,7 @@ final class InMemoryOptionPromptRepository implements OptionPromptRepository
             $prompt->name,
             $prompt->content,
             $prompt->position,
+            $prompt->negativeContent,
         );
         $this->prompts[] = $saved;
 

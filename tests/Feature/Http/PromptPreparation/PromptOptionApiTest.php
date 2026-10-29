@@ -57,6 +57,7 @@ class PromptOptionApiTest extends TestCase
         $this->getJson(route('prompt-options.index'))
             ->assertJsonPath('groups.0.options.0', [
                 'id' => $id, 'position' => 1, 'name' => '笑顔', 'content' => 'smile, open mouth,',
+                'negativeContent' => '',
             ]);
 
         $this->putJson(route('prompt-options.update', ['option' => $id]), [
@@ -64,6 +65,24 @@ class PromptOptionApiTest extends TestCase
         ])->assertOk()->assertJson(['id' => $id, 'name' => '微笑み', 'content' => 'soft smile,']);
         $this->deleteJson(route('prompt-options.destroy', ['option' => $id]))->assertNoContent();
         $this->assertDatabaseMissing('option_prompts', ['id' => $id]);
+    }
+
+    public function test_項目のnegativeを保存して省略更新では保持し明示した空で解除する(): void
+    {
+        $created = $this->postJson(route('prompt-options.store'), [
+            'name' => '笑顔', 'content' => 'smile', 'negativeContent' => "sad\ncrying", 'groupId' => 1,
+        ])->assertCreated()->assertJsonPath('negativeContent', 'sad, crying,');
+        $id = (int) $created->json('id');
+        $this->getJson(route('prompt-options.index'))
+            ->assertJsonPath('groups.0.options.0.negativeContent', 'sad, crying,');
+
+        $this->putJson(route('prompt-options.update', ['option' => $id]), [
+            'name' => '微笑み', 'content' => 'soft smile',
+        ])->assertOk()->assertJsonPath('negativeContent', 'sad, crying,');
+        $this->putJson(route('prompt-options.update', ['option' => $id]), [
+            'name' => '微笑み', 'content' => 'soft smile', 'negativeContent' => null,
+        ])->assertOk()->assertJsonPath('negativeContent', '');
+        $this->assertDatabaseHas('option_prompts', ['id' => $id, 'negative_content' => '']);
     }
 
     public function test_ブロックと項目を並べ替えて項目を別ブロックへ移動する(): void

@@ -257,12 +257,12 @@
                                         class="select-button"
                                         type="button"
                                         aria-pressed="true"
-                                        aria-label="{{ $prompt['polarity'] }}のデフォルトを選択"
+                                        aria-label="{{ $prompt['polarity'] === 'negative' ? '共通negativeを使用' : 'positiveのデフォルトを選択' }}"
                                         data-select
                                         disabled
                                     >
                                         <span data-selection-marker aria-hidden="true">✓</span>
-                                        デフォルト
+                                        {{ $prompt['polarity'] === 'negative' ? '共通negativeを使用' : 'デフォルト' }}
                                     </button>
                                     <button
                                         class="edit-button"
@@ -686,6 +686,8 @@
                     <div data-content-field hidden>
                         <label class="field-label" for="option-content">文面</label>
                         <textarea id="option-content" rows="6" data-option-content></textarea>
+                        <label class="field-label" for="option-negative-content" data-negative-content-label>この項目を選んだときのnegative（任意）</label>
+                        <textarea id="option-negative-content" rows="4" data-option-negative-content></textarea>
                     </div>
                     <p class="editor-status" data-option-form-status role="status" aria-live="polite"></p>
                     <div class="editor-actions">
@@ -728,6 +730,8 @@
                         <input id="clothing-trigger-name" class="text-input" data-clothing-trigger-name>
                         <label class="field-label" for="clothing-option-content">文面</label>
                         <textarea id="clothing-option-content" rows="6" data-clothing-option-content></textarea>
+                        <label class="field-label" for="clothing-option-negative-content">この項目を選んだときのnegative（任意）</label>
+                        <textarea id="clothing-option-negative-content" rows="4" data-clothing-option-negative-content></textarea>
                     </div>
                     <p class="editor-status" data-clothing-option-status role="status" aria-live="polite"></p>
                     <div class="editor-actions">

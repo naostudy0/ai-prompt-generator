@@ -90,6 +90,7 @@ test('衣装LoRAを複数選択して個別の強度とトリガーを出力し�
     assert.deepEqual(controller.getSelections(), {
         clothingLoras: '<lora:Dress.safetensors:0.9>, <lora:Jacket.safetensors:1>,',
         clothingLoraTriggers: 'dress, jacket,',
+        clothingLoraTriggerNegatives: [],
     });
     assert.equal(
         sidebarSnapshot.selectionGroups[0].items.every(
@@ -128,6 +129,7 @@ test('衣装LoRAを複数選択して個別の強度とトリガーを出力し�
     assert.deepEqual(controller.getSelections(), {
         clothingLoras: '',
         clothingLoraTriggers: '',
+        clothingLoraTriggerNegatives: [],
     });
     assert.equal(documentObject.querySelector('[data-clothing-lora-search]').value, '');
     assert.deepEqual(sidebarSnapshot.selectionGroups[0].items, []);

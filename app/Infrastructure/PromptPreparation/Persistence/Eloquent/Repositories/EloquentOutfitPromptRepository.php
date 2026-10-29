@@ -10,6 +10,11 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 final class EloquentOutfitPromptRepository implements OutfitPromptRepository
 {
+    public function get(int $id): OutfitPrompt
+    {
+        return $this->toDomain(OutfitPromptRecord::query()->findOrFail($id));
+    }
+
     public function save(OutfitPrompt $outfit): OutfitPrompt
     {
         $record = $outfit->id === null
@@ -20,13 +25,20 @@ final class EloquentOutfitPromptRepository implements OutfitPromptRepository
             'lora_id' => $outfit->loraId,
             'name' => $outfit->name,
             'content' => $outfit->content->value,
+            'negative_content' => $outfit->negativeContent->value,
         ])->save();
 
+        return $this->toDomain($record);
+    }
+
+    private function toDomain(OutfitPromptRecord $record): OutfitPrompt
+    {
         return new OutfitPrompt(
             id: $record->getKey(),
             loraId: $record->lora_id,
             name: $record->name,
             content: PromptText::fromInput($record->content),
+            negativeContent: PromptText::fromInput($record->negative_content),
         );
     }
 

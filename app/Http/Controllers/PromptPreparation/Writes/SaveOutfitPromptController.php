@@ -17,6 +17,8 @@ final class SaveOutfitPromptController extends Controller
             loraId: $request->integer('loraId'),
             name: $request->string('name')->toString(),
             content: $request->string('content')->toString(),
+            negativeContent: $request->input('negativeContent'),
+            hasNegativeContent: $request->exists('negativeContent'),
         ));
 
         return response()->json($result, $outfit === null ? 201 : 200);

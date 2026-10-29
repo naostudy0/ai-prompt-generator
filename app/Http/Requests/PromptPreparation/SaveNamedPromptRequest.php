@@ -12,6 +12,7 @@ final class SaveNamedPromptRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'regex:/\S/u'],
             'content' => ['required', 'string', 'regex:/[^,\s]/u'],
+            'negativeContent' => ['sometimes', 'nullable', 'string'],
         ];
     }
 }

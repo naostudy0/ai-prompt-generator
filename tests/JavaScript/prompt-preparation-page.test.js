@@ -915,12 +915,14 @@ test('全カテゴリの選択概要を表示して確定順でpositiveへ出力
                                 position: 1,
                                 name: '高精細',
                                 content: 'detailed, sharp focus,',
+                                negativeContent: 'low quality,',
                             },
                             {
                                 id: 10,
                                 position: 2,
                                 name: '精密',
                                 content: 'sharp focus, intricate,',
+                                negativeContent: 'low quality,',
                             },
                         ],
                     },
@@ -942,7 +944,15 @@ test('全カテゴリの選択概要を表示して確定順でpositiveへ出力
                         ),
                     },
                 ],
-                triggers: [{ id: 21, loraId: 20, name: '標準', content: 'clothing trigger,' }],
+                triggers: [
+                    {
+                        id: 21,
+                        loraId: 20,
+                        name: '標準',
+                        content: 'clothing trigger,',
+                        negativeContent: 'pants,',
+                    },
+                ],
             });
         }
         return successfulResponse({
@@ -956,7 +966,15 @@ test('全カテゴリの選択概要を表示して確定順でpositiveへ出力
                 },
             ],
             triggers: [{ id: 2, loraId: 1, name: '標準', content: 'character, long hair,' }],
-            outfits: [{ id: 3, loraId: 1, name: '制服', content: 'school uniform,' }],
+            outfits: [
+                {
+                    id: 3,
+                    loraId: 1,
+                    name: '制服',
+                    content: 'school uniform,',
+                    negativeContent: 'casual clothes,',
+                },
+            ],
         });
     };
 
@@ -1027,7 +1045,7 @@ test('全カテゴリの選択概要を表示して確定順でpositiveへ出力
     );
     assert.equal(
         documentObject.querySelector('[data-output="negative"] [data-output-content]').value,
-        'bad anatomy,',
+        'bad anatomy,\n\npants,\n\ncasual clothes,\n\nlow quality,',
     );
 });
 

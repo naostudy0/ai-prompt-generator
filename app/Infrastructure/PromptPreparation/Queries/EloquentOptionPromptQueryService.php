@@ -11,7 +11,7 @@ final class EloquentOptionPromptQueryService implements OptionPromptQueryService
     public function getAll(): GetPromptOptionsResult
     {
         $options = DB::table('option_prompts')->orderBy('position')
-            ->get(['id', 'option_prompt_group_id', 'position', 'name', 'content'])->groupBy('option_prompt_group_id');
+            ->get(['id', 'option_prompt_group_id', 'position', 'name', 'content', 'negative_content'])->groupBy('option_prompt_group_id');
         $groups = DB::table('option_prompt_groups')->orderBy('position')
             ->get([
                 'id',
@@ -39,6 +39,7 @@ final class EloquentOptionPromptQueryService implements OptionPromptQueryService
                         'position' => (int) $data['position'],
                             'name' => (string) $data['name'],
                             'content' => (string) $data['content'],
+                            'negativeContent' => (string) $data['negative_content'],
                         ];
                     })->values()->all()),
                 ];

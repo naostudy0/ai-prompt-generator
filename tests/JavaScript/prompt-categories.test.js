@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
     createOptionSections,
+    createOptionNegativeSections,
     filterOptionsKeepingSelection,
     moveOption,
     requestPromptOptions,
@@ -41,6 +42,19 @@ test('選択した項目をブロック単位で重複を除いて出力する',
     assert.deepEqual(createOptionSections(groupsResponse.groups, new Set([10, 11])), [
         'smile, open mouth,',
     ]);
+});
+
+test('選択した項目のnegativeをブロックをまたいで重複除去する', () => {
+    const groups = [
+        {
+            ...groupsResponse.groups[0],
+            options: groupsResponse.groups[0].options.map((option) => ({
+                ...option,
+                negativeContent: 'sad,',
+            })),
+        },
+    ];
+    assert.deepEqual(createOptionNegativeSections(groups, new Set([10, 11])), ['sad,']);
 });
 
 test('検索に一致しない選択中の項目は元の位置へ残す', () => {

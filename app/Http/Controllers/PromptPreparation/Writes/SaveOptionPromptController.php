@@ -19,6 +19,8 @@ final class SaveOptionPromptController extends Controller
             id: $option,
             name: $request->string('name')->toString(),
             content: $request->string('content')->toString(),
+            negativeContent: $request->input('negativeContent'),
+            hasNegativeContent: $request->exists('negativeContent'),
         ), isset($validated['groupId']) ? (int) $validated['groupId'] : null);
 
         return response()->json($result, $option === null ? 201 : 200);
